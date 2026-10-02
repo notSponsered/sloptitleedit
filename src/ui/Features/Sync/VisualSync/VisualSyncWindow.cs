@@ -44,10 +44,9 @@ public class VisualSyncWindow : Window
             Width = double.NaN,
             IsReadOnly = true,
             DrawGridLines = Se.Settings.Waveform.DrawGridLines,
-            WaveformColor = Se.Settings.Waveform.WaveformColor.FromHexToColor(),
-            WaveformSelectedColor = Se.Settings.Waveform.WaveformSelectedColor.FromHexToColor(),
             InvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel,
         };
+        vm.AudioVisualizerLeft.UpdateTheme();
         vm.AudioVisualizerLeft.OnVideoPositionChanged += vm.AudioVisualizerLeftPositionChanged;
         vm.AudioVisualizerLeft.OnPrimarySingleClicked += vm.AudioVisualizerLeft_OnPrimarySingleClicked;
 
@@ -57,10 +56,9 @@ public class VisualSyncWindow : Window
             Width = double.NaN,
             IsReadOnly = true,
             DrawGridLines = Se.Settings.Waveform.DrawGridLines,
-            WaveformColor = Se.Settings.Waveform.WaveformColor.FromHexToColor(),
-            WaveformSelectedColor = Se.Settings.Waveform.WaveformSelectedColor.FromHexToColor(),
             InvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel,
         };
+        vm.AudioVisualizerRight.UpdateTheme();
         vm.AudioVisualizerRight.OnVideoPositionChanged += vm.AudioVisualizerRightPositionChanged;
         vm.AudioVisualizerRight.OnPrimarySingleClicked += vm.AudioVisualizerRight_OnPrimarySingleClicked;
 

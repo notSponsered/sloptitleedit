@@ -42,6 +42,7 @@ public class LanguageMainWaveform
     public string AudioTrack { get; set; }
     public string NoAudioTracks { get; set; }
     public string MoreWaveformSettings { get; set; }
+    public string ColorTheme { get; set; }
     public string ColorGreen { get; set; }
     public string ColorBlue { get; set; }
     public string ColorTeal { get; set; }
@@ -100,6 +101,7 @@ public class LanguageMainWaveform
         AudioTrack = "Audio track";
         NoAudioTracks = "No video loaded";
         MoreWaveformSettings = "More waveform settings...";
+        ColorTheme = "Theme";
         ColorGreen = "Green";
         ColorBlue = "Blue";
         ColorTeal = "Teal";

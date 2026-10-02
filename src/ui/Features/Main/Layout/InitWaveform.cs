@@ -79,16 +79,6 @@ public class InitWaveform
             vm.AudioVisualizer = new AudioVisualizer
             {
                 DrawGridLines = settings.DrawGridLines,
-                WaveformColor = settings.WaveformColor.FromHexToColor(),
-                WaveformBackgroundColor = settings.WaveformBackgroundColor.FromHexToColor(),
-                WaveformSelectedColor = settings.WaveformSelectedColor.FromHexToColor(),
-                WaveformCursorColor = settings.WaveformCursorColor.FromHexToColor(),
-                WaveformShotChangeColor = settings.WaveformShotChangeColor.FromHexToColor(),
-                WaveformParagraphLeftColor = settings.WaveformParagraphLeftColor.FromHexToColor(),
-                WaveformParagraphRightColor = settings.WaveformParagraphRightColor.FromHexToColor(),
-                WaveformFancyHighColor = settings.WaveformFancyHighColor.FromHexToColor(),
-                ParagraphBackground = settings.ParagraphBackground.FromHexToColor(),
-                ParagraphSelectedBackground = settings.ParagraphSelectedBackground.FromHexToColor(),
                 InvertMouseWheel = settings.InvertMouseWheel,
                 VerticalAlignment = VerticalAlignment.Stretch,
                 Height = double.NaN, // Auto height
@@ -96,6 +86,14 @@ public class InitWaveform
                 FocusOnMouseOver = settings.FocusOnMouseOver,
                 IsReadOnly = Se.Settings.General.LockTimeCodes,
                 WaveformHeightPercentage = settings.SpectrogramCombinedWaveformHeight,
+            };
+            WaveformColors.ApplyTo(vm.AudioVisualizer);
+            ChromeStyles.Applied += () => // theme changed: theme colors follow
+            {
+                if (vm.AudioVisualizer != null)
+                {
+                    WaveformColors.ApplyTo(vm.AudioVisualizer);
+                }
             };
             vm.AudioVisualizer.OnNewSelectionInsert += vm.AudioVisualizerOnNewSelectionInsert;
             vm.AudioVisualizer.OnVideoPositionChanged += vm.AudioVisualizerOnVideoPositionChanged;

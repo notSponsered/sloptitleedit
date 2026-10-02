@@ -241,6 +241,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private Color _waveformColor;
     [ObservableProperty] private Color _waveformBackgroundColor;
     [ObservableProperty] private Color _waveformParagraphBackgroundColor;
+    private WaveformColors.Set? _shownWaveformColors;
     [ObservableProperty] private Color _waveformSelectedColor;
     [ObservableProperty] private Color _waveformParagraphSelectedBackgroundColor;
     [ObservableProperty] private Color _waveformCursorColor;
@@ -808,17 +809,19 @@ public partial class SettingsViewModel : ObservableObject
         WaveformFocusTextboxAfterInsertNew = Se.Settings.Waveform.FocusTextBoxAfterInsertNew;
         WaveformTextFontSize = Se.Settings.Waveform.WaveformTextFontSize;
         WaveformTextFontBold = Se.Settings.Waveform.WaveformTextFontBold;
-        WaveformTextColor = Se.Settings.Waveform.WaveformTextColor.FromHexToColor();
-        WaveformColor = Se.Settings.Waveform.WaveformColor.FromHexToColor();
-        WaveformBackgroundColor = Se.Settings.Waveform.WaveformBackgroundColor.FromHexToColor();
-        WaveformParagraphBackgroundColor = Se.Settings.Waveform.ParagraphBackground.FromHexToColor();
-        WaveformSelectedColor = Se.Settings.Waveform.WaveformSelectedColor.FromHexToColor();
-        WaveformParagraphSelectedBackgroundColor = Se.Settings.Waveform.ParagraphSelectedBackground.FromHexToColor();
-        WaveformCursorColor = Se.Settings.Waveform.WaveformCursorColor.FromHexToColor();
+        // the colors on screen: the theme's when the waveform follows the theme
+        _shownWaveformColors = WaveformColors.Current;
+        WaveformTextColor = _shownWaveformColors.Text;
+        WaveformColor = _shownWaveformColors.Wave;
+        WaveformBackgroundColor = _shownWaveformColors.Background;
+        WaveformParagraphBackgroundColor = _shownWaveformColors.ParagraphBackground;
+        WaveformSelectedColor = _shownWaveformColors.Selected;
+        WaveformParagraphSelectedBackgroundColor = _shownWaveformColors.ParagraphSelectedBackground;
+        WaveformCursorColor = _shownWaveformColors.Cursor;
         WaveformShotChangeColor = Se.Settings.Waveform.WaveformShotChangeColor.FromHexToColor();
         WaveformParagraphLeftColor = Se.Settings.Waveform.WaveformParagraphLeftColor.FromHexToColor();
         WaveformParagraphRightColor = Se.Settings.Waveform.WaveformParagraphRightColor.FromHexToColor();
-        WaveformFancyHighColor = Se.Settings.Waveform.WaveformFancyHighColor.FromHexToColor();
+        WaveformFancyHighColor = _shownWaveformColors.FancyHigh;
         WaveformInvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel;
         WaveformSnapToShotChanges = Se.Settings.Waveform.SnapToShotChanges;
         WaveformSnapToFrames = Se.Settings.Waveform.SnapToFrames;
@@ -1484,17 +1487,17 @@ public partial class SettingsViewModel : ObservableObject
 
         Se.Settings.Waveform.WaveformTextFontSize = WaveformTextFontSize;
         Se.Settings.Waveform.WaveformTextFontBold = WaveformTextFontBold;
-        Se.Settings.Waveform.WaveformTextColor = WaveformTextColor.FromColorToHex();
-        Se.Settings.Waveform.WaveformColor = WaveformColor.FromColorToHex();
-        Se.Settings.Waveform.WaveformBackgroundColor = WaveformBackgroundColor.FromColorToHex();
-        Se.Settings.Waveform.ParagraphBackground = WaveformParagraphBackgroundColor.FromColorToHex();
-        Se.Settings.Waveform.ParagraphSelectedBackground = WaveformParagraphSelectedBackgroundColor.FromColorToHex();
-        Se.Settings.Waveform.WaveformSelectedColor = WaveformSelectedColor.FromColorToHex();
-        Se.Settings.Waveform.WaveformCursorColor = WaveformCursorColor.FromColorToHex();
+        // changing any of these colors here leaves the theme colors (waveform settings menu → Colors → Theme goes back)
+        var waveformColors = new WaveformColors.Set(WaveformBackgroundColor, WaveformColor, WaveformSelectedColor, WaveformFancyHighColor,
+            WaveformCursorColor, WaveformParagraphBackgroundColor, WaveformParagraphSelectedBackgroundColor, WaveformTextColor);
+        if (waveformColors != _shownWaveformColors)
+        {
+            Se.Settings.Waveform.UseThemeColors = false;
+            WaveformColors.Save(waveformColors);
+        }
         Se.Settings.Waveform.WaveformShotChangeColor = WaveformShotChangeColor.FromColorToHex();
         Se.Settings.Waveform.WaveformParagraphLeftColor = WaveformParagraphLeftColor.FromColorToHex();
         Se.Settings.Waveform.WaveformParagraphRightColor = WaveformParagraphRightColor.FromColorToHex();
-        Se.Settings.Waveform.WaveformFancyHighColor = WaveformFancyHighColor.FromColorToHex();
         Se.Settings.Waveform.InvertMouseWheel = WaveformInvertMouseWheel;
         Se.Settings.Waveform.SnapToShotChanges = WaveformSnapToShotChanges;
         Se.Settings.Waveform.SnapToFrames = WaveformSnapToFrames;

@@ -7663,18 +7663,8 @@ public partial class MainViewModel :
         if (AudioVisualizer != null)
         {
             AudioVisualizer.DrawGridLines = Se.Settings.Waveform.DrawGridLines;
-            AudioVisualizer.WaveformColor = Se.Settings.Waveform.WaveformColor.FromHexToColor();
-            AudioVisualizer.WaveformBackgroundColor = Se.Settings.Waveform.WaveformBackgroundColor.FromHexToColor();
-            AudioVisualizer.WaveformSelectedColor = Se.Settings.Waveform.WaveformSelectedColor.FromHexToColor();
-            AudioVisualizer.WaveformCursorColor = Se.Settings.Waveform.WaveformCursorColor.FromHexToColor();
-            AudioVisualizer.WaveformShotChangeColor = Se.Settings.Waveform.WaveformShotChangeColor.FromHexToColor();
-            AudioVisualizer.WaveformParagraphLeftColor = Se.Settings.Waveform.WaveformParagraphLeftColor.FromHexToColor();
-            AudioVisualizer.WaveformParagraphRightColor = Se.Settings.Waveform.WaveformParagraphRightColor.FromHexToColor();
-            AudioVisualizer.WaveformFancyHighColor = Se.Settings.Waveform.WaveformFancyHighColor.FromHexToColor();
-            AudioVisualizer.ParagraphBackground = Se.Settings.Waveform.ParagraphBackground.FromHexToColor();
-            AudioVisualizer.ParagraphSelectedBackground = Se.Settings.Waveform.ParagraphSelectedBackground.FromHexToColor();
+            WaveformColors.ApplyTo(AudioVisualizer);
             AudioVisualizer.InvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel;
-            AudioVisualizer.UpdateTheme();
             AudioVisualizer.IsReadOnly = LockTimeCodes;
             AudioVisualizer.WaveformDrawStyle = InitWaveform.GetWaveformDrawStyle(Se.Settings.Waveform.WaveformDrawStyle);
             AudioVisualizer.WaveformHeightPercentage = Se.Settings.Waveform.SpectrogramCombinedWaveformHeight;

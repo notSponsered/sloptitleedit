@@ -62,6 +62,9 @@ internal static class ChromeStyles
 
     public static Palette Current { get; private set; } = MakePalette();
 
+    /// <summary>After every (re)apply, e.g. a theme change; things drawn in code (the waveform) refresh their colors.</summary>
+    public static event Action? Applied;
+
     public static void Apply()
     {
         if (Application.Current == null)
@@ -79,9 +82,10 @@ internal static class ChromeStyles
         Application.Current.Styles.Add(_styles);
         ApplyCaptions();
         SoftenText();
+        Applied?.Invoke();
     }
 
-    private static Palette MakePalette()
+    internal static Palette MakePalette()
     {
         if (Se.Settings.Appearance.Theme == UiTheme.ThemeNameBlender)
         {
@@ -91,6 +95,26 @@ internal static class ChromeStyles
                 TabActive: Hex("#474747"), TabHover: Hex("#3a3a3a"),
                 Text: Hex("#e6e6e6"), Muted: Hex("#9a9a9a"), Accent: Hex("#4772b3"), Outline: Hex("#3d3d3d"),
                 Flat: false, Gap: 4, AreaRadius: 6);
+        }
+
+        if (Se.Settings.Appearance.Theme == UiTheme.ThemeNameClassic)
+        {
+            // Windows classic: beige control face, silver edges, the classic selection blue.
+            return new Palette(
+                Ground: Hex("#aca899"), Bar: Hex("#ece9d8"), Header: Hex("#dedac6"), Body: Hex("#f4f2e8"),
+                TabActive: Hex("#fffffa"), TabHover: Hex("#e3e0cf"),
+                Text: Hex("#000000"), Muted: Hex("#555555"), Accent: Hex("#316ac5"), Outline: Hex("#aca899"),
+                Flat: true, Gap: 1, AreaRadius: 0);
+        }
+
+        if (Se.Settings.Appearance.Theme == UiTheme.ThemeNamePastel)
+        {
+            // Soft lavender, like the Pastel theme's windows and fields.
+            return new Palette(
+                Ground: Hex("#d9cde6"), Bar: Hex("#f0ebff"), Header: Hex("#eae2fa"), Body: Hex("#f8f5ff"),
+                TabActive: Hex("#ffffff"), TabHover: Hex("#e6dcf7"),
+                Text: Hex("#2e2640"), Muted: Hex("#6f6585"), Accent: Hex("#a27bd1"), Outline: Hex("#d5c6e3"),
+                Flat: true, Gap: 1, AreaRadius: 0);
         }
 
         var accent = AccentColor();

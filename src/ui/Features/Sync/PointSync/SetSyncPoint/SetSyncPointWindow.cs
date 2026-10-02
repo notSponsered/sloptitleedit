@@ -41,10 +41,9 @@ public class SetSyncPointWindow : Window
             Width = double.NaN,
             IsReadOnly = true,
             DrawGridLines = Se.Settings.Waveform.DrawGridLines,
-            WaveformColor = Se.Settings.Waveform.WaveformColor.FromHexToColor(),
-            WaveformSelectedColor = Se.Settings.Waveform.WaveformSelectedColor.FromHexToColor(),
             InvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel,
         };
+        vm.AudioVisualizer.UpdateTheme();
         vm.AudioVisualizer.OnVideoPositionChanged += vm.AudioVisualizerLeftPositionChanged;
         vm.AudioVisualizer.OnPrimarySingleClicked += vm.AudioVisualizerOnPrimarySingleClicked;
 

@@ -220,8 +220,7 @@ public class CutVideoWindow : Window
         vm.AudioVisualizer.OnVideoPositionChanged += vm.AudioVisualizerPositionChanged;
         vm.AudioVisualizer.OnNewSelectionInsert += vm.AudioVisualizerOnNewSelectionInsert;
         vm.AudioVisualizer.DrawGridLines = Se.Settings.Waveform.DrawGridLines;
-        vm.AudioVisualizer.WaveformColor = Se.Settings.Waveform.WaveformColor.FromHexToColor();
-        vm.AudioVisualizer.WaveformSelectedColor = Se.Settings.Waveform.WaveformSelectedColor.FromHexToColor();
+        vm.AudioVisualizer.UpdateTheme();
         vm.AudioVisualizer.OnSelectRequested += vm.AudioVisualizerSelectRequested;
         vm.AudioVisualizer.OnPrimarySingleClicked += vm.AudioVisualizerOnPrimarySingleClicked;
         vm.AudioVisualizer.OnPrimaryDoubleClicked += vm.AudioVisualizerOnPrimaryDoubleClicked;

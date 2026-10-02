@@ -625,16 +625,6 @@ public class ReviewSpeechWindow : Window
         var audioVisualizer = new AudioVisualizer
         {
             DrawGridLines = settings.DrawGridLines,
-            WaveformColor = settings.WaveformColor.FromHexToColor(),
-            WaveformBackgroundColor = settings.WaveformBackgroundColor.FromHexToColor(),
-            WaveformSelectedColor = settings.WaveformSelectedColor.FromHexToColor(),
-            WaveformCursorColor = settings.WaveformCursorColor.FromHexToColor(),
-            WaveformShotChangeColor = settings.WaveformShotChangeColor.FromHexToColor(),
-            WaveformParagraphLeftColor = settings.WaveformParagraphLeftColor.FromHexToColor(),
-            WaveformParagraphRightColor = settings.WaveformParagraphRightColor.FromHexToColor(),
-            WaveformFancyHighColor = settings.WaveformFancyHighColor.FromHexToColor(),
-            ParagraphBackground = settings.ParagraphBackground.FromHexToColor(),
-            ParagraphSelectedBackground = settings.ParagraphSelectedBackground.FromHexToColor(),
             InvertMouseWheel = settings.InvertMouseWheel,
             VerticalAlignment = VerticalAlignment.Stretch,
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -645,6 +635,7 @@ public class ReviewSpeechWindow : Window
             WaveformHeightPercentage = settings.SpectrogramCombinedWaveformHeight,
         };
 
+        audioVisualizer.UpdateTheme();
         vm.AudioVisualizer = audioVisualizer;
         audioVisualizer.Bind(AudioVisualizer.WavePeaksProperty, new Binding(nameof(vm.WavePeakData)));
 

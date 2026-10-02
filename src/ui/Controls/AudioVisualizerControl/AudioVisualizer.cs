@@ -227,6 +227,19 @@ public class AudioVisualizer : Control
     public int WaveformHeightPercentage { get; set; } = 50;
     public Color WaveformFancyHighColor { get; set; } = Colors.Orange;
 
+    /// <summary>Subtitle text, number/duration footer and time ruler labels.</summary>
+    public Color WaveformTextColor
+    {
+        get => _textColor;
+        set
+        {
+            _textColor = value;
+            _paintText = new SolidColorBrush(value);
+        }
+    }
+
+    private Color _textColor = Se.Settings.Waveform.WaveformTextColor.FromHexToColor();
+
     private Color _paragraphBackground = Color.FromArgb(90, 70, 70, 70);
 
     public Color ParagraphBackground
@@ -3361,7 +3374,6 @@ public class AudioVisualizer : Control
         _fancyWaveformGradientCache.Clear();
         _timeLineTextCache.Clear();
 
-        _paintText = new SolidColorBrush(Se.Settings.Waveform.WaveformTextColor.FromHexToColor());
         _typeface = new Typeface(UiUtil.GetDefaultFontName(), FontStyle.Normal, Se.Settings.Waveform.WaveformTextFontBold ? FontWeight.Bold : FontWeight.Normal);
         _fontSize = Se.Settings.Waveform.WaveformTextFontSize;
     }
@@ -3374,8 +3386,6 @@ public class AudioVisualizer : Control
         _isMetaDown = e.KeyModifiers.HasFlag(KeyModifiers.Meta);
     }
 
-    internal void UpdateTheme()
-    {
-        //_paintTimeText = UiUtil.GetTextColor();
-    }
+    /// <summary>Waveform colors from the UI theme or the user's own (see <see cref="WaveformColors"/>).</summary>
+    internal void UpdateTheme() => WaveformColors.ApplyTo(this);
 }

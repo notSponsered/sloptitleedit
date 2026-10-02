@@ -78,6 +78,9 @@ public class SeWaveform
     // Every subtitle on the waveform in a clip color (off: only stacked/overlapping lines are colored).
     public bool WaveformColorSubtitles { get; set; }
 
+    // Waveform colors follow the UI theme (waveform settings menu → Colors → Theme); off: the colors above.
+    public bool UseThemeColors { get; set; }
+
     public SeWaveform()
     {
         ShowToolbar = true;
@@ -130,6 +133,7 @@ public class SeWaveform
         WaveformShowDuration = true;
         WaveformShowText = true;
         WaveformColorSubtitles = true;
+        UseThemeColors = true;
         WaveformShowCps = true;
 
         ToolbarItems =

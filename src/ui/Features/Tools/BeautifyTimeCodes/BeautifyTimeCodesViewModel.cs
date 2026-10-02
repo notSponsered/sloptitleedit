@@ -498,14 +498,12 @@ public partial class BeautifyTimeCodesViewModel : ObservableObject, IDisposable
             AudioVisualizerOriginal.StartPositionSeconds = audioVisualizer.StartPositionSeconds;
             AudioVisualizerOriginal.ZoomFactor = audioVisualizer.ZoomFactor;
             AudioVisualizerOriginal.VerticalZoomFactor = audioVisualizer.VerticalZoomFactor;
-            AudioVisualizerOriginal.UpdateTheme();
 
             AudioVisualizerBeautified.WavePeaks = audioVisualizer.WavePeaks;
             AudioVisualizerBeautified.ShotChanges = new List<double>(_shotChanges);
             AudioVisualizerBeautified.StartPositionSeconds = audioVisualizer.StartPositionSeconds;
             AudioVisualizerBeautified.ZoomFactor = audioVisualizer.ZoomFactor;
             AudioVisualizerBeautified.VerticalZoomFactor = audioVisualizer.VerticalZoomFactor;
-            AudioVisualizerBeautified.UpdateTheme();
 
             // Push original paragraphs immediately so the user sees them while the
             // first beautify pass runs in the background.

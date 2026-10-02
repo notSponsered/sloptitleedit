@@ -63,19 +63,31 @@ public static class WaveformSettingsMenu
             StyleChoice(Se.Language.Waveform.WaveformDrawStyleFancy, WaveformDrawStyle.Fancy),
             StyleChoice(Se.Language.Waveform.WaveformDrawStyleLines, WaveformDrawStyle.Lines)));
 
-        var colors = new List<Control> { Label(l.Waveform) };
-        colors.AddRange(ColorPresets.Select(preset => Choice(Swatch(preset.Name(), preset.Wave), Same(s.WaveformColor, preset.Wave),
+        // Theme: every waveform color follows the UI theme; any other choice switches to own colors
+        var useTheme = s.UseThemeColors;
+        var colors = new List<Control>
+        {
+            Choice(Swatch(l.ColorTheme, WaveformColors.FromTheme().Wave.FromColorToHex()), useTheme, () =>
+            {
+                s.UseThemeColors = true;
+                WaveformColors.ApplyTo(visualizer);
+            }),
+            new Separator(),
+            Label(l.Waveform),
+        };
+        colors.AddRange(ColorPresets.Select(preset => Choice(Swatch(preset.Name(), preset.Wave), !useTheme && Same(s.WaveformColor, preset.Wave),
             () => SetWave(preset.Wave, preset.Selected, preset.High))));
         colors.Add(new Separator());
         colors.Add(Label(l.Background));
-        colors.AddRange(Backgrounds.Select(back => Choice(Swatch(back.Name(), back.Hex), Same(s.WaveformBackgroundColor, back.Hex),
+        colors.AddRange(Backgrounds.Select(back => Choice(Swatch(back.Name(), back.Hex), !useTheme && Same(s.WaveformBackgroundColor, back.Hex),
             () => SetBackground(back.Hex))));
         colors.Add(new Separator());
         colors.Add(Check(l.ColorSubtitles, s.WaveformColorSubtitles, on => s.WaveformColorSubtitles = on));
         colors.Add(new Separator());
-        colors.Add(Custom(l.CustomWaveformColor, s.WaveformColor, !ColorPresets.Any(p => Same(s.WaveformColor, p.Wave)), color =>
-            SetWave(color.FromColorToHex(), Color.FromArgb(0xB4, Lighter(color.R), Lighter(color.G), Lighter(color.B)).FromColorToHex(), s.WaveformFancyHighColor)));
-        colors.Add(Custom(l.CustomBackgroundColor, s.WaveformBackgroundColor, !Backgrounds.Any(b => Same(s.WaveformBackgroundColor, b.Hex)), color =>
+        var current = WaveformColors.Current;
+        colors.Add(Custom(l.CustomWaveformColor, current.Wave.FromColorToHex(), !useTheme && !ColorPresets.Any(p => Same(s.WaveformColor, p.Wave)), color =>
+            SetWave(color.FromColorToHex(), Color.FromArgb(0xB4, Lighter(color.R), Lighter(color.G), Lighter(color.B)).FromColorToHex(), current.FancyHigh.FromColorToHex())));
+        colors.Add(Custom(l.CustomBackgroundColor, current.Background.FromColorToHex(), !useTheme && !Backgrounds.Any(b => Same(s.WaveformBackgroundColor, b.Hex)), color =>
             SetBackground(color.FromColorToHex())));
         menu.Items.Add(Sub(l.Colors, colors.ToArray()));
 
@@ -112,20 +124,21 @@ public static class WaveformSettingsMenu
             visualizer.WaveformDrawStyle = value;
         });
 
+        // leaving Theme keeps its other colors (e.g. a new background keeps the theme's wave and text)
         void SetWave(string wave, string selected, string high)
         {
+            WaveformColors.UseOwnColors();
             s.WaveformColor = wave;
             s.WaveformSelectedColor = selected;
             s.WaveformFancyHighColor = high;
-            visualizer.WaveformColor = wave.FromHexToColor();
-            visualizer.WaveformSelectedColor = selected.FromHexToColor();
-            visualizer.WaveformFancyHighColor = high.FromHexToColor();
+            WaveformColors.ApplyTo(visualizer);
         }
 
         void SetBackground(string hex)
         {
+            WaveformColors.UseOwnColors();
             s.WaveformBackgroundColor = hex;
-            visualizer.WaveformBackgroundColor = hex.FromHexToColor();
+            WaveformColors.ApplyTo(visualizer);
         }
 
         // "Custom..." opens the color picker on the current color; checked (with its swatch) when no preset matches
