@@ -28,45 +28,7 @@ public class AssaDrawWindow : Window
         vm.Window = this;
         DataContext = vm;
 
-        var mainGrid = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Star) },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) },
-            },
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
-            },
-            Margin = new Thickness(10),
-        };
-
-        // Toolbar
-        var toolbar = CreateToolbar(vm);
-        Grid.SetRow(toolbar, 0);
-        mainGrid.Children.Add(toolbar);
-
-        // Main content area with canvas and side panel
-        var contentGrid = CreateContentArea(vm, out _canvas);
-        Grid.SetRow(contentGrid, 1);
-        mainGrid.Children.Add(contentGrid);
-
-        // Status bar
-        var statusBar = CreateStatusBar(vm);
-        Grid.SetRow(statusBar, 2);
-        mainGrid.Children.Add(statusBar);
-
-        // Button bar
-        var buttonOk = UiUtil.MakeButtonOk(vm.OkCommand);
-        var buttonCancel = UiUtil.MakeButtonCancel(vm.CancelCommand);
-        var panelButtons = UiUtil.MakeButtonBar(buttonOk, buttonCancel);
-        Grid.SetRow(panelButtons, 3);
-        mainGrid.Children.Add(panelButtons);
-
-        Content = mainGrid;
+        Content = BuildContent(vm, out _canvas);
 
         Loaded += OnLoaded;
         Closing += (_, e) => vm.OnClosing();
@@ -78,6 +40,35 @@ public class AssaDrawWindow : Window
         // Setup the canvas after the window is loaded
         _vm.SetCanvas(_canvas);
         _vm.Initialize();
+    }
+
+    private static Grid BuildContent(AssaDrawViewModel vm, out AssaDrawCanvas canvas)
+    {
+        var mainGrid = new Grid
+        {
+            RowDefinitions = new RowDefinitions("Auto,*,Auto,Auto"),
+            Margin = new Thickness(10),
+        };
+
+        var toolbar = CreateToolbar(vm);
+        Grid.SetRow(toolbar, 0);
+        mainGrid.Children.Add(toolbar);
+
+        var contentGrid = CreateContentArea(vm, out canvas);
+        Grid.SetRow(contentGrid, 1);
+        mainGrid.Children.Add(contentGrid);
+
+        var statusBar = CreateStatusBar(vm);
+        Grid.SetRow(statusBar, 2);
+        mainGrid.Children.Add(statusBar);
+
+        var buttonOk = UiUtil.MakeButtonOk(vm.OkCommand);
+        var buttonCancel = UiUtil.MakeButtonCancel(vm.CancelCommand);
+        var panelButtons = UiUtil.MakeButtonBar(buttonOk, buttonCancel);
+        Grid.SetRow(panelButtons, 3);
+        mainGrid.Children.Add(panelButtons);
+
+        return mainGrid;
     }
 
     private static Border CreateToolbar(AssaDrawViewModel vm)
@@ -131,11 +122,14 @@ public class AssaDrawWindow : Window
         var zoomOutButton = CreateToolButton("fa-solid fa-magnifying-glass-minus", Se.Language.Assa.DrawZoomOut, vm.ZoomOutCommand);
         var resetViewButton = CreateToolButton("fa-solid fa-expand", Se.Language.Assa.DrawResetView, vm.ResetViewCommand);
         var toggleGridButton = CreateToolButton("fa-solid fa-border-all", Se.Language.Assa.DrawToggleGrid, vm.ToggleGridCommand);
+        var toggleVideoBackgroundButton = CreateToolButton("fa-solid fa-image", Se.Language.Assa.DrawToggleVideoBackground, vm.ToggleVideoBackgroundCommand);
+        toggleVideoBackgroundButton[!Button.IsEnabledProperty] = new Binding(nameof(vm.HasVideoFrame));
 
         toolbarPanel.Children.Add(zoomInButton);
         toolbarPanel.Children.Add(zoomOutButton);
         toolbarPanel.Children.Add(resetViewButton);
         toolbarPanel.Children.Add(toggleGridButton);
+        toolbarPanel.Children.Add(toggleVideoBackgroundButton);
 
         toolbarPanel.Children.Add(new Separator { Width = 2, Margin = new Thickness(5, 2) });
 
@@ -206,7 +200,7 @@ public class AssaDrawWindow : Window
             ColumnDefinitions =
             {
                 new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
-                new ColumnDefinition { Width = new GridLength(250, GridUnitType.Pixel) },
+                new ColumnDefinition { Width = GridLength.Auto },
             },
             RowDefinitions =
             {
@@ -327,6 +321,7 @@ public class AssaDrawWindow : Window
         return new Border
         {
             Child = panelGrid,
+            Width = 250,
             BorderBrush = UiUtil.GetBorderBrush(),
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4),

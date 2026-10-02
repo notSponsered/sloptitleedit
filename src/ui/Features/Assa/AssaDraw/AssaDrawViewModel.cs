@@ -53,6 +53,8 @@ public partial class AssaDrawViewModel : ObservableObject
     [ObservableProperty] private bool _shapeIsEraser;
     [ObservableProperty] private Color _layerColor = Colors.White;
     [ObservableProperty] private bool _showGrid = true;
+    [ObservableProperty] private bool _showVideoBackground = true;
+    [ObservableProperty] private bool _hasVideoFrame;
     [ObservableProperty] private ObservableCollection<ShapeTreeItem> _shapeTreeItems = [];
     [ObservableProperty] private ShapeTreeItem? _selectedTreeItem;
     [ObservableProperty] private List<DrawShape> _selectedShapes = [];
@@ -67,6 +69,9 @@ public partial class AssaDrawViewModel : ObservableObject
     private readonly IFileHelper _fileHelper;
     private string _fileName = string.Empty;
     private Subtitle? _subtitle;
+    private string? _videoFileName;
+    private double _videoPositionSeconds;
+    private Avalonia.Media.Imaging.Bitmap? _videoFrameBitmap;
 
     public AssaDrawViewModel(IFileHelper fileHelper)
     {
@@ -76,9 +81,81 @@ public partial class AssaDrawViewModel : ObservableObject
     public void Initialize()
     {
         UiUtil.RestoreWindowPosition(Window);
+
         ZoomToFitCurrentVideoResolution();
         RefreshTreeView();
+        LoadVideoFrame();
         Canvas?.InvalidateVisual();
+    }
+
+    /// <summary>
+    /// Extracts the current video frame in the background and shows it behind the drawing,
+    /// like the "Generate background boxes" preview does.
+    /// </summary>
+    private void LoadVideoFrame()
+    {
+        var videoFileName = _videoFileName;
+        if (string.IsNullOrEmpty(videoFileName) || !File.Exists(videoFileName))
+        {
+            return;
+        }
+
+        // invariant seconds - TimeCode.ToDisplayString() is HH:MM:SS:FF in frame mode, which ffmpeg can't read
+        var timeCode = Math.Max(0, _videoPositionSeconds).ToString("0.000", CultureInfo.InvariantCulture);
+        Task.Run(() =>
+        {
+            try
+            {
+                var screenshotFileName = FfmpegGenerator.GetScreenShot(videoFileName, timeCode);
+                if (!File.Exists(screenshotFileName))
+                {
+                    return;
+                }
+
+                var bitmap = new Avalonia.Media.Imaging.Bitmap(screenshotFileName);
+
+                try
+                {
+                    File.Delete(screenshotFileName);
+                }
+                catch
+                {
+                    // ignore cleanup errors
+                }
+
+                Dispatcher.UIThread.Post(() =>
+                {
+                    var old = _videoFrameBitmap;
+                    _videoFrameBitmap = bitmap;
+                    HasVideoFrame = true;
+                    if (Canvas != null)
+                    {
+                        Canvas.BackgroundImage = bitmap;
+                        Canvas.ShowBackgroundImage = ShowVideoBackground;
+                        Canvas.InvalidateVisual();
+                    }
+
+                    old?.Dispose();
+                });
+            }
+            catch
+            {
+                // no frame available - keep the flat background color
+            }
+        });
+    }
+
+    private void CloseEditor() => Window?.Close();
+
+    [RelayCommand]
+    private void ToggleVideoBackground()
+    {
+        ShowVideoBackground = !ShowVideoBackground;
+        if (Canvas != null)
+        {
+            Canvas.ShowBackgroundImage = ShowVideoBackground;
+            Canvas.InvalidateVisual();
+        }
     }
 
     private void ZoomToFitCurrentVideoResolution()
@@ -121,9 +198,11 @@ public partial class AssaDrawViewModel : ObservableObject
         }, DispatcherPriority.Background);
     }
 
-    public void Initialize(Subtitle subtitle, List<SubtitleLineViewModel> selectedLines, int? width, int? height)
+    public void Initialize(Subtitle subtitle, List<SubtitleLineViewModel> selectedLines, int? width, int? height, string? videoFileName = null, double videoPositionSeconds = 0)
     {
         _subtitle = subtitle;
+        _videoFileName = videoFileName;
+        _videoPositionSeconds = videoPositionSeconds;
         if (width.HasValue && height.HasValue && width.Value >= 0 && height.Value >= 0)
         {
             CanvasWidth = width.Value;
@@ -866,13 +945,13 @@ public partial class AssaDrawViewModel : ObservableObject
         AssaDrawingCode = GenerateAssaCode();
         ResultSubtitle = GenerateSubtitle(true);
         OkPressed = true;
-        Window?.Close();
+        CloseEditor();
     }
 
     [RelayCommand]
     private void Cancel()
     {
-        Window?.Close();
+        CloseEditor();
     }
 
     private void RefreshTreeView()
@@ -1075,7 +1154,7 @@ public partial class AssaDrawViewModel : ObservableObject
             }
 
             e.Handled = true;
-            Window?.Close();
+            CloseEditor();
         }
         else if (e.Key == Key.Enter)
         {
@@ -1152,6 +1231,13 @@ public partial class AssaDrawViewModel : ObservableObject
                     if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
                     {
                         ToggleGrid();
+                        e.Handled = true;
+                    }
+                    break;
+                case Key.B:
+                    if (e.KeyModifiers.HasFlag(KeyModifiers.Control))
+                    {
+                        ToggleVideoBackground();
                         e.Handled = true;
                     }
                     break;
@@ -1344,6 +1430,14 @@ public partial class AssaDrawViewModel : ObservableObject
     public void OnClosing()
     {
         UiUtil.SaveWindowPosition(Window);
+
+        if (Canvas != null)
+        {
+            Canvas.BackgroundImage = null;
+        }
+
+        _videoFrameBitmap?.Dispose();
+        _videoFrameBitmap = null;
     }
 }
 

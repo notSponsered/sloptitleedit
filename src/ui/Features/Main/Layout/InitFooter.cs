@@ -14,6 +14,7 @@ public static class InitFooter
     {
         var grid = new Grid
         {
+            Classes = { "se-status" }, // muted 12 px text, tabular digits (ChromeStyles)
             ColumnDefinitions = new ColumnDefinitions
             {
                 new ColumnDefinition { Width = GridLength.Auto },

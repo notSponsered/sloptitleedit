@@ -17,5 +17,7 @@ public enum SeWaveformToolbarItemType
     PlaybackSpeed,
     AutoSelectOnPlay,
     Center,
-    More
+    More,
+    Snap, // appended: settings store these as numbers
+    Razor,
 }

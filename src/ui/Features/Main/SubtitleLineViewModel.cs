@@ -154,6 +154,7 @@ public partial class SubtitleLineViewModel : ObservableObject
             p.Extra = Style;
         }
 
+        CopyAssEventFields(p);
         return p;
     }
 
@@ -178,7 +179,24 @@ public partial class SubtitleLineViewModel : ObservableObject
             p.Extra = Style;
         }
 
+        CopyAssEventFields(p);
         return p;
+    }
+
+    // Fields the grid doesn't edit but the ASS writer needs; without them every save
+    // turned Comment: lines into Dialogue: and dropped per-line margins/effects.
+    private void CopyAssEventFields(Paragraph p)
+    {
+        if (Paragraph == null)
+        {
+            return;
+        }
+
+        p.IsComment = Paragraph.IsComment;
+        p.MarginL = Paragraph.MarginL;
+        p.MarginR = Paragraph.MarginR;
+        p.MarginV = Paragraph.MarginV;
+        p.Effect = Paragraph.Effect;
     }
 
     public int PixelWidth

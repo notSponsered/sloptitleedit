@@ -1,4 +1,6 @@
+using Nikse.SubtitleEdit.UiLogic.Assa;
 using Nikse.SubtitleEdit.UiLogic.Export;
+using Nikse.SubtitleEdit.UiLogic.MotionTracking;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
@@ -28,7 +30,7 @@ using Nikse.SubtitleEdit.Features.Assa;
 using Nikse.SubtitleEdit.Features.Assa.AssaApplyAdvancedEffect;
 using Nikse.SubtitleEdit.Features.Assa.AssaApplyCustomOverrideTags;
 using Nikse.SubtitleEdit.Features.Assa.AssaDraw;
-using Nikse.SubtitleEdit.Features.Assa.AssaImageColorPicker;
+using Nikse.SubtitleEdit.Features.Assa.AssaMotionTracking;
 using Nikse.SubtitleEdit.Features.Assa.AssaProgressBar;
 using Nikse.SubtitleEdit.Features.Assa.AssaSetBackground;
 using Nikse.SubtitleEdit.Features.Assa.AssaSetPosition;
@@ -94,7 +96,6 @@ using Nikse.SubtitleEdit.Features.Shared.PromptTextBox;
 using Nikse.SubtitleEdit.Features.Shared.SetVideoOffset;
 using Nikse.SubtitleEdit.Features.Shared.SourceView;
 using Nikse.SubtitleEdit.Features.Shared.TextBoxUtils;
-using Nikse.SubtitleEdit.Features.Shared.Undocked;
 using Nikse.SubtitleEdit.Features.Shared.WaveformGuessTimeCodes;
 using Nikse.SubtitleEdit.Features.Shared.WaveformSeekSilence;
 using Nikse.SubtitleEdit.Features.SpellCheck;
@@ -285,8 +286,6 @@ public partial class MainViewModel :
     public NativeMenuItem? NativeMenuAudioTracks { get; set; }
     public AudioVisualizer? AudioVisualizer { get; set; }
 
-    VideoPlayerUndockedViewModel? _videoPlayerUndockedViewModel;
-    AudioVisualizerUndockedViewModel? _audioVisualizerUndockedViewModel;
     FindViewModel? _findViewModel;
     Control? _findPreviousFocus;
     bool _findClosingProgrammatically;
@@ -370,6 +369,7 @@ public partial class MainViewModel :
     public VideoPlayerControl? VideoPlayerControl { get; internal set; }
     public Menu Menu { get; internal set; }
     public Border Toolbar { get; internal set; }
+    public Border ToolbarPickers { get; internal set; } = new(); // format/episode pickers, right side of the menu row
     public Separator? ToolbarTopSeparator { get; internal set; }
     public StackPanel PanelSingleLineLengths { get; internal set; }
     public MenuItem MenuItemMergeAsDialog { get; internal set; }
@@ -390,6 +390,8 @@ public partial class MainViewModel :
     public MenuItem MenuItemAudioVisualizerSplitAtPosition { get; set; }
     public MenuItem MenuItemAudioVisualizerMergeWithPrevious { get; set; }
     public MenuItem MenuItemAudioVisualizerMergeWithNext { get; set; }
+    public MenuItem MenuItemAudioVisualizerFadeIn { get; set; }
+    public MenuItem MenuItemAudioVisualizerFadeOut { get; set; }
     public MenuItem MenuItemAudioVisualizerSpeechToTextSelectedLines { get; set; }
     public MenuItem MenuItemAudioVisualizerSpeechToTextNewSelection { get; set; }
     public MenuItem MenuItemAudioVisualizerExtractAudio { get; set; }
@@ -486,6 +488,8 @@ public partial class MainViewModel :
         MenuItemAudioVisualizerSplitAtPosition = new MenuItem();
         MenuItemAudioVisualizerMergeWithPrevious = new MenuItem();
         MenuItemAudioVisualizerMergeWithNext = new MenuItem();
+        MenuItemAudioVisualizerFadeIn = new MenuItem();
+        MenuItemAudioVisualizerFadeOut = new MenuItem();
         MenuItemAudioVisualizerSpeechToTextSelectedLines = new MenuItem();
         MenuItemAudioVisualizerSpeechToTextNewSelection = new MenuItem();
         MenuItemAudioVisualizerExtractAudio = new MenuItem();
@@ -811,23 +815,21 @@ public partial class MainViewModel :
     {
         var vm = await ShowDialogAsync<LayoutWindow, LayoutViewModel>(viewModel => { viewModel.SelectedLayout = Se.Settings.General.LayoutNumber; });
 
-        if (vm.OkPressed && vm.SelectedLayout != null && vm.SelectedLayout != Se.Settings.General.LayoutNumber)
+        if (vm.OkPressed && vm.SelectedLayout != null)
         {
-            if (AreVideoControlsUndocked)
-            {
-                VideoRedockControls();
-            }
-
-            SetLayout(vm.SelectedLayout.Value);
+            // Loads the classic layout into the current workspace.
+            Se.Settings.General.LayoutNumber = vm.SelectedLayout.Value;
+            AreaHost.LoadPreset(vm.SelectedLayout.Value);
             AutoFitColumns();
         }
     }
 
-    private void SetLayout(int layoutNumber)
+    /// <summary>Rebuilds the main window areas from the active workspace (see <see cref="AreaHost"/>).</summary>
+    internal void RebuildLayout()
     {
-        var idx = SubtitleGrid.SelectedIndex;
+        var idx = SubtitleGrid?.SelectedIndex ?? 0;
         var savedAudioTrack = _audioTrack;
-        Se.Settings.General.LayoutNumber = InitLayout.MakeLayout(MainView!, this, layoutNumber);
+        AreaHost.Rebuild();
         SelectAndScrollToRow(Math.Max(0, idx));
         Dispatcher.UIThread.Post(() => SubtitleGrid.Focus());
         RefreshSubtitlePreview();
@@ -1170,61 +1172,125 @@ public partial class MainViewModel :
 
         var selectedItems = SubtitleGrid.SelectedItems.Cast<SubtitleLineViewModel>().ToList();
 
-        SetAssaResolution(false);
+        // Use the current video position for the background frame, falling back to
+        // the middle of the first selected line when no player is available
+        var videoPositionSeconds = 0.0;
+        var vp = GetVideoPlayerControl();
+        if (vp != null)
+        {
+            videoPositionSeconds = vp.Position;
+        }
+        else if (selectedItems.Count > 0)
+        {
+            var first = selectedItems[0];
+            videoPositionSeconds = first.StartTime.TotalSeconds + (first.EndTime - first.StartTime).TotalSeconds / 2.0;
+        }
 
+        // draw right on the video picture when the player is on screen (it maps PlayRes itself);
+        // the separate window is the fallback
+        if (CanDrawOnVideo())
+        {
+            StartDrawOnVideo(selectedItems, videoPositionSeconds);
+            return;
+        }
+
+        SetAssaResolution(false);
         var result = await ShowDialogAsync<AssaDrawWindow, AssaDrawViewModel>(vm =>
         {
-            vm.Initialize(GetUpdateSubtitle(), selectedItems, _mediaInfo?.Dimension.Width, _mediaInfo?.Dimension.Height);
+            vm.Initialize(GetUpdateSubtitle(), selectedItems, _mediaInfo?.Dimension.Width, _mediaInfo?.Dimension.Height, _videoFileName, videoPositionSeconds);
         });
 
-        if (!result.OkPressed)
+        if (result.OkPressed)
+        {
+            ApplyAssaDrawResult(result, selectedItems);
+        }
+    }
+
+    [RelayCommand]
+    private async Task ShowAssaMotionTracking()
+    {
+        if (Window == null || !IsFormatAssa || !await RequireFfmpegOk())
         {
             return;
         }
 
-        _subtitle = result.ResultSubtitle;
-        var assa = new SubStationAlpha();
-        var firstParagraph = selectedItems.FirstOrDefault();
-        var lastParagraph = selectedItems.LastOrDefault();
-        if (lastParagraph == null)
+        var l = Se.Language.Assa;
+        var selectedItems = SubtitleGrid.SelectedItems.Cast<SubtitleLineViewModel>().ToList();
+        if (selectedItems.Count == 0 || string.IsNullOrEmpty(_videoFileName))
         {
-            lastParagraph = new SubtitleLineViewModel()
-            {
-                StartTime = TimeSpan.FromSeconds(firstParagraph != null ? firstParagraph.StartTime.TotalSeconds : 0),
-                EndTime = TimeSpan.FromSeconds(firstParagraph != null ? firstParagraph.EndTime.TotalSeconds : 2),
-                Text = string.Empty
-            };
+            await MessageBox.Show(Window, l.MotionTracking, l.MotionSelectLinesFirst, MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
         }
 
-        for (var index = 0; index < result.ResultSubtitle.Paragraphs.Count; index++)
+        var spanStart = selectedItems.Min(p => p.StartTime.TotalSeconds);
+        var spanEnd = selectedItems.Max(p => p.EndTime.TotalSeconds);
+        if (spanEnd - spanStart > 15)
         {
-            var p = result.ResultSubtitle.Paragraphs[index];
-            if (index < selectedItems.Count)
+            await MessageBox.Show(Window, l.MotionTracking, string.Format(l.MotionSpanTooLongX, spanEnd - spanStart), MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        // lines are assumed to be placed correctly on the frame shown in the player
+        var referenceTime = Math.Clamp(GetVideoPlayerControl()?.Position ?? spanStart, spanStart, spanEnd);
+        var videoFileName = _videoFileName;
+        var previewSubtitle = new Subtitle { Header = GetUpdateSubtitle().Header };
+        foreach (var line in selectedItems)
+        {
+            previewSubtitle.Paragraphs.Add(line.ToParagraph(SelectedSubtitleFormat));
+        }
+
+        var result = await ShowDialogAsync<AssaMotionTrackingWindow, AssaMotionTrackingViewModel>(vm =>
+        {
+            vm.Initialize(videoFileName, _mediaInfo?.Dimension.Width ?? 0, _mediaInfo?.Dimension.Height ?? 0, spanStart, spanEnd, referenceTime, previewSubtitle);
+        });
+
+        if (!result.OkPressed || result.ResultTrack == null)
+        {
+            return;
+        }
+
+        // NOTE: no SetAssaResolution here - the applier maps video pixels to the header's PlayRes itself
+        var header = _subtitle.Header ?? string.Empty;
+        var videoWidth = _mediaInfo?.Dimension.Width ?? 0;
+        var videoHeight = _mediaInfo?.Dimension.Height ?? 0;
+        var notCovered = 0;
+        var newLines = new List<SubtitleLineViewModel>();
+        var selected = selectedItems.ToHashSet();
+        foreach (var line in Subtitles)
+        {
+            var pieces = selected.Contains(line)
+                ? MotionApplier.Apply(line.Text, line.Style, line.StartTime.TotalMilliseconds, line.EndTime.TotalMilliseconds,
+                    header, videoWidth, videoHeight, result.ResultTrack.Samples, result.ResultReferenceTime)
+                : null;
+            if (pieces == null)
             {
-                selectedItems[index].Text = p.Text;
-                selectedItems[index].Style = p.Extra;
-                selectedItems[index].Layer = p.Layer;
-                lastParagraph = selectedItems[index];
+                notCovered += selected.Contains(line) ? 1 : 0;
+                newLines.Add(line);
+                continue;
             }
-            else
+
+            foreach (var piece in pieces)
             {
-                var newP = new SubtitleLineViewModel(p, assa);
-                newP.StartTime = lastParagraph.StartTime;
-                newP.EndTime = lastParagraph.EndTime;
-                var insertIndex = Subtitles.IndexOf(lastParagraph) + 1;
-                if (insertIndex <= 0)
+                newLines.Add(new SubtitleLineViewModel(line, generateNewId: true)
                 {
-                    insertIndex = Subtitles.Count;
-                }
-
-                Subtitles.Insert(insertIndex, newP);
-                lastParagraph = newP;
+                    StartTime = TimeSpan.FromMilliseconds(piece.StartMs),
+                    EndTime = TimeSpan.FromMilliseconds(piece.EndMs),
+                    Text = piece.Text,
+                });
             }
         }
 
-        Renumber();
+        RunWithoutChangeDetection(() => SetSubtitles(newLines));
         RefreshSubtitlePreview();
-        _updateAudioVisualizer = true;
+
+        if (notCovered > 0)
+        {
+            ShowStatus(string.Format(l.MotionLinesNotCoveredX, notCovered), 6000);
+        }
+        else if (selectedItems.Any(p => MotionApplier.HasKaraoke(p.Text)))
+        {
+            ShowStatus(l.MotionKaraokeWarning, 6000);
+        }
     }
 
     [RelayCommand]
@@ -1317,24 +1383,8 @@ public partial class MainViewModel :
     [RelayCommand]
     private async Task ShowAssaImageColorPicker()
     {
-        var ffmpegOk = await RequireFfmpegOk();
-        if (!ffmpegOk)
-        {
-            return;
-        }
-
-        var selectedItem = SubtitleGrid.SelectedItem as SubtitleLineViewModel;
-        if (selectedItem == null || string.IsNullOrEmpty(_videoFileName))
-        {
-            return;
-        }
-
-        var result = await ShowDialogAsync<AssaImageColorPickerWindow, AssaImageColorPickerViewModel>(vm =>
-        {
-            vm.Initialize(_subtitle, selectedItem, _videoFileName, _mediaInfo?.Dimension.Width, _mediaInfo?.Dimension.Height);
-        });
-
-        RefreshSubtitlePreview();
+        // The one color picker, with its screen eyedropper running (pick from the video or anything else)
+        await ShowDialogAsync<ColorPickerWindow, ColorPickerViewModel>(vm => vm.InitializeStandalone());
     }
 
     [RelayCommand]
@@ -1370,7 +1420,7 @@ public partial class MainViewModel :
 
     private static string RemovePositionTags(string text)
     {
-        string result = Regex.Replace(text, @"\\pos\(\d+,\d+\)", string.Empty).Replace("{}", string.Empty);
+        string result = Regex.Replace(text, @"\\pos\s*\([^)]*\)", string.Empty).Replace("{}", string.Empty);
         return result;
     }
 
@@ -5232,7 +5282,7 @@ public partial class MainViewModel :
         {
             await VideoOpenFile(fileName);
 
-            if (!string.IsNullOrEmpty(_videoFileName) && InitLayout.LayoutHasNoVideo(Se.Settings.General.LayoutNumber))
+            if (!string.IsNullOrEmpty(_videoFileName) && !AreaHost.ActiveHasVideo)
             {
                 var answer = await MessageBox.Show(
                     Window!,
@@ -5285,56 +5335,9 @@ public partial class MainViewModel :
     [RelayCommand]
     private void VideoUndockControls()
     {
-        var vp = GetVideoPlayerControl();
-        if (Window == null || vp == null)
-        {
-            return;
-        }
-
         Dispatcher.UIThread.Post(() =>
         {
-            AreVideoControlsUndocked = true;
-
-            var position = vp.Position;
-            var volume = vp.Volume;
-            var videoFileName = vp.VideoPlayer.FileName;
-            VideoPlayerControl?.Close();
-            VideoPlayerControl = null;
-
-            if (_videoPlayerUndockedViewModel != null)
-            {
-                _videoPlayerUndockedViewModel.AllowClose = true;
-                _videoPlayerUndockedViewModel.Window?.Close();
-                _videoPlayerUndockedViewModel = null;
-            }
-
-            if (_audioVisualizerUndockedViewModel != null)
-            {
-                _audioVisualizerUndockedViewModel.AllowClose = true;
-                _audioVisualizerUndockedViewModel.Window?.Close();
-                _audioVisualizerUndockedViewModel = null;
-            }
-
-            _windowService.ShowIndependentWindow<VideoPlayerUndockedWindow, VideoPlayerUndockedViewModel>((window, vm) =>
-            {
-                _videoPlayerUndockedViewModel = vm;
-                vm.Initialize(_videoFileName ?? string.Empty, position, volume, this);
-                // Float above main while main (or this window) is active, but drop behind when
-                // SE loses focus to another app. Mirrors the Find/Replace helper from #11243.
-                // The two undocked windows are still independent in Alt+Tab — KeepTopmost… is
-                // just a Z-order knob, not an ownership change.
-                WindowService.KeepTopmostWhileOwnerActive(window, Window!);
-            });
-
-            _windowService.ShowIndependentWindow<AudioVisualizerUndockedWindow, AudioVisualizerUndockedViewModel>((window, vm) =>
-            {
-                _audioVisualizerUndockedViewModel = vm;
-                vm.Initialize(AudioVisualizer, this);
-                ReloadAudioVisualizer();
-                WindowService.KeepTopmostWhileOwnerActive(window, Window!);
-            });
-
-            InitLayout.MakeLayout12KeepVideo(MainView!, this);
+            AreaHost.DetachVideoControls();
             RefreshSubtitlePreview();
         });
     }
@@ -5342,30 +5345,8 @@ public partial class MainViewModel :
     [RelayCommand]
     private void VideoRedockControls()
     {
-        AreVideoControlsUndocked = false;
-        var videoFileName = _videoFileName ?? string.Empty;
-        VideoCloseFile();
-
-        if (_videoPlayerUndockedViewModel != null)
-        {
-            _videoPlayerUndockedViewModel.AllowClose = true;
-            _videoPlayerUndockedViewModel.Window?.Close();
-        }
-
-        if (_audioVisualizerUndockedViewModel != null)
-        {
-            _audioVisualizerUndockedViewModel.AllowClose = true;
-            _audioVisualizerUndockedViewModel.Window?.Close();
-        }
-
-        VideoPlayerControl = null;
-        SetLayout(Se.Settings.General.LayoutNumber);
-
-        if (!string.IsNullOrEmpty(videoFileName))
-        {
-            Dispatcher.UIThread.Post(async void () => { await VideoOpenFile(videoFileName); });
-            RefreshSubtitlePreview();
-        }
+        AreaHost.DockVideoControls();
+        RefreshSubtitlePreview();
     }
 
     [RelayCommand]
@@ -7658,10 +7639,7 @@ public partial class MainViewModel :
         UiUtil.SetFontName(Se.Settings.Appearance.FontName);
         UiTheme.SetCurrentTheme();
 
-        if (ToolbarTopSeparator != null)
-        {
-            ToolbarTopSeparator.IsVisible = Se.Settings.Appearance.ShowHorizontalLineAboveToolbar;
-        }
+        UpdateToolbarSeparator();
 
         if (Toolbar is Border toolbarBorder)
         {
@@ -7674,10 +7652,13 @@ public partial class MainViewModel :
             }
         }
 
+        ToolbarPickers.Child = InitToolbar.MakePickers(this);
+
         MenuPlugins.IsVisible = Se.Settings.Appearance.ShowPluginsMenu;
 
         LockTimeCodes = Se.Settings.General.LockTimeCodes;
         IsWaveformToolbarVisible = Se.Settings.Waveform.ShowToolbar;
+        WaveformSnap = !Se.Settings.Waveform.AllowOverlap; // the Settings dialog edits the same flag
 
         if (AudioVisualizer != null)
         {
@@ -7696,7 +7677,6 @@ public partial class MainViewModel :
             AudioVisualizer.UpdateTheme();
             AudioVisualizer.IsReadOnly = LockTimeCodes;
             AudioVisualizer.WaveformDrawStyle = InitWaveform.GetWaveformDrawStyle(Se.Settings.Waveform.WaveformDrawStyle);
-            AudioVisualizer.MinGapSeconds = Se.Settings.General.MinimumBetweenLines.GetMilliseconds() / 1000.0;
             AudioVisualizer.WaveformHeightPercentage = Se.Settings.Waveform.SpectrogramCombinedWaveformHeight;
             AudioVisualizer.FocusOnMouseOver = Se.Settings.Waveform.FocusOnMouseOver;
             AudioVisualizer.ResetCache();
@@ -7755,16 +7735,7 @@ public partial class MainViewModel :
 
         _errorColor = Se.Settings.General.ErrorColor.FromHexToColor();
         _errorBrush = new SolidColorBrush(_errorColor);
-        if (AreVideoControlsUndocked)
-        {
-            VideoUndockControls();
-        }
-        else
-        {
-            Se.Settings.Appearance.CurrentLayoutPositions = InitLayout.SaveLayoutPositions(ContentGrid.Children.FirstOrDefault() as Grid);
-            SetLayout(Se.Settings.General.LayoutNumber);
-            InitLayout.RestoreLayoutPositions(Se.Settings.Appearance.CurrentLayoutPositions, ContentGrid.Children.FirstOrDefault() as Grid);
-        }
+        RebuildLayout(); // sizes live in the area tree, so nothing to save/restore around it
 
         _autoBackupService.StopAutobackup();
         _autoBackupService.StartAutoBackup(this);
@@ -7833,18 +7804,8 @@ public partial class MainViewModel :
 
     public VideoPlayerControl? GetVideoPlayerControl()
     {
-        if (_fullScreenVideoPlayerControl != null)
-        {
-            return _fullScreenVideoPlayerControl;
-        }
-        else if (AreVideoControlsUndocked)
-        {
-            return _videoPlayerUndockedViewModel?.VideoPlayerControl;
-        }
-        else
-        {
-            return VideoPlayerControl;
-        }
+        // Wherever the video area lives (docked, floating or hidden), VideoPlayerControl is the live player.
+        return _fullScreenVideoPlayerControl ?? VideoPlayerControl;
     }
 
     [RelayCommand]
@@ -8279,7 +8240,8 @@ public partial class MainViewModel :
         {
             Layout.InitNativeMacMenu.Rebuild(this);
         }
-        SetLayout(Se.Settings.General.LayoutNumber);
+        RebuildLayout();
+        WorkspaceBar.Refresh(this);
 
         if (Toolbar is Border toolbarBorder)
         {
@@ -8291,6 +8253,8 @@ public partial class MainViewModel :
                 toolbarBorder.Child = grid;
             }
         }
+
+        ToolbarPickers.Child = InitToolbar.MakePickers(this);
 
         ReloadShortcuts();
     }
@@ -11456,6 +11420,52 @@ public partial class MainViewModel :
     }
 
     [RelayCommand]
+    private void AssaFadeInToVideoPosition() => SetFadeAtVideoPosition(fadeIn: true);
+
+    [RelayCommand]
+    private void AssaFadeOutFromVideoPosition() => SetFadeAtVideoPosition(fadeIn: false);
+
+    private void SetFadeAtVideoPosition(bool fadeIn)
+    {
+        var vp = GetVideoPlayerControl();
+        if (vp == null || !IsFormatAssa)
+        {
+            return;
+        }
+
+        // Fade length comes from the selected line under the playhead and is applied to all selected lines.
+        // If no selected line is under the playhead (e.g. right-click on another line), only that line is changed.
+        var ms = vp.Position * 1000.0;
+        var targets = SubtitleGrid.SelectedItems.Cast<SubtitleLineViewModel>().ToList();
+        var reference = targets.FirstOrDefault(p => p.StartTime.TotalMilliseconds < ms && p.EndTime.TotalMilliseconds > ms);
+        if (reference == null)
+        {
+            reference = Subtitles.FirstOrDefault(p => p.StartTime.TotalMilliseconds < ms && p.EndTime.TotalMilliseconds > ms);
+            if (reference == null)
+            {
+                return;
+            }
+
+            targets = [reference];
+        }
+
+        var fadeMs = (int)Math.Round(fadeIn
+            ? ms - reference.StartTime.TotalMilliseconds
+            : reference.EndTime.TotalMilliseconds - ms);
+
+        foreach (var item in targets)
+        {
+            var durationMs = (int)(item.EndTime - item.StartTime).TotalMilliseconds;
+            var (oldIn, oldOut) = AssaTags.GetFade(item.Text) ?? (0, 0);
+            item.Text = fadeIn
+                ? AssaTags.SetFade(item.Text, Math.Min(fadeMs, durationMs), oldOut)
+                : AssaTags.SetFade(item.Text, oldIn, Math.Min(fadeMs, durationMs));
+        }
+
+        _updateAudioVisualizer = true;
+    }
+
+    [RelayCommand]
     private void WaveformSetStart()
     {
         var s = SelectedSubtitle;
@@ -12720,7 +12730,7 @@ public partial class MainViewModel :
 
         var fontSize = SubtitleGrid.FontSize > 0 ? SubtitleGrid.FontSize : Se.Settings.Appearance.SubtitleGridFontSize;
         var cellPadding = Se.Settings.Appearance.GridCompactMode ? 0 : 8; // cell theme: 4 left + 4 right
-        const int textBlockMargin = 8; // Avalonia DataGridTextColumn wraps text in TextBlock with Margin=Thickness(4)
+        const int textBlockMargin = 24; // Fluent DataGridTextColumn cell TextBlock: Margin 12,0,12,0 (DataGridTextColumnCellTextBlockMargin)
         // Scale safety buffer with font size: gridline + sort indicator chrome + sub-pixel rounding grows with size.
         var safetyBuffer = Math.Max(10.0, fontSize);
 
@@ -12736,6 +12746,7 @@ public partial class MainViewModel :
                 typeface,
                 fontSize,
                 Brushes.Black);
+            formattedText.SetFontFeatures(FontFeatureCollection.Parse("tnum")); // the grid draws tabular digits (ChromeStyles)
 
             return Math.Ceiling(formattedText.Width) + cellPadding + textBlockMargin + safetyBuffer;
         }
@@ -14987,6 +14998,7 @@ public partial class MainViewModel :
     {
         _videoOpenTokenSource?.Cancel();
         AddToRecentFiles(false);
+        ProjectSaveState();
 
         if (Window != null)
         {
@@ -15004,22 +15016,11 @@ public partial class MainViewModel :
             Se.Settings.Waveform.CenterVideoPosition = WaveformCenter;
 
             UiUtil.SaveWindowPosition(Window);
-            Se.Settings.General.UndockVideoControls = Se.Settings.General.RememberPositionAndSize && AreVideoControlsUndocked;
-            Se.Settings.Appearance.CurrentLayoutPositions = InitLayout.SaveLayoutPositions(ContentGrid.Children.FirstOrDefault() as Grid);
+            AreaHost.SaveFloatingBounds();
 
             if (_findViewModel != null)
             {
                 UiUtil.SaveWindowPosition(_findViewModel.Window);
-            }
-
-            if (_videoPlayerUndockedViewModel != null)
-            {
-                UiUtil.SaveWindowPosition(_videoPlayerUndockedViewModel.Window);
-            }
-
-            if (_audioVisualizerUndockedViewModel != null)
-            {
-                UiUtil.SaveWindowPosition(_audioVisualizerUndockedViewModel.Window);
             }
 
             if (AudioVisualizer != null && AudioVisualizer.HasSpectrogram())
@@ -15094,17 +15095,7 @@ public partial class MainViewModel :
             _findViewModel.Window?.Close();
         }
 
-        if (_videoPlayerUndockedViewModel != null)
-        {
-            _videoPlayerUndockedViewModel.AllowClose = true;
-            _videoPlayerUndockedViewModel.Window?.Close();
-        }
-
-        if (_audioVisualizerUndockedViewModel != null)
-        {
-            _audioVisualizerUndockedViewModel.AllowClose = true;
-            _audioVisualizerUndockedViewModel.Window?.Close();
-        }
+        AreaHost.CloseAllFloating(); // floating areas stay in the workspace and reopen next start
 
         GetVideoPlayerControl()?.VideoPlayer.CloseFile();
 
@@ -15153,7 +15144,7 @@ public partial class MainViewModel :
                     if (!string.IsNullOrEmpty(result.LibMpvFileName))
                     {
                         InitializeLibMpv();
-                        SetLayout(Se.Settings.General.LayoutNumber);
+                        RebuildLayout();
                     }
                 }
                 catch (Exception e)
@@ -15173,15 +15164,6 @@ public partial class MainViewModel :
         {
             Dispatcher.UIThread.Post(async void () =>
             {
-                if (Se.Settings.General.RememberPositionAndSize)
-                {
-                    if (Se.Settings.General.UndockVideoControls)
-                    {
-                        VideoUndockControls();
-                    }
-
-                    InitLayout.RestoreLayoutPositions(Se.Settings.Appearance.CurrentLayoutPositions, ContentGrid.Children.FirstOrDefault() as Grid);
-                }
 
                 await Task.Delay(100);
                 var hasCliVideo = !string.IsNullOrEmpty(Program.PendingVideoToOpen);
@@ -15218,22 +15200,10 @@ public partial class MainViewModel :
                             return;
                         }
 
-                        bool skipLoadVideo = false;
                         _videoFileName = first.VideoFileName;
                         await Task.Delay(25);
 
-                        if (Se.Settings.General.RememberPositionAndSize)
-                        {
-                            if (Se.Settings.General.UndockVideoControls)
-                            {
-                                VideoUndockControls();
-                                skipLoadVideo = true;
-                            }
-
-                            InitLayout.RestoreLayoutPositions(Se.Settings.Appearance.CurrentLayoutPositions, ContentGrid.Children.FirstOrDefault() as Grid);
-                        }
-
-                        await SubtitleOpen(first.SubtitleFileName, first.VideoFileName, first.SelectedLine, null, skipLoadVideo, first.AudioTrack);
+                        await SubtitleOpen(first.SubtitleFileName, first.VideoFileName, first.SelectedLine, null, false, first.AudioTrack);
                         var vp = GetVideoPlayerControl();
                         if (!string.IsNullOrEmpty(_videoFileName) && SelectedSubtitle != null && vp != null)
                         {
@@ -15255,6 +15225,7 @@ public partial class MainViewModel :
                         }
 
                         SetRecentFileProperties(first);
+                        await ProjectRestore();
                     }
                     catch (Exception e)
                     {
@@ -15269,12 +15240,6 @@ public partial class MainViewModel :
                     Dispatcher.UIThread.Post(void () =>
                     {
                         UiUtil.RestoreWindowPosition(Window);
-                        if (Se.Settings.General.UndockVideoControls)
-                        {
-                            VideoUndockControls();
-                        }
-
-                        InitLayout.RestoreLayoutPositions(Se.Settings.Appearance.CurrentLayoutPositions, ContentGrid.Children.FirstOrDefault() as Grid);
                     });
                 }
 
@@ -15290,12 +15255,6 @@ public partial class MainViewModel :
                 Dispatcher.UIThread.Post(void () =>
                 {
                     UiUtil.RestoreWindowPosition(Window);
-                    if (Se.Settings.General.UndockVideoControls)
-                    {
-                        VideoUndockControls();
-                    }
-
-                    InitLayout.RestoreLayoutPositions(Se.Settings.Appearance.CurrentLayoutPositions, ContentGrid.Children.FirstOrDefault() as Grid);
                 }, DispatcherPriority.Loaded);
             }
         }
@@ -15525,7 +15484,7 @@ public partial class MainViewModel :
 
             if (IsFormatAssa)
             {
-                SetAssaResolution(true);
+                Dispatcher.UIThread.Invoke(() => SetAssaResolution(true));
             }
         }
         catch
@@ -15546,33 +15505,43 @@ public partial class MainViewModel :
             return;
         }
 
-        var oldHeader = _subtitle.Header;
-        _subtitle.Header = AdvancedSubStationAlpha.SetResolution(_subtitle.Header, _mediaInfo.Dimension.Width, _mediaInfo.Dimension.Height);
-
-        if (Se.Settings.Assa.AutoSetResolutionConvert && oldHeader != _subtitle.Header)
+        var mediaInfo = _mediaInfo;
+        RunWithoutChangeDetection(() =>
         {
-            if (string.IsNullOrEmpty(oldHeader) || !oldHeader.Contains("[V4+ Styles]", StringComparison.OrdinalIgnoreCase))
+            var oldHeader = _subtitle.Header;
+            _subtitle.Header = AdvancedSubStationAlpha.SetResolution(_subtitle.Header, mediaInfo.Dimension.Width, mediaInfo.Dimension.Height);
+
+            if (Se.Settings.Assa.AutoSetResolutionConvert && oldHeader != _subtitle.Header)
             {
-                oldHeader = AdvancedSubStationAlpha.DefaultHeader;
+                if (string.IsNullOrEmpty(oldHeader) || !oldHeader.Contains("[V4+ Styles]", StringComparison.OrdinalIgnoreCase))
+                {
+                    oldHeader = AdvancedSubStationAlpha.DefaultHeader;
+                }
+
+                var oldWidth = AdvancedSubStationAlpha.DefaultWidth;
+                var oldHeight = AdvancedSubStationAlpha.DefaultHeight;
+
+                var playResX = AdvancedSubStationAlpha.GetTagValueFromHeader("PlayResX", "[Script Info]", oldHeader);
+                if (int.TryParse(playResX, out var width) && width >= 125 && width <= 4096)
+                {
+                    oldWidth = width;
+                }
+
+                var playResY = AdvancedSubStationAlpha.GetTagValueFromHeader("PlayResY", "[Script Info]", oldHeader);
+                if (int.TryParse(playResY, out var height) && height >= 125 && height <= 4096)
+                {
+                    oldHeight = height;
+                }
+
+                // Subtitles is the source of truth, so resample the current lines and copy the text back in place
+                GetUpdateSubtitle();
+                AssaResamplerHelper.ApplyResampling(_subtitle, oldWidth, oldHeight, mediaInfo.Dimension.Width, mediaInfo.Dimension.Height, true, true, true, true);
+                for (var i = 0; i < Subtitles.Count && i < _subtitle.Paragraphs.Count; i++)
+                {
+                    Subtitles[i].Text = _subtitle.Paragraphs[i].Text;
+                }
             }
-
-            var oldWidth = AdvancedSubStationAlpha.DefaultWidth;
-            var oldHeight = AdvancedSubStationAlpha.DefaultHeight;
-
-            var playResX = AdvancedSubStationAlpha.GetTagValueFromHeader("PlayResX", "[Script Info]", oldHeader);
-            if (int.TryParse(playResX, out var width) && width >= 125 && width <= 4096)
-            {
-                oldWidth = width;
-            }
-
-            var playResY = AdvancedSubStationAlpha.GetTagValueFromHeader("PlayResY", "[Script Info]", oldHeader);
-            if (int.TryParse(playResY, out var height) && height >= 125 && height <= 4096)
-            {
-                oldHeight = height;
-            }
-
-            AssaResamplerHelper.ApplyResampling(_subtitle, oldWidth, oldHeight, _mediaInfo.Dimension.Width, _mediaInfo.Dimension.Height, true, true, true, true);
-        }
+        });
     }
 
     internal void ComboBoxFrameRateSelectionChanged(object? sender, SelectionChangedEventArgs e)
@@ -16898,6 +16867,11 @@ public partial class MainViewModel :
 
             _lastKeyPressedMs = ms;
 
+            if (TryHandleDrawOnVideoKey(keyEventArgs))
+            {
+                return;
+            }
+
             if (UiUtil.TryHandleWindowSystemMenu(keyEventArgs, Window))
             {
                 return;
@@ -17115,6 +17089,7 @@ public partial class MainViewModel :
 
     public void SubtitleGrid_PointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        EndRowMove(e.Pointer); // a press without its release (e.g. released in another window)
         StopSubtitleGridDragSelectAutoScroll();
         _subtitleGridIsControlPressed = false;
         _subtitleGridIsLeftClick = false;
@@ -17150,6 +17125,11 @@ public partial class MainViewModel :
             if (_subtitleGridIsLeftClick && !_subtitleGridIsControlPressed)
             {
                 var rowIndex = GetDataGridRowIndexFromPoint(e.GetPosition(SubtitleGrid));
+                if (rowIndex >= 0 && e.KeyModifiers == KeyModifiers.None && BeginRowMove(e, rowIndex))
+                {
+                    return; // dragging a selected row moves the selection (MainViewModel.RowMove.cs)
+                }
+
                 if (rowIndex >= 0)
                 {
                     _dragSelectStartIndex = rowIndex;
@@ -17177,7 +17157,9 @@ public partial class MainViewModel :
         e.Handled = true;
     }
 
-    private int GetDataGridRowIndexFromPoint(Avalonia.Point position)
+    private int GetDataGridRowIndexFromPoint(Avalonia.Point position) => GetDataGridRowFromPoint(position)?.Index ?? -1;
+
+    private DataGridRow? GetDataGridRowFromPoint(Avalonia.Point position)
     {
         var hitTest = SubtitleGrid.InputHitTest(position);
         var current = hitTest as Control;
@@ -17185,17 +17167,22 @@ public partial class MainViewModel :
         {
             if (current is DataGridRow row)
             {
-                return row.Index;
+                return row;
             }
 
             current = current.Parent as Control;
         }
 
-        return -1;
+        return null;
     }
 
     public void SubtitleGrid_PointerMoved(object? sender, PointerEventArgs e)
     {
+        if (UpdateRowMove(sender, e))
+        {
+            return;
+        }
+
         if (_dragSelectStartIndex < 0 || !_subtitleGridIsLeftClick)
         {
             return;
@@ -17419,6 +17406,12 @@ public partial class MainViewModel :
 
     public void SubtitleGrid_PointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        if (FinishRowMove(e))
+        {
+            EndSubtitleGridDragSelect(e);
+            return;
+        }
+
         EndSubtitleGridDragSelect(e);
 
         if (sender is Control { ContextFlyout: MenuFlyout menuFlyout } control)
@@ -18817,6 +18810,8 @@ public partial class MainViewModel :
         MenuItemAudioVisualizerSplit.IsVisible = false;
         MenuItemAudioVisualizerMergeWithPrevious.IsVisible = false;
         MenuItemAudioVisualizerMergeWithNext.IsVisible = false;
+        MenuItemAudioVisualizerFadeIn.IsVisible = false;
+        MenuItemAudioVisualizerFadeOut.IsVisible = false;
         MenuItemAudioVisualizerSpeechToTextSelectedLines.IsVisible = false;
         MenuItemAudioVisualizerSpeechToTextNewSelection.IsVisible = false;
         MenuItemAudioVisualizerExtractAudio.IsVisible = false;
@@ -18848,6 +18843,8 @@ public partial class MainViewModel :
             MenuItemAudioVisualizerDeleteAtPosition.IsVisible = true;
             MenuItemAudioVisualizerSplitAtPosition.IsVisible = true;
             MenuItemAudioVisualizerSpeechToTextSelectedLines.IsVisible = true;
+            MenuItemAudioVisualizerFadeIn.IsVisible = IsFormatAssa;
+            MenuItemAudioVisualizerFadeOut.IsVisible = IsFormatAssa;
         }
 
         if (selectedSubtitles?.Count == 1 &&
@@ -18989,11 +18986,14 @@ public partial class MainViewModel :
                     {
                         _subtitle.Header = AdvancedSubStationAlpha.DefaultHeader;
                     }
-
-                    SetAssaResolution(true);
                 }
 
                 SetSubtitles(_subtitle, _subtitleOriginal);
+
+                if (format is AdvancedSubStationAlpha)
+                {
+                    SetAssaResolution(true);
+                }
             }
         }
 

@@ -54,14 +54,14 @@ public class ColorChannelSlider : Grid
 
     public ColorChannelSlider()
     {
-        ColumnDefinitions = new ColumnDefinitions("40,*,40");
+        ColumnDefinitions = new ColumnDefinitions("22,*,36");
         Margin = new Thickness(0, 2);
 
         _label = new TextBlock
         {
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Right,
-            Margin = new Thickness(0, 0, 10, 0)
+            Margin = new Thickness(0, 0, 8, 0)
         };
         _label.Bind(TextBlock.TextProperty, new Binding { Source = this, Path = nameof(Label) });
         SetColumn(_label, 0);
@@ -69,7 +69,9 @@ public class ColorChannelSlider : Grid
         _gradientBorder = new Border
         {
             ClipToBounds = true,
-            Height = 24,
+            Height = 14,
+            CornerRadius = new CornerRadius(7),
+            VerticalAlignment = VerticalAlignment.Center,
             Child = new Border
             {
                 Background = new LinearGradientBrush
@@ -95,6 +97,14 @@ public class ColorChannelSlider : Grid
             Margin = new Thickness(0, -2, 0, 0),
             Foreground = new SolidColorBrush(Color.FromRgb(240, 240, 240)), // Light gray thumb
         };
+        // The gradient is the track: white thumb, no accent-coloured fill on top of it
+        _slider.Resources["SliderThumbBackground"] = Brushes.White;
+        _slider.Resources["SliderThumbBackgroundPointerOver"] = Brushes.White;
+        _slider.Resources["SliderThumbBackgroundPressed"] = Brushes.White;
+        foreach (var key in new[] { "SliderTrackFill", "SliderTrackFillPointerOver", "SliderTrackFillPressed", "SliderTrackValueFill", "SliderTrackValueFillPointerOver", "SliderTrackValueFillPressed" })
+        {
+            _slider.Resources[key] = Brushes.Transparent;
+        }
         _slider.ValueChanged += (s, e) =>
         {
             Value = (byte)_slider.Value;

@@ -36,6 +36,9 @@ public class LanguageTools
     public string PickSubtitleFormat { get; set; }
     public string PickLayerTitle { get; set; }
     public string RecentColors { get; set; }
+    public string PickFromScreen { get; set; }
+    public string OriginalColor { get; set; }
+    public string NewColor { get; set; }
 
     public LanguageTools()
     {
@@ -49,5 +52,8 @@ public class LanguageTools
         PickSubtitleFormat = "Choose subtitle format";
         PickLayerTitle = "Set layer";
         RecentColors = "Recent colors";
+        PickFromScreen = "Pick from screen";
+        OriginalColor = "Original - click to restore";
+        NewColor = "New";
     }
 }

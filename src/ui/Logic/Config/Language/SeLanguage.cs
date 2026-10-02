@@ -32,5 +32,7 @@ public class SeLanguage
     public LanguageHelp Help { get; set; } = new();
     public LanguageOcr Ocr { get; set; } = new();
     public LanguageAssa Assa { get; set; } = new();
+    public LanguageProject Project { get; set; } = new();
+    public LanguageWorkspace Workspace { get; set; } = new();
     public LanguageAbout About { get; set; } = new();
 }

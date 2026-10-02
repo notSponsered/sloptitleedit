@@ -14,7 +14,7 @@ internal static class PluginThemeColorsFactory
     {
         var appearance = Se.Settings.Appearance;
         var themeName = UiTheme.ThemeName;
-        var isDark = themeName == UiTheme.ThemeNameDark;
+        var isDark = UiTheme.IsDarkThemeEnabled();
 
         Color background;
         Color foreground;

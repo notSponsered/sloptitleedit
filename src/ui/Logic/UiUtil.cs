@@ -155,13 +155,19 @@ public static class UiUtil
             return new SolidColorBrush(Colors.Black);
         }
 
-        var theme = app.ActualThemeVariant;
-        if (theme == ThemeVariant.Dark)
+        if (Se.Settings.Appearance.Theme == UiTheme.ThemeNameBlender)
         {
-            return new SolidColorBrush(Colors.White, 0.5);
+            return new SolidColorBrush(Color.Parse("#4a4a4a")); // Blender's subtle widget outlines
         }
 
-        return new SolidColorBrush(Colors.Black, 0.5);
+        var theme = app.ActualThemeVariant;
+        // Subtle outlines (Audacity 4 / Muse style); 50% read as hard lines on every box and grid cell.
+        if (theme == ThemeVariant.Dark)
+        {
+            return new SolidColorBrush(Colors.White, 0.19);
+        }
+
+        return new SolidColorBrush(Colors.Black, 0.18);
     }
 
     public static Color GetBorderColor()

@@ -8,6 +8,7 @@ using Nikse.SubtitleEdit.Features.Main;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.Media;
+using Nikse.SubtitleEdit.UiLogic.Edit;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -199,7 +200,24 @@ public class AudioVisualizer : Control
 
     public SubtitleLineViewModel? SelectedParagraph { get; set; }
 
-    public double MinGapSeconds { get; set; } = 0.1;
+    /// <summary>How near (10 screen pixels, in seconds at the current zoom) an edge must come to snap.</summary>
+    private double SnapDistanceSeconds => WavePeaks == null || ZoomFactor <= 0 ? 0 : 10 / (WavePeaks.SampleRate * ZoomFactor);
+
+    /// <summary>Razor tool: a left click on a line cuts it in two at that point instead of selecting/moving.</summary>
+    public bool RazorMode
+    {
+        get => _razorMode;
+        set
+        {
+            _razorMode = value;
+            _razorX = double.NaN;
+            Cursor = value ? _cursorCross : _cursorArrow;
+            InvalidateVisual();
+        }
+    }
+
+    private bool _razorMode;
+    private double _razorX = double.NaN; // where the razor would cut, while the pointer is over the waveform
 
     public double ShotChangeSnapSeconds { get; set; } = 0.05;
     public WaveformDrawStyle WaveformDrawStyle { get; set; } = WaveformDrawStyle.Classic;
@@ -318,8 +336,17 @@ public class AudioVisualizer : Control
     private static readonly Cursor _cursorArrow = new Cursor(StandardCursorType.Arrow);
     private static readonly Cursor _cursorHand = new Cursor(StandardCursorType.Hand);
     private static readonly Cursor _cursorSizeWestEast = new Cursor(StandardCursorType.SizeWestEast);
+    private static readonly Cursor _cursorCross = new Cursor(StandardCursorType.Cross);
+    private static readonly Pen _paintPenRazor = new Pen(Brushes.OrangeRed, 1.5);
 
     private readonly List<SubtitleLineViewModel> _displayableParagraphs = new();
+
+    // Lane of each displayed line when lines overlap (TimelineLanes), refreshed every render; drawing and hit testing use it.
+    private readonly Dictionary<SubtitleLineViewModel, (int Lane, int Lanes)> _lanes = new();
+
+    // Subtitle clip colors on the waveform (blue = default, then violet, magenta, orange, teal, yellow), Audacity 4's palette like the panel icons.
+    private static readonly Color[] LaneColors =
+        [Color.Parse("#66a3ff"), Color.Parse("#9996fc"), Color.Parse("#da8ccc"), Color.Parse("#ff9e65"), Color.Parse("#34b494"), Color.Parse("#e8c050")];
     private readonly IsSelectedHelper _isSelectedHelper = new();
     private bool _isCtrlDown;
     private bool _isMetaDown;
@@ -393,6 +420,7 @@ public class AudioVisualizer : Control
     public event ParagraphNullableEventHandler? OnPrimarySingleClicked;
     public event ParagraphNullableEventHandler? OnPrimaryDoubleClicked;
     public event PositionEventHandler? OnSetStartAndOffsetTheRest;
+    public event ParagraphEventHandler? OnRazorCut;
 
     public AudioVisualizer()
     {
@@ -419,6 +447,11 @@ public class AudioVisualizer : Control
         Tapped += OnTapped;
         DoubleTapped += (sender, e) =>
         {
+            if (RazorMode)
+            {
+                return; // two quick cuts are not a double-click
+            }
+
             if (OnPrimaryDoubleClicked != null && e.Pointer.IsPrimary)
             {
                 var point = e.GetPosition(this);
@@ -723,9 +756,10 @@ public class AudioVisualizer : Control
             nsp?.UpdateDuration();
             _audioVisualizerLastScroll = 0;
             e.Handled = true;
-            var videoPosition = RelativeXPositionToSeconds(pos.X);
-            OnVideoPositionChanged?.Invoke(this, new PositionEventArgs { PositionInSeconds = videoPosition });
-            FlyoutMenuOpening?.Invoke(this, new ContextEventArgs { PositionInSeconds = videoPosition, NewParagraph = nsp });
+
+            // The menu works at the playhead: right-click doesn't move it (the menu's "at position" commands
+            // all use the video position, so a precisely placed playhead survives opening the menu).
+            FlyoutMenuOpening?.Invoke(this, new ContextEventArgs { PositionInSeconds = CurrentVideoPositionSeconds, NewParagraph = nsp });
             InvalidateVisual();
             MenuFlyout.ShowAt(this, true);
             return;
@@ -838,6 +872,21 @@ public class AudioVisualizer : Control
         _startPointerPosition = point;
         if (IsReadOnly)
         {
+            InvalidateVisual();
+            return;
+        }
+
+        if (RazorMode && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            _preventNextTap = true; // a cut doesn't move the playhead
+            _interactionMode = InteractionMode.None;
+            NewSelectionParagraph = null;
+            var cutLine = HitTestParagraph(point);
+            if (cutLine != null)
+            {
+                OnRazorCut?.Invoke(this, new ParagraphEventArgs(RazorSeconds(point.X), cutLine));
+            }
+
             InvalidateVisual();
             return;
         }
@@ -957,6 +1006,7 @@ public class AudioVisualizer : Control
     private void OnPointerExited(object? sender, PointerEventArgs e)
     {
         base.OnPointerExited(e);
+        _razorX = double.NaN;
         InvalidateVisual();
     }
 
@@ -1106,9 +1156,10 @@ public class AudioVisualizer : Control
 
                 if (!allowOverlap && (previous != null || next != null))
                 {
-                    // Calculate available space considering MinGapSeconds
-                    double availableStart = previous != null ? previous.EndTime.TotalSeconds + MinGapSeconds : 0;
-                    double availableEnd = next != null ? next.StartTime.TotalSeconds - MinGapSeconds : double.MaxValue;
+                    // Snap: the neighbours are walls the line can touch but not cross, and near one it
+                    // snaps into contact (no forced gap). Snap off / Shift = free, overlapping allowed.
+                    double availableStart = previous?.EndTime.TotalSeconds ?? 0;
+                    double availableEnd = next?.StartTime.TotalSeconds ?? double.MaxValue;
                     double availableSpace = availableEnd - availableStart;
 
                     // Check if there's enough room to move the paragraph
@@ -1118,15 +1169,15 @@ public class AudioVisualizer : Control
                         break;
                     }
 
-                    // Clamp to available space to prevent overlap (frame-aligned when snap is on)
-                    if (newStart < availableStart)
+                    var snap = SnapDistanceSeconds;
+                    if (newStart < availableStart + snap)
                     {
-                        newStart = SnapToFrameCeil(availableStart);
+                        newStart = availableStart;
                     }
 
-                    if (newStart + _originalDurationSeconds > availableEnd)
+                    if (newStart + _originalDurationSeconds > availableEnd - snap)
                     {
-                        newStart = SnapToFrameFloor(availableEnd - _originalDurationSeconds);
+                        newStart = availableEnd - _originalDurationSeconds;
                     }
                 }
 
@@ -1197,10 +1248,11 @@ public class AudioVisualizer : Control
                     newStart = SnapToFrame(newStart);
                 }
 
-                if (previous != null && newStart < previous.EndTime.TotalSeconds + MinGapSeconds)
+                // Snap into contact, never overlap (lines that already overlap, like stacked signs, stay free).
+                if (previous != null && _originalStartSeconds >= previous.EndTime.TotalSeconds &&
+                    newStart < previous.EndTime.TotalSeconds + SnapDistanceSeconds)
                 {
-                    newStart = previous.EndTime.TotalSeconds + MinGapSeconds + 0.001;
-                    newStart = SnapToFrameCeil(newStart);
+                    newStart = previous.EndTime.TotalSeconds;
                 }
 
                 if (newStart < _activeParagraph.EndTime.TotalSeconds - 0.1)
@@ -1237,10 +1289,10 @@ public class AudioVisualizer : Control
                     newEnd = SnapToFrame(newEnd);
                 }
 
-                if (next != null && newEnd > next.StartTime.TotalSeconds - MinGapSeconds)
+                if (next != null && _originalEndSeconds <= next.StartTime.TotalSeconds &&
+                    newEnd > next.StartTime.TotalSeconds - SnapDistanceSeconds)
                 {
-                    newEnd = next.StartTime.TotalSeconds - 0.001 - MinGapSeconds;
-                    newEnd = SnapToFrameFloor(newEnd);
+                    newEnd = next.StartTime.TotalSeconds;
                 }
 
                 if (newEnd > _activeParagraph.StartTime.TotalSeconds + 0.1)
@@ -1361,8 +1413,31 @@ public class AudioVisualizer : Control
         return frames > 0 ? frames / fps : ShotChangeSnapSeconds;
     }
 
+    /// <summary>
+    /// Where a razor click at <paramref name="x"/> cuts: on a frame when frame snapping is on, and on the
+    /// playhead when Snap is on and the click is near it.
+    /// </summary>
+    private double RazorSeconds(double x)
+    {
+        var seconds = SnapToFrame(RelativeXPositionToSeconds(x));
+        if (!Se.Settings.Waveform.AllowOverlap && Math.Abs(seconds - CurrentVideoPositionSeconds) < SnapDistanceSeconds)
+        {
+            seconds = CurrentVideoPositionSeconds;
+        }
+
+        return seconds;
+    }
+
     private void UpdateCursor(Point point)
     {
+        if (RazorMode)
+        {
+            Cursor = _cursorCross;
+            _razorX = SecondsToXPosition(RazorSeconds(point.X) - StartPositionSeconds);
+            InvalidateVisual();
+            return;
+        }
+
         var p = HitTestParagraph(point);
         _cachedHitParagraph = p;
         _cachedIsNearLeftEdge = false;
@@ -1434,6 +1509,11 @@ public class AudioVisualizer : Control
         for (var i = 0; i < _displayableParagraphs.Count; i++)
         {
             var p = _displayableParagraphs[i];
+            if (!IsInLane(p, point.Y))
+            {
+                continue; // overlapping lines: only the one in the lane under the pointer
+            }
+
             var left = SecondsToXPosition(p.StartTime.TotalSeconds - startPosSeconds);
             var right = SecondsToXPosition(p.EndTime.TotalSeconds - startPosSeconds);
 
@@ -1475,7 +1555,7 @@ public class AudioVisualizer : Control
                 var prevRight = SecondsToXPosition(prev.EndTime.TotalSeconds - startPosSeconds);
                 var distToPrevRight = Math.Abs(pointX - prevRight);
 
-                if (distToPrevRight <= ResizeMargin && distToPrevRight < closestEdgeDistance)
+                if (distToPrevRight <= ResizeMargin && distToPrevRight < closestEdgeDistance && IsInLane(prev, point.Y))
                 {
                     return prev;
                 }
@@ -1487,7 +1567,7 @@ public class AudioVisualizer : Control
                 var nextLeft = SecondsToXPosition(next.StartTime.TotalSeconds - startPosSeconds);
                 var distToNextLeft = Math.Abs(pointX - nextLeft);
 
-                if (distToNextLeft <= ResizeMargin && distToNextLeft < closestEdgeDistance)
+                if (distToNextLeft <= ResizeMargin && distToNextLeft < closestEdgeDistance && IsInLane(next, point.Y))
                 {
                     return next;
                 }
@@ -1588,6 +1668,11 @@ public class AudioVisualizer : Control
             DrawShotChanges(context, ref renderCtx);
             DrawCurrentVideoPosition(context, ref renderCtx);
             DrawNewParagraph(context, ref renderCtx);
+
+            if (RazorMode && !double.IsNaN(_razorX))
+            {
+                context.DrawLine(_paintPenRazor, new Point(_razorX, 0), new Point(_razorX, renderCtx.Height));
+            }
 
             if (IsFocused)
             {
@@ -1958,9 +2043,9 @@ public class AudioVisualizer : Control
             waveformHeight = renderCtx.WaveformHeight;
         }
 
-        if (WaveformDrawStyle == WaveformDrawStyle.Classic)
+        if (WaveformDrawStyle is WaveformDrawStyle.Classic or WaveformDrawStyle.Lines)
         {
-            DrawWaveFormClassic(context, waveformHeight, ref renderCtx);
+            DrawWaveFormClassic(context, waveformHeight, ref renderCtx, outline: WaveformDrawStyle == WaveformDrawStyle.Lines);
         }
         else
         {
@@ -2197,7 +2282,7 @@ public class AudioVisualizer : Control
         }
     }
 
-    private void DrawWaveFormClassic(DrawingContext context, double waveformHeight, ref RenderContext renderCtx)
+    private void DrawWaveFormClassic(DrawingContext context, double waveformHeight, ref RenderContext renderCtx, bool outline = false)
     {
         _isSelectedHelper.Reset(AllSelectedParagraphs, renderCtx.SampleRate);
         var isSelectedHelper = _isSelectedHelper;
@@ -2262,6 +2347,13 @@ public class AudioVisualizer : Control
             }
         }
 
+        if (outline)
+        {
+            DrawOutlineBatch(context, _paintWaveform, unselectedLines);
+            DrawOutlineBatch(context, _paintPenSelected, selectedLines);
+            return;
+        }
+
         DrawVerticalLineBatch(context, _paintWaveform, unselectedLines);
         DrawVerticalLineBatch(context, _paintPenSelected, selectedLines);
     }
@@ -2269,6 +2361,46 @@ public class AudioVisualizer : Control
     // Pooled buffers for the classic waveform's two pens.
     private readonly List<FancyLine> _classicUnselectedLines = new(2048);
     private readonly List<FancyLine> _classicSelectedLines = new(2048);
+
+    /// <summary>"Lines" style: the top and bottom edge of each unbroken run of columns, as two polylines.</summary>
+    private static void DrawOutlineBatch(DrawingContext context, IPen pen, List<FancyLine> lines)
+    {
+        if (lines.Count == 0)
+        {
+            return;
+        }
+
+        var geom = new StreamGeometry();
+        using (var gctx = geom.Open())
+        {
+            var runStart = 0;
+            for (var i = 1; i <= lines.Count; i++)
+            {
+                if (i < lines.Count && lines[i].X - lines[i - 1].X <= 1)
+                {
+                    continue; // same run (the other color's columns break it)
+                }
+
+                gctx.BeginFigure(new Point(lines[runStart].X, lines[runStart].YMax), false);
+                for (var j = runStart + 1; j < i; j++)
+                {
+                    gctx.LineTo(new Point(lines[j].X, lines[j].YMax));
+                }
+
+                gctx.EndFigure(false);
+                gctx.BeginFigure(new Point(lines[runStart].X, lines[runStart].YMin), false);
+                for (var j = runStart + 1; j < i; j++)
+                {
+                    gctx.LineTo(new Point(lines[j].X, lines[j].YMin));
+                }
+
+                gctx.EndFigure(false);
+                runStart = i;
+            }
+        }
+
+        context.DrawGeometry(null, pen, geom);
+    }
 
     private static void DrawVerticalLineBatch(DrawingContext context, IPen pen, List<FancyLine> lines)
     {
@@ -2296,6 +2428,7 @@ public class AudioVisualizer : Control
         var paragraphs = _displayableParagraphs;
         var startPositionMilliseconds = renderCtx.StartPositionSeconds * 1000.0;
         var endPositionMilliseconds = RelativeXPositionToSecondsOptimized(renderCtx.Width, renderCtx.SampleRate, renderCtx.StartPositionSeconds, renderCtx.ZoomFactor) * 1000.0;
+        UpdateLanes(paragraphs);
 
         foreach (var p in paragraphs)
         {
@@ -2304,6 +2437,56 @@ public class AudioVisualizer : Control
                 DrawParagraph(p, context, ref renderCtx);
             }
         }
+    }
+
+    private void UpdateLanes(List<SubtitleLineViewModel> paragraphs)
+    {
+        if (_interactionMode != InteractionMode.None)
+        {
+            return; // lanes hold still while a line is dragged or resized; they settle when the mouse is released
+        }
+
+        _lanes.Clear();
+        var sorted = paragraphs.OrderBy(p => p.StartTime.TotalMilliseconds).ToList();
+
+        // Top to bottom: higher ASS layer first, then text A-Z (tags stripped, so "{\an8}Exit" sorts as "Exit")
+        var text = sorted.Select(p => HtmlUtil.RemoveHtmlTags(p.Text, true)).ToArray();
+        var lanes = TimelineLanes.Assign(sorted.Select(p => (p.StartTime.TotalMilliseconds, p.EndTime.TotalMilliseconds)).ToList(),
+            (a, b) => sorted[a].Layer != sorted[b].Layer
+                ? sorted[b].Layer.CompareTo(sorted[a].Layer)
+                : string.Compare(text[a], text[b], StringComparison.CurrentCultureIgnoreCase));
+        for (var i = 0; i < sorted.Count; i++)
+        {
+            _lanes[sorted[i]] = lanes[i];
+        }
+    }
+
+    /// <summary>
+    /// Clip color: every line gets the default (first) color, like the bottom lane of a stack. Lines higher in a
+    /// stack, and lines on a higher ASS layer, step through <see cref="LaneColors"/>. With subtitle colors off
+    /// (waveform settings → Colors) only stacked lines are colored.
+    /// </summary>
+    private Color? SubtitleColor(SubtitleLineViewModel paragraph, bool stacked)
+    {
+        if (!stacked && !Se.Settings.Waveform.WaveformColorSubtitles)
+        {
+            return null;
+        }
+
+        var fromBottom = _lanes.TryGetValue(paragraph, out var l) && l.Lanes > 1 ? l.Lanes - 1 - l.Lane : 0;
+        return LaneColors[(Math.Abs(paragraph.Layer) + fromBottom) % LaneColors.Length];
+    }
+
+    /// <summary>Top and height of the line's lane: the full height unless it overlaps other lines.</summary>
+    private (double Top, double Height) LaneBand(SubtitleLineViewModel paragraph, double fullHeight) =>
+        _lanes.TryGetValue(paragraph, out var l) && l.Lanes > 1
+            ? (fullHeight * l.Lane / l.Lanes, fullHeight / l.Lanes)
+            : (0, fullHeight);
+
+    private bool IsInLane(SubtitleLineViewModel paragraph, double y)
+    {
+        var (top, height) = LaneBand(paragraph, Bounds.Height);
+        return y >= top && y < top + height;
     }
 
     private void DrawParagraph(SubtitleLineViewModel paragraph, DrawingContext context, ref RenderContext renderCtx)
@@ -2317,15 +2500,31 @@ public class AudioVisualizer : Control
             return;
         }
 
-        var height = renderCtx.Height;
+        // Overlapping lines share the height as lanes, with a 1 px gap so each reads as its own block
+        var (top, height) = LaneBand(paragraph, renderCtx.Height);
+        var stacked = height < renderCtx.Height;
+        if (stacked)
+        {
+            top += 1;
+            height -= 2;
+        }
 
-        // Draw background rectangle
-        context.FillRectangle(AllSelectedParagraphs.Contains(paragraph) ? _paintParagraphSelectedBackground : _paintParagraphBackground,
-            new Rect(currentRegionLeft, 0, currentRegionWidth, height));
+        var bottom = top + height;
+
+        // Draw background rectangle in the line's color (selected lines keep the selection color)
+        var selected = AllSelectedParagraphs.Contains(paragraph);
+        var laneColor = SubtitleColor(paragraph, stacked);
+        context.FillRectangle(selected ? _paintParagraphSelectedBackground
+                : laneColor is { } fill ? new SolidColorBrush(fill, 0.32) : _paintParagraphBackground,
+            new Rect(currentRegionLeft, top, currentRegionWidth, height));
+        if (laneColor is { } strip)
+        {
+            context.FillRectangle(new SolidColorBrush(strip), new Rect(currentRegionLeft, top, currentRegionWidth, 3)); // Audacity 4 clip header
+        }
 
         // Draw left and right borders
-        context.DrawLine(_paintLeft, new Point(currentRegionLeft, 0), new Point(currentRegionLeft, height));
-        context.DrawLine(_paintRight, new Point(currentRegionRight - 1, 0), new Point(currentRegionRight - 1, height));
+        context.DrawLine(_paintLeft, new Point(currentRegionLeft, top), new Point(currentRegionLeft, bottom));
+        context.DrawLine(_paintRight, new Point(currentRegionRight - 1, top), new Point(currentRegionRight - 1, bottom));
 
         // Draw clipped text
         var text = HtmlUtil.RemoveHtmlTags(paragraph.Text, true);
@@ -2334,36 +2533,42 @@ public class AudioVisualizer : Control
             text = text.Substring(0, 100).TrimEnd() + "...";
         }
 
-        var textBounds = new Rect(currentRegionLeft + 1, 0, currentRegionWidth - 3, height);
+        var textBounds = new Rect(currentRegionLeft + 1, top, currentRegionWidth - 3, height);
+        var textY = top + (stacked ? 5 : 14); // stacked: just below the colored strip
 
         using (context.PushClip(textBounds))
         {
             var arr = text.SplitToLines();
-            if (Se.Settings.Waveform.WaveformUnwrapText)
+            var showText = Se.Settings.Waveform.WaveformShowText; // waveform settings menu; the footer below still shows
+            if (showText && Se.Settings.Waveform.WaveformUnwrapText)
             {
                 text = string.Join("  ", arr);
                 var formattedText = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                     _typeface, _fontSize, _paintText);
-                context.DrawText(formattedText, new Point(currentRegionLeft + 3, 14));
+                context.DrawText(formattedText, new Point(currentRegionLeft + 3, textY));
             }
-            else
+            else if (showText)
             {
                 double addY = 0;
                 foreach (var line in arr)
                 {
                     var formattedText = new FormattedText(line, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                         _typeface, _fontSize, _paintText);
-                    context.DrawText(formattedText, new Point(currentRegionLeft + 3, 14 + addY));
+                    context.DrawText(formattedText, new Point(currentRegionLeft + 3, textY + addY));
                     addY += formattedText.Height;
                 }
             }
 
-            DrawParagraphFooter(context, paragraph, currentRegionLeft, currentRegionWidth, height, ref renderCtx);
+            if (height >= 60) // a thin lane only has room for the text
+            {
+                DrawParagraphFooter(context, paragraph, currentRegionLeft, currentRegionWidth, bottom, ref renderCtx);
+            }
         }
     }
 
     // SE 4 parity: small footer at the bottom-left of each paragraph rectangle with
-    // up to three rows: characters-per-second (top), then "#NUMBER  DURATION".
+    // up to three rows: characters-per-second (top), then "#NUMBER  DURATION". Each part can be
+    // turned off in the waveform settings menu (#, Duration, Chars/sec).
     //
     // Zoom thresholds match SE 4 (n = samplesPerPixel = zoomFactor * sampleRate):
     //   n <= 15  → nothing (too zoomed out, the rectangle is barely visible)
@@ -2371,9 +2576,11 @@ public class AudioVisualizer : Control
     //   51 < n <= 99                                                   → "#NUMBER  DURATION"
     //   n > 99                                                         → add CPS line above
     private void DrawParagraphFooter(DrawingContext context, SubtitleLineViewModel paragraph,
-        double currentRegionLeft, double currentRegionWidth, double height, ref RenderContext renderCtx)
+        double currentRegionLeft, double currentRegionWidth, double bottom, ref RenderContext renderCtx)
     {
-        if (!Se.Settings.Waveform.WaveformShowNumberAndDuration && !Se.Settings.Waveform.WaveformShowCps)
+        var showNumber = Se.Settings.Waveform.WaveformShowNumber;
+        var showDuration = Se.Settings.Waveform.WaveformShowDuration;
+        if (!showNumber && !showDuration && !Se.Settings.Waveform.WaveformShowCps)
         {
             return;
         }
@@ -2388,29 +2595,29 @@ public class AudioVisualizer : Control
         var availableWidth = currentRegionWidth - padding - 1;
 
         string? baseLine = null;
-        if (Se.Settings.Waveform.WaveformShowNumberAndDuration)
+        var numberText = showNumber ? $"#{paragraph.Number}" : null;
+        if (n <= 51 || !showDuration)
         {
             // At narrow zoom we already know we're falling back to just "#N", so don't pay
-            // for the FormattedText probe and TimeCode formatting that compute the wider
-            // "#N  Duration" candidate.
-            if (n <= 51)
+            // for the FormattedText probe and TimeCode formatting of the duration.
+            baseLine = numberText;
+        }
+        else
+        {
+            // ToShortDisplayString consults the libse UseTimeFormatHHMMSSFF flag, which SE 5
+            // mirrors from Se.Settings.General.UseFrameMode (Se.cs:409). So flipping frame
+            // mode on automatically switches this label between the time form ("2,500") and
+            // the frame form ("00:00:02:12") without an explicit branch here.
+            var durationText = new TimeCode(paragraph.Duration.TotalMilliseconds).ToShortDisplayString();
+            baseLine = numberText == null ? durationText : $"{numberText}  {durationText}";
+            if (numberText != null)
             {
-                baseLine = $"#{paragraph.Number}";
-            }
-            else
-            {
-                // ToShortDisplayString consults the libse UseTimeFormatHHMMSSFF flag, which SE 5
-                // mirrors from Se.Settings.General.UseFrameMode (Se.cs:409). So flipping frame
-                // mode on automatically switches this label between the time form ("2,500") and
-                // the frame form ("00:00:02:12") without an explicit branch here.
-                var durationText = new TimeCode(paragraph.Duration.TotalMilliseconds).ToShortDisplayString();
-                var withDuration = $"#{paragraph.Number}  {durationText}";
-                var probe = new FormattedText(withDuration, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
+                var probe = new FormattedText(baseLine, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                     _typeface, _fontSize, _paintText);
-
-                baseLine = probe.Width >= availableWidth
-                    ? $"#{paragraph.Number}"
-                    : withDuration;
+                if (probe.Width >= availableWidth)
+                {
+                    baseLine = numberText;
+                }
             }
         }
 
@@ -2426,7 +2633,7 @@ public class AudioVisualizer : Control
         }
 
         // Layout from the bottom up so the optional CPS line stacks above the base line.
-        var bottomY = height - 14;
+        var bottomY = bottom - 14;
         var x = currentRegionLeft + padding;
 
         if (baseLine != null)

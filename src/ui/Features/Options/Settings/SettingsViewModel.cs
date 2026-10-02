@@ -370,7 +370,7 @@ public partial class SettingsViewModel : ObservableObject
         MpvPreviewSelectedFontAlignment = MpvPreviewFontAlignments[7];
         LibVlcStatus = string.Empty;
 
-        Themes = [Se.Language.General.System, Se.Language.General.Light, Se.Language.General.Dark, Se.Language.General.Classic, "Pastel"];
+        Themes = [Se.Language.General.System, Se.Language.General.Light, Se.Language.General.Dark, Se.Language.General.Classic, "Pastel", "Blender"];
         SelectedTheme = Themes[0];
 
         var iconFolders = Directory.GetDirectories(Se.ThemesFolder).Select(p => Path.GetFileName(p)).ToList();
@@ -400,6 +400,7 @@ public partial class SettingsViewModel : ObservableObject
         {
             Se.Language.Waveform.WaveformDrawStyleClassic,
             Se.Language.Waveform.WaveformDrawStyleFancy,
+            Se.Language.Waveform.WaveformDrawStyleLines,
         };
         SelectedWaveformDrawStyle = WaveformDrawStyles[0];
 
@@ -756,6 +757,10 @@ public partial class SettingsViewModel : ObservableObject
         {
             SelectedWaveformDrawStyle = WaveformDrawStyles[1];
         }
+        else if (Se.Settings.Waveform.WaveformDrawStyle == WaveformDrawStyle.Lines.ToString())
+        {
+            SelectedWaveformDrawStyle = WaveformDrawStyles[2];
+        }
         else
         {
             SelectedWaveformDrawStyle = WaveformDrawStyles[0];
@@ -1104,6 +1109,10 @@ public partial class SettingsViewModel : ObservableObject
         {
             return UiTheme.ThemeNamePastel;
         }
+        else if (translation == UiTheme.ThemeNameBlender)
+        {
+            return UiTheme.ThemeNameBlender;
+        }
         else
         {
             return UiTheme.ThemeNameSystem;
@@ -1131,6 +1140,10 @@ public partial class SettingsViewModel : ObservableObject
         else if (theme == UiTheme.ThemeNamePastel)
         {
             return "Pastel";
+        }
+        else if (theme == UiTheme.ThemeNameBlender)
+        {
+            return UiTheme.ThemeNameBlender;
         }
         else
         {
@@ -1432,6 +1445,10 @@ public partial class SettingsViewModel : ObservableObject
         else if (SelectedWaveformDrawStyle == Se.Language.Waveform.WaveformDrawStyleFancy)
         {
             Se.Settings.Waveform.WaveformDrawStyle = WaveformDrawStyle.Fancy.ToString();
+        }
+        else if (SelectedWaveformDrawStyle == Se.Language.Waveform.WaveformDrawStyleLines)
+        {
+            Se.Settings.Waveform.WaveformDrawStyle = WaveformDrawStyle.Lines.ToString();
         }
 
         Se.Settings.Waveform.GenerateSpectrogram = WaveformGenerateSpectrogram;

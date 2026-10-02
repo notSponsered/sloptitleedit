@@ -28,6 +28,7 @@ public class LanguageWaveform
     public string SpectrogramNeon { get; set; }
     public string WaveformDrawStyleClassic { get; set; }
     public string WaveformDrawStyleFancy { get; set; }
+    public string WaveformDrawStyleLines { get; set; }
     public string SetVideoPositionAndPauseAndSelectSubtitle { get; set; }
     public string SetVideopositionAndPauseAndSelectSubtitleAndCenter { get; set; }
     public string SetVideoPositionAndPause { get; set; }
@@ -61,8 +62,9 @@ public class LanguageWaveform
         SpectrogramClassicInferno = "Inferno";
         SpectrogramClassicTurbo = "Turbo";
         SpectrogramNeon = "Neon";
-        WaveformDrawStyleClassic = "Classic";
-        WaveformDrawStyleFancy = "Fancy";
+        WaveformDrawStyleClassic = "Solid";
+        WaveformDrawStyleFancy = "Dynamic";
+        WaveformDrawStyleLines = "Lines";
 
         SetVideoPositionAndPauseAndSelectSubtitle = "Set video position, pause, and select subtitle";
         SetVideopositionAndPauseAndSelectSubtitleAndCenter = "Set video position, pause, select subtitle, and center";

@@ -230,6 +230,7 @@
 		<AvaloniaResource Include="Assets\FileTypes\sup.ico" />
 		<AvaloniaResource Include="Assets\FileTypes\vtt.ico" />
 		<AvaloniaResource Include="Assets\SE.png" />
+		<AvaloniaResource Include="Assets\Fonts\InstrumentSans.ttf" />
 	</ItemGroup>
 
 	<ItemGroup>

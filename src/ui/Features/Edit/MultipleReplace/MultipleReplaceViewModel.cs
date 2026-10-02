@@ -1108,52 +1108,10 @@ public partial class MultipleReplaceViewModel : ObservableObject
         for (var i = 0; i < _subtitle.Paragraphs.Count; i++)
         {
             var p = _subtitle.Paragraphs[i];
-            var hit = false;
-            var newText = p.Text;
-            var ruleInfo = string.Empty;
             var ruleHits = new List<ReplaceExpression>();
-            foreach (var item in replaceExpressions)
-            {
-                if (item.SearchType == ReplaceExpression.SearchCaseSensitive)
-                {
-                    if (newText.Contains(item.FindWhat))
-                    {
-                        hit = true;
-                        ruleInfo = string.IsNullOrEmpty(ruleInfo) ? item.RuleInfo : $"{ruleInfo} + {item.RuleInfo}";
-                        ruleHits.Add(item);
-                        newText = newText.Replace(item.FindWhat, item.ReplaceWith);
-                    }
-                }
-                else if (item.SearchType == ReplaceExpression.SearchRegEx)
-                {
-                    var r = _compiledRegExList[item.FindWhat];
-                    if (r.IsMatch(newText))
-                    {
-                        hit = true;
-                        ruleInfo = string.IsNullOrEmpty(ruleInfo) ? item.RuleInfo : $"{ruleInfo} + {item.RuleInfo}";
-                        ruleHits.Add(item);
-                        newText = RegexUtils.ReplaceNewLineSafe(r, newText, item.ReplaceWith);
-                    }
-                }
-                else
-                {
-                    var index = newText.IndexOf(item.FindWhat, StringComparison.OrdinalIgnoreCase);
-                    if (index >= 0)
-                    {
-                        hit = true;
-                        ruleInfo = string.IsNullOrEmpty(ruleInfo) ? item.RuleInfo : $"{ruleInfo} + {item.RuleInfo}";
-                        ruleHits.Add(item);
-                        do
-                        {
-                            newText = newText.Remove(index, item.FindWhat.Length).Insert(index, item.ReplaceWith);
-                            index = newText.IndexOf(item.FindWhat, index + item.ReplaceWith.Length,
-                                StringComparison.OrdinalIgnoreCase);
-                        } while (index >= 0);
-                    }
-                }
-            }
+            var newText = MultipleReplaceEngine.Apply(p.Text, replaceExpressions, _compiledRegExList, ruleHits);
 
-            if (hit && newText != p.Text)
+            if (ruleHits.Count > 0 && newText != p.Text)
             {
                 TotalReplaced++;
 
@@ -1178,32 +1136,21 @@ public partial class MultipleReplaceViewModel : ObservableObject
         });
     }
 
-    private HashSet<ReplaceExpression> BuildReplaceExpressions()
+    private List<ReplaceExpression> BuildReplaceExpressions()
     {
-        var replaceExpressions = new HashSet<ReplaceExpression>();
+        var replaceExpressions = new List<ReplaceExpression>();
         foreach (var group in Nodes.Where(p => p.IsActive && p.SubNodes != null))
         {
             foreach (var rule in group.SubNodes!.Where(p => p.IsActive))
             {
-                var findWhat = rule.Find;
-                if (!string.IsNullOrEmpty(findWhat)) // allow space or spaces
+                var ruleInfo = string.IsNullOrEmpty(rule.Description)
+                    ? $"Group name: {group.CategoryName} - Rule number: {group.SubNodes.IndexOf(rule) + 1}"
+                    : $"Group name: {group.CategoryName} - Rule number: {group.SubNodes.IndexOf(rule) + 1}. {rule.Description}";
+                var mpi = MultipleReplaceEngine.Make(rule.Find, rule.ReplaceWith, rule.Type, ruleInfo, _compiledRegExList);
+                if (mpi != null)
                 {
-                    var isRegex = rule.SearchType == ReplaceExpression.SearchTypeRegularExpression;
-                    var replaceWith = isRegex ? RegexUtils.FixNewLine(rule.ReplaceWith) : rule.ReplaceWith;
-                    findWhat = isRegex ? RegexUtils.FixNewLine(findWhat) : findWhat;
-                    if (group.SubNodes != null)
-                    {
-                        var ruleInfo = string.IsNullOrEmpty(rule.Description)
-                            ? $"Group name: {group.CategoryName} - Rule number: {group.SubNodes.IndexOf(rule) + 1}"
-                            : $"Group name: {group.CategoryName} - Rule number: {group.SubNodes.IndexOf(rule) + 1}. {rule.Description}";
-                        var mpi = new ReplaceExpression(findWhat, replaceWith, rule.SearchType, ruleInfo);
-                        mpi.RuleTreeNode = rule;
-                        replaceExpressions.Add(mpi);
-                        if (mpi.SearchType == ReplaceExpression.SearchRegEx && !_compiledRegExList.ContainsKey(findWhat))
-                        {
-                            _compiledRegExList.Add(findWhat, new Regex(findWhat, RegexOptions.Compiled | RegexOptions.Multiline));
-                        }
-                    }
+                    mpi.RuleTreeNode = rule;
+                    replaceExpressions.Add(mpi);
                 }
             }
         }

@@ -15,11 +15,16 @@ public class UndoRedoManagerTests
         public int Hash { get; set; }
         public bool Typing { get; set; }
         public SubtitleLineViewModel[] Subtitles { get; set; } = [];
+        public string? Header { get; set; }
 
         public int GetFastHash() => Hash;
         public bool IsTyping() => Typing;
-        public UndoRedoItem MakeUndoRedoObject(string description) =>
-            MakeItem(description, Hash, Subtitles);
+        public UndoRedoItem MakeUndoRedoObject(string description)
+        {
+            var item = MakeItem(description, Hash, Subtitles.Select(p => new SubtitleLineViewModel(p)).ToArray());
+            item.SubtitleHeader = Header;
+            return item;
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -481,6 +486,63 @@ public class UndoRedoManagerTests
         manager.CheckForChanges(null);
 
         Assert.Equal(0, manager.UndoCount);
+    }
+
+    [Fact]
+    public void CheckForChanges_AddsEntry_WhenOnlyHeaderChanges()
+    {
+        var client = new FakeClient { Hash = 1, Subtitles = [MakeLine("hello")], Header = "H0" };
+        var manager = new UndoRedoManager();
+        manager.SetupChangeDetection(client, TimeSpan.FromHours(1));
+        manager.StartChangeDetection();
+        manager.Do(client.MakeUndoRedoObject("initial"));
+
+        client.Hash = 2;
+        client.Header = "H1"; // e.g. a style edited in the Styles window
+        manager.CheckForChanges(null);
+
+        Assert.Equal(2, manager.UndoCount);
+    }
+
+    [Fact]
+    public void CheckForChanges_AddsEntry_WhenOnlyLineStyleChanges()
+    {
+        var client = new FakeClient { Hash = 1, Subtitles = [MakeLine("hello")] };
+        var manager = new UndoRedoManager();
+        manager.SetupChangeDetection(client, TimeSpan.FromHours(1));
+        manager.StartChangeDetection();
+        manager.Do(client.MakeUndoRedoObject("initial"));
+
+        client.Hash = 2;
+        client.Subtitles = [new SubtitleLineViewModel(client.Subtitles[0]) { Style = "Sign" }];
+        manager.CheckForChanges(null);
+
+        Assert.Equal(2, manager.UndoCount);
+    }
+
+    [Fact]
+    public void Undo_OfTextEdit_KeepsEarlierHeaderOnlyChange()
+    {
+        // Regression: header-only changes were not recorded, so undoing the next
+        // text edit jumped back past them and silently reverted the styles.
+        var client = new FakeClient { Hash = 1, Subtitles = [MakeLine("hello")], Header = "H0" };
+        var manager = new UndoRedoManager();
+        manager.SetupChangeDetection(client, TimeSpan.FromHours(1));
+        manager.StartChangeDetection();
+        manager.Do(client.MakeUndoRedoObject("initial"));
+
+        client.Hash = 2;
+        client.Header = "H1";
+        manager.CheckForChanges(null);
+
+        client.Hash = 3;
+        client.Subtitles = [MakeLine("hello world")];
+        manager.CheckForChanges(null);
+
+        var undone = manager.Undo();
+
+        Assert.Equal("H1", undone!.SubtitleHeader);
+        Assert.Equal("hello", undone.Subtitles[0].Text);
     }
 
     // -----------------------------------------------------------------------

@@ -16,6 +16,7 @@ using Nikse.SubtitleEdit.Logic.VideoPlayers;
 using Nikse.SubtitleEdit.Logic.VideoPlayers.LibMpvDynamic;
 using Optris.Icons.Avalonia;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -187,6 +188,59 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
         private DispatcherTimer? _autoHideTimer;
         private DateTime _lastActivityTime;
         private ContentPresenter? _contentPresenter;
+        private readonly Grid _mainGrid;
+        private Control? _overlay;
+
+        // feature-specific buttons shown next to play/stop/fullscreen while an overlay is active
+        private readonly StackPanel _contextButtons = new()
+        {
+            Orientation = Orientation.Horizontal,
+            Margin = new Thickness(8, 0, 0, 0),
+            IsVisible = false,
+        };
+
+        public bool HasOverlay => _overlay != null;
+
+        /// <summary>
+        /// Shows a control in place of the video picture - same area, so the frame doesn't move - plus context buttons
+        /// next to play/stop/fullscreen. Click-to-play and wheel scrubbing on the surface are off meanwhile.
+        /// </summary>
+        public void ShowOverlay(Control overlay, IEnumerable<Control> contextButtons)
+        {
+            HideOverlay();
+            _overlay = overlay;
+            Grid.SetRow(overlay, 0);
+            _mainGrid.Children.Add(overlay);
+            if (_contentPresenter != null)
+            {
+                _contentPresenter.IsVisible = false; // also hides the native video window, which would cover the overlay
+            }
+
+            foreach (var button in contextButtons)
+            {
+                _contextButtons.Children.Add(button);
+            }
+
+            _contextButtons.IsVisible = _contextButtons.Children.Count > 0;
+        }
+
+        public void HideOverlay()
+        {
+            if (_overlay == null)
+            {
+                return;
+            }
+
+            _mainGrid.Children.Remove(_overlay);
+            _overlay = null;
+            if (_contentPresenter != null)
+            {
+                _contentPresenter.IsVisible = true;
+            }
+
+            _contextButtons.Children.Clear();
+            _contextButtons.IsVisible = false;
+        }
 
         private void NotifyPositionChanged(double newPosition)
         {
@@ -229,6 +283,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                 RowDefinitions = new RowDefinitions("*,Auto"), // video + controls
                 Background = Brushes.Transparent // Enable hit testing for pointer events
             };
+            _mainGrid = mainGrid;
 
             // PlayerContent
             var contentPresenter = new ContentPresenter
@@ -355,6 +410,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                 ToolTip.SetTip(_buttonFullScreenCollapse, Se.Language.General.ExitFullScreen);
             }
             stackPanel.Children.Add(_buttonFullScreenCollapse);
+            stackPanel.Children.Add(_contextButtons);
 
             _gridProgress.Children.Add(stackPanel);
             Grid.SetColumn(stackPanel, 0);
@@ -541,7 +597,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
         private void OnMainGridPointerPressed(object? sender, PointerPressedEventArgs e)
         {
             var props = e.GetCurrentPoint(this).Properties;
-            if (props.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed || _surfaceLeftButtonDown)
+            if (props.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed || _surfaceLeftButtonDown || _overlay != null)
             {
                 return;
             }
@@ -603,6 +659,11 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
 
         private void OnVideoWheelChanged(object? sender, PointerWheelEventArgs e)
         {
+            if (_overlay != null)
+            {
+                return; // the overlay uses the wheel itself (e.g. zoom while drawing)
+            }
+
             // Ignore wheel events over the controls row (sliders, buttons).
             try
             {

@@ -640,7 +640,6 @@ public class ReviewSpeechWindow : Window
             HorizontalAlignment = HorizontalAlignment.Stretch,
             Height = double.NaN,
             WaveformDrawStyle = InitWaveform.GetWaveformDrawStyle(settings.WaveformDrawStyle),
-            MinGapSeconds = Se.Settings.General.MinimumBetweenLines.GetMilliseconds() / 1000.0,
             FocusOnMouseOver = settings.FocusOnMouseOver,
             IsReadOnly = Se.Settings.General.LockTimeCodes,
             WaveformHeightPercentage = settings.SpectrogramCombinedWaveformHeight,

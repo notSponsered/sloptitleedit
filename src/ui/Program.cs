@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml.Styling;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.Threading;
@@ -64,6 +65,8 @@ namespace Nikse.SubtitleEdit
                     // resolves to the embedded font when no system font is available; healthy systems
                     // still pick up their own fonts for explicit family names.
                     .WithInterFont()
+                    // UI font: Instrument Sans (embedded, OFL, Assets/Fonts). Inter stays registered as the Linux fallback above.
+                    .With(new FontManagerOptions { DefaultFamilyName = "avares://SubtitleEdit/Assets/Fonts#Instrument Sans" })
                     .With(new X11PlatformOptions
                     {
                         RenderingMode = new[] { X11RenderingMode.Glx, X11RenderingMode.Egl }

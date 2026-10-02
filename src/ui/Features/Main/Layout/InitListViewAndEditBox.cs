@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -8,7 +9,9 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.VisualTree;
 using AvaloniaEdit;
+using AvaloniaEdit.Rendering;
 using Nikse.SubtitleEdit.Controls;
 using Nikse.SubtitleEdit.Features.Shared.TextBoxUtils;
 using Nikse.SubtitleEdit.Logic;
@@ -21,8 +24,8 @@ namespace Nikse.SubtitleEdit.Features.Main.Layout;
 
 public static partial class InitListViewAndEditBox
 {
-
-    public static Grid MakeLayoutListViewAndEditBox(MainView mainPage, MainViewModel vm)
+    /// <summary>Subtitle list (DataGrid with its context menu and drop host).</summary>
+    public static Control MakeSubtitleList(MainView mainPage, MainViewModel vm)
     {
         mainPage.DataContext = vm;
 
@@ -47,37 +50,6 @@ public static partial class InitListViewAndEditBox
             // Clear the grid to help with garbage collection
             vm.SubtitleGrid.ItemsSource = null;
         }
-
-        // Unhook events from old text editors if they exist
-        if (vm.EditTextBoxBindingCoordinator != null)
-        {
-            if (vm.EditTextBoxBindingCoordinator is TextEditorBindingCoordinator oldCoordinator)
-            {
-                oldCoordinator.DeInitialize();
-                if (vm.EditTextBox?.ContentControl != null)
-                {
-                    UiUtil.RemoveControlFromParent(vm.EditTextBox.ContentControl);
-                }
-            }
-            vm.EditTextBoxBindingCoordinator = null;
-        }
-
-        if (vm.EditTextBoxHelper is TextEditorBindingHelper helper)
-        {
-            helper.DeInitialize();
-            vm.EditTextBoxHelper = null;
-        }
-
-        if (vm.EditTextBoxOriginalHelper is TextEditorBindingHelper helperOriginal)
-        {
-            helperOriginal.DeInitialize();
-            vm.EditTextBoxOriginalHelper = null;
-        }
-
-        var mainGrid = new Grid
-        {
-            RowDefinitions = new RowDefinitions("*,Auto"),
-        };
 
         vm.SubtitleGrid = new DataGrid
         {
@@ -472,8 +444,6 @@ public static partial class InitListViewAndEditBox
             Source = vm,
         };
 
-        Grid.SetRow(dropHost, 0);
-        mainGrid.Children.Add(dropHost);
 
         // Create a Flyout for the DataGrid
         var flyout = new MenuFlyout();
@@ -987,19 +957,58 @@ public static partial class InitListViewAndEditBox
         dropHost.AddHandler(InputElement.PointerReleasedEvent, vm.SubtitleGrid_PointerReleased, RoutingStrategies.Tunnel, handledEventsToo: true);
         dropHost.AddHandler(InputElement.PointerMovedEvent, vm.SubtitleGrid_PointerMoved, RoutingStrategies.Tunnel, handledEventsToo: true);
 
+        return dropHost;
+    }
+
+    /// <summary>Edit box: show/hide/duration/layer, text box(es), and the button column.</summary>
+    public static Control MakeEditBox(MainViewModel vm)
+    {
+        // Unhook events from old text editors if they exist
+        if (vm.EditTextBoxBindingCoordinator != null)
+        {
+            if (vm.EditTextBoxBindingCoordinator is TextEditorBindingCoordinator oldCoordinator)
+            {
+                oldCoordinator.DeInitialize();
+                if (vm.EditTextBox?.ContentControl != null)
+                {
+                    UiUtil.RemoveControlFromParent(vm.EditTextBox.ContentControl);
+                }
+            }
+            vm.EditTextBoxBindingCoordinator = null;
+        }
+
+        if (vm.EditTextBoxHelper is TextEditorBindingHelper helper)
+        {
+            helper.DeInitialize();
+            vm.EditTextBoxHelper = null;
+        }
+
+        if (vm.EditTextBoxOriginalHelper is TextEditorBindingHelper helperOriginal)
+        {
+            helperOriginal.DeInitialize();
+            vm.EditTextBoxOriginalHelper = null;
+        }
+
+        var notNullConverter = new NotNullConverter();
+        var inverseBooleanConverter = new InverseBooleanConverter();
+        var textOneLineShortConverter = new TextOneLineShortConverter();
+        var booleanToGridLengthConverter = new BooleanToGridLengthConverter();
+
         // Edit area - restructured with time controls on left, multiline text on right
+        // Fields beside the text (wide) or above it (narrow); see FitEditBox.
         var editGrid = new Grid
         {
             Margin = new Thickness(10),
-            ColumnDefinitions = new ColumnDefinitions("Auto, *"), // Two columns: left for time controls, right for text
-            RowDefinitions = new RowDefinitions("Auto")
+            ColumnDefinitions = new ColumnDefinitions("Auto, *"),
+            RowDefinitions = new RowDefinitions("Auto, *"),
         };
 
-        // Left panel for time controls
-        var timeControlsPanel = new StackPanel
+        // Time fields: a uniform grid, so they stretch to the column and wrap into more columns when short
+        var timeControlsPanel = new Avalonia.Controls.Primitives.UniformGrid
         {
-            Spacing = 6,
-            Margin = new Thickness(0, 0, 0, 0),
+            Columns = 1,
+            ColumnSpacing = 10,
+            RowSpacing = 6,
             VerticalAlignment = VerticalAlignment.Top,
         };
         
@@ -1008,12 +1017,12 @@ public static partial class InitListViewAndEditBox
         {
             Spacing = 0,
             Orientation = Orientation.Vertical,
-            Margin = new Thickness(0, 0, 10, vm.ShowUpDownLabels ? 0 : 2),
+            Margin = new Thickness(0, 0, 0, vm.ShowUpDownLabels ? 0 : 2),
         }.WithBindVisible(vm, nameof(vm.ShowUpDownStartTime));
         var startTimeLabel = new TextBlock
         {
             Text = Se.Language.General.Show,
-            FontWeight = FontWeight.Bold
+            Classes = { "se-caption" }
         }.WithBindVisible(vm, nameof(vm.ShowUpDownLabels));
         startTimePanel.Children.Add(startTimeLabel);
         var timeCodeUpDown = new TimeCodeUpDown
@@ -1044,12 +1053,12 @@ public static partial class InitListViewAndEditBox
         {
             Spacing = 0,
             Orientation = Orientation.Vertical,
-            Margin = new Thickness(0, 0, 10, vm.ShowUpDownLabels ? 0 : 2),
+            Margin = new Thickness(0, 0, 0, vm.ShowUpDownLabels ? 0 : 2),
         }.WithBindVisible(vm, nameof(vm.ShowUpDownEndTime));
         var endTimeLabel = new TextBlock
         {
             Text = Se.Language.General.Hide,
-            FontWeight = FontWeight.Bold
+            Classes = { "se-caption" }
         }.WithBindVisible(vm, nameof(vm.ShowUpDownLabels));
         endTimePanel.Children.Add(endTimeLabel);
         var endCodeUpDown = new TimeCodeUpDown
@@ -1074,12 +1083,12 @@ public static partial class InitListViewAndEditBox
         {
             Spacing = 0,
             Orientation = Orientation.Vertical,
-            Margin = new Thickness(0, 0, 10, vm.ShowUpDownLabels ? 0 : 2),
+            Margin = new Thickness(0, 0, 0, vm.ShowUpDownLabels ? 0 : 2),
         }.WithBindVisible(vm, nameof(vm.ShowUpDownDuration));
         var durationLabel = new TextBlock
         {
             Text = Se.Language.General.Duration,
-            FontWeight = FontWeight.Bold,
+            Classes = { "se-caption" },
         }.WithBindVisible(vm, nameof(vm.ShowUpDownLabels));
         durationPanel.Children.Add(durationLabel);
         var durationUpDown = new SecondsUpDown
@@ -1107,12 +1116,12 @@ public static partial class InitListViewAndEditBox
             Spacing = 0,
             Orientation = Orientation.Vertical,
             [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowLayer)),
-            Margin = new Thickness(0, 0, 10, 0),
+            Margin = new Thickness(0),
         };
         var labelLayer = new TextBlock
         {
             Text = Se.Language.General.Layer,
-            FontWeight = FontWeight.Bold,
+            Classes = { "se-caption" },
         }.WithBindVisible(vm, nameof(vm.ShowUpDownLabels));
         panelLayer.Children.Add(labelLayer);
         var upDownLayer = UiUtil.MakeNumericUpDownInt(int.MinValue, int.MaxValue, 0, double.NaN, vm, $"{nameof(vm.SelectedSubtitle)}.{nameof(SubtitleLineViewModel.Layer)}");
@@ -1139,7 +1148,6 @@ public static partial class InitListViewAndEditBox
             }
         }
         
-        Grid.SetColumn(timeControlsPanel, 0);
         editGrid.Children.Add(timeControlsPanel);
 
         // Right panel for text editing (show/duration is to the left)
@@ -1152,7 +1160,7 @@ public static partial class InitListViewAndEditBox
         var textLabel = new TextBlock
         {
             Text = Se.Language.General.Text,
-            FontWeight = FontWeight.Bold,
+            Classes = { "se-caption" },
             VerticalAlignment = VerticalAlignment.Center,
         };
 
@@ -1234,9 +1242,10 @@ public static partial class InitListViewAndEditBox
         });
         textEditGrid.Children.Add(textCharsSecLabel);
         var textEditor = MakeTextBox(vm);
+        var textEditorHost = new FillHeight { Child = textEditor };
 
-        textEditGrid.Children.Add(textEditor);
-        Grid.SetRow(textEditor, 1);
+        textEditGrid.Children.Add(textEditorHost);
+        Grid.SetRow(textEditorHost, 1);
 
         var textTotalLengthLabel = new TextBlock
         {
@@ -1335,6 +1344,25 @@ public static partial class InitListViewAndEditBox
         menuItemTextBoxColor.Command = vm.TextBoxColorCommand;
         flyoutTextBox.Items.Add(menuItemTextBoxColor);
 
+        // Tinted boxes on padding: spaces / \h at the start and end of a line, blank lines (TextPaddingRenderer)
+        var menuItemShowPadding = new MenuItem
+        {
+            Header = Se.Language.Main.ShowPadding,
+            ToggleType = MenuItemToggleType.CheckBox,
+            IsChecked = Se.Settings.Appearance.SubtitleTextBoxShowPadding,
+        };
+        menuItemShowPadding.Click += (_, _) =>
+        {
+            Se.Settings.Appearance.SubtitleTextBoxShowPadding = !Se.Settings.Appearance.SubtitleTextBoxShowPadding;
+            menuItemShowPadding.IsChecked = Se.Settings.Appearance.SubtitleTextBoxShowPadding;
+            Se.SaveSettings();
+            foreach (var editor in textEditor.GetVisualDescendants().OfType<TextEditor>())
+            {
+                editor.TextArea.TextView.InvalidateLayer(KnownLayer.Background);
+            }
+        };
+        flyoutTextBox.Items.Add(menuItemShowPadding);
+
         flyoutTextBox.Items.Add(new Separator());
 
         var unicodeSymbols = Se.Settings.Tools.UnicodeSymbolsToInsert.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
@@ -1356,7 +1384,7 @@ public static partial class InitListViewAndEditBox
         var textLabelOriginal = new TextBlock
         {
             Text = Se.Language.General.OriginalText,
-            FontWeight = FontWeight.Bold,
+            Classes = { "se-caption" },
             Margin = new Thickness(3, 0, 0, 0),
         };
         textEditGrid.Add(textLabelOriginal, 0, 1);
@@ -1389,7 +1417,7 @@ public static partial class InitListViewAndEditBox
         });
 
         var textBoxOriginal = MakeTextBoxOriginal(vm);
-        textEditGrid.Add(textBoxOriginal, 1, 1);
+        textEditGrid.Add(new FillHeight { Child = textBoxOriginal }, 1, 1);
         textBoxOriginal.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.ShowColumnOriginalText))
         {
             Mode = BindingMode.OneWay,
@@ -1442,10 +1470,12 @@ public static partial class InitListViewAndEditBox
         };
         panelSingleLineLengthsOriginal.Children.Add(singleLineLengthLabel);
 
-        var buttonPanel = new StackPanel
+        // Wraps into a second column when the text row is shorter than the buttons
+        var buttonPanel = new WrapPanel
         {
             Orientation = Orientation.Vertical,
-            Spacing = 3,
+            ItemSpacing = 3,
+            LineSpacing = 3,
             Margin = new Thickness(6,3,3,3)
         };
 
@@ -1456,6 +1486,7 @@ public static partial class InitListViewAndEditBox
             {
                 ToolTip.SetTip(autoBreakButton, Se.Language.Main.AutoBreakHint);
             }
+            Avalonia.Automation.AutomationProperties.SetName(autoBreakButton, Se.Language.Main.AutoBreakHint); // icon-only: name it for screen readers
             buttonPanel.Children.Add(autoBreakButton);
         }
 
@@ -1466,6 +1497,7 @@ public static partial class InitListViewAndEditBox
             {
                 ToolTip.SetTip(unbreakButton, Se.Language.Main.UnbreakHint);
             }
+            Avalonia.Automation.AutomationProperties.SetName(unbreakButton, Se.Language.Main.UnbreakHint); // icon-only: name it for screen readers
             buttonPanel.Children.Add(unbreakButton);
         }
 
@@ -1476,6 +1508,7 @@ public static partial class InitListViewAndEditBox
             {
                 ToolTip.SetTip(italicButton, Se.Language.Main.ItalicHint);
             }
+            Avalonia.Automation.AutomationProperties.SetName(italicButton, Se.Language.Main.ItalicHint); // icon-only: name it for screen readers
             buttonPanel.Children.Add(italicButton);
         }
 
@@ -1486,6 +1519,7 @@ public static partial class InitListViewAndEditBox
             {
                 ToolTip.SetTip(colorButton, Se.Language.Main.ColorHint);
             }
+            Avalonia.Automation.AutomationProperties.SetName(colorButton, Se.Language.Main.ColorHint); // icon-only: name it for screen readers
             buttonPanel.Children.Add(colorButton);
         }
 
@@ -1496,17 +1530,27 @@ public static partial class InitListViewAndEditBox
             {
                 ToolTip.SetTip(removeFormattingButton, Se.Language.Main.RemoveFormattingHint);
             }
+            Avalonia.Automation.AutomationProperties.SetName(removeFormattingButton, Se.Language.Main.RemoveFormattingHint); // icon-only: name it for screen readers
             buttonPanel.Children.Add(removeFormattingButton);
         }
 
         textEditGrid.Add(buttonPanel, 1, 2);
 
-        Grid.SetColumn(textEditGrid, 1);
         editGrid.Children.Add(textEditGrid);
+        editGrid.SizeChanged += (_, e) => FitEditBox(editGrid, timeControlsPanel, textEditGrid, e.NewSize);
+        foreach (var field in timeControlsPanel.Children)
+        {
+            // e.g. Layer appears once the file is known to be ASS; that doesn't change the panel's size
+            field.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == Visual.IsVisibleProperty)
+                {
+                    FitEditBox(editGrid, timeControlsPanel, textEditGrid, editGrid.Bounds.Size);
+                }
+            };
+        }
 
-        Grid.SetRow(editGrid, 1);
-        mainGrid.Children.Add(editGrid);
-
+        FitEditBox(editGrid, timeControlsPanel, textEditGrid, new Size(double.PositiveInfinity, double.PositiveInfinity));
 
         textEditGrid.ColumnDefinitions[1].Bind(ColumnDefinition.WidthProperty, new Binding(nameof(vm.ShowColumnOriginalText))
         {
@@ -1522,7 +1566,84 @@ public static partial class InitListViewAndEditBox
         coordinator.Initialize();
         vm.EditTextBoxBindingCoordinator = coordinator;
 
-        return mainGrid;
+        return editGrid;
+    }
+
+    /// <summary>
+    /// Holds a subtitle text box: fills whatever height its row gets (down to the box's own one-line
+    /// minimum), but where the area sizes to its content (the default edit area under the list) it asks for
+    /// a fixed 92, so long tagged lines scroll inside the box instead of growing the area on every selection.
+    /// </summary>
+    private sealed class FillHeight : Decorator
+    {
+        private const double NaturalHeight = 92;
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            if (!double.IsInfinity(availableSize.Height))
+            {
+                return base.MeasureOverride(availableSize);
+            }
+
+            base.MeasureOverride(availableSize.WithHeight(NaturalHeight));
+            return new Size(Child?.DesiredSize.Width ?? 0, NaturalHeight);
+        }
+    }
+
+    /// <summary>
+    /// Lays the edit box out for its size. Wide: the fields sit beside the text, take a share of the width
+    /// (stretching to it) and wrap into more columns when the panel is too short for one. Narrow: the fields
+    /// go above the text in as many columns as fit. Nothing is clipped or scrolled sideways.
+    /// </summary>
+    private static void FitEditBox(Grid editGrid, Avalonia.Controls.Primitives.UniformGrid fields, Grid text, Size size)
+    {
+        const double gap = 10;
+        const double minTextWidth = 320;
+        var top = fields.Margin.Top; // aligns the first field with the text box
+        var visible = fields.Children.Where(c => c.IsVisible).ToList();
+        if (visible.Count == 0 || size.Width <= 0 || double.IsInfinity(size.Width) || double.IsInfinity(size.Height)) // not laid out yet
+        {
+            Place(beside: true, columns: 1, new GridLength(1, GridUnitType.Auto));
+            return;
+        }
+
+        double cellWidth = 0, cellHeight = 0;
+        foreach (var field in visible)
+        {
+            field.Measure(Size.Infinity);
+            cellWidth = Math.Max(cellWidth, field.DesiredSize.Width);
+            cellHeight = Math.Max(cellHeight, field.DesiredSize.Height);
+        }
+
+        // + 0.05: a panel exactly as tall as the stack (auto-sized) must not round down to an extra column
+        var rowsThatFit = Math.Max(1, (int)((size.Height - top + fields.RowSpacing) / (cellHeight + fields.RowSpacing) + 0.05));
+        var columns = (visible.Count + rowsThatFit - 1) / rowsThatFit;
+        var fieldsWidth = Math.Max(
+            columns * cellWidth + (columns - 1) * fields.ColumnSpacing,
+            Math.Min(size.Width * 0.22, columns * 300));
+        if (size.Width - fieldsWidth - gap >= minTextWidth)
+        {
+            Place(beside: true, columns, new GridLength(fieldsWidth + gap));
+        }
+        else
+        {
+            var across = (int)((size.Width + fields.ColumnSpacing) / (cellWidth + fields.ColumnSpacing));
+            Place(beside: false, Math.Clamp(across, 1, visible.Count), new GridLength(0));
+        }
+
+        void Place(bool beside, int columns, GridLength fieldsColumn)
+        {
+            fields.Columns = columns;
+            fields.Margin = beside ? new Thickness(0, top, gap, 0) : new Thickness(0, top, 0, gap);
+            editGrid.ColumnDefinitions[0].Width = fieldsColumn;
+            Grid.SetRow(fields, 0);
+            Grid.SetRowSpan(fields, beside ? 2 : 1);
+            Grid.SetColumnSpan(fields, beside ? 1 : 2);
+            Grid.SetRow(text, beside ? 0 : 1);
+            Grid.SetRowSpan(text, beside ? 2 : 1);
+            Grid.SetColumn(text, beside ? 1 : 0);
+            Grid.SetColumnSpan(text, beside ? 1 : 2);
+        }
     }
 
     private static Avalonia.Controls.Control MakeTextBox(MainViewModel vm)
@@ -1539,8 +1660,7 @@ public static partial class InitListViewAndEditBox
             {
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.Wrap,
-                MinHeight = 92,
-                Height = 92,
+                MinHeight = 36, // one line; FillHeight gives it 92 when the area sizes itself
                 [!TextBox.TextProperty] = new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.Text))
                 {
                     Mode = BindingMode.TwoWay
@@ -1575,7 +1695,7 @@ public static partial class InitListViewAndEditBox
         var textEditor = MakeTextEditor();
 
         var defaultBorderBrush = UiUtil.GetBorderBrush();
-        var focusedBorderBrush = new SolidColorBrush(Colors.DodgerBlue);
+        var focusedBorderBrush = new SolidColorBrush(Se.Settings.Appearance.Theme == UiTheme.ThemeNameBlender ? Color.Parse("#4772b3") : Colors.DodgerBlue);
 
         var textEditorBorder = new Border
         {
@@ -1610,8 +1730,7 @@ public static partial class InitListViewAndEditBox
     {
         var textEditor = new TextEditor
         {
-            MinHeight = 92,
-            Height = 92,
+            MinHeight = 36, // one line; FillHeight gives it 92 when the area sizes itself
             FontSize = Se.Settings.Appearance.SubtitleTextBoxFontSize,
             FontWeight = Se.Settings.Appearance.SubtitleTextBoxFontBold ? FontWeight.Bold : FontWeight.Normal,
             WordWrap = true,
@@ -1624,6 +1743,7 @@ public static partial class InitListViewAndEditBox
 
         // Add syntax highlighting transformer
         textEditor.TextArea.TextView.LineTransformers.Add(new SubtitleSyntaxHighlighting());
+        textEditor.TextArea.TextView.BackgroundRenderers.Add(new TextPaddingRenderer());
 
         if (!string.IsNullOrEmpty(Se.Settings.Appearance.SubtitleTextBoxAndGridFontName))
         {
@@ -1645,8 +1765,7 @@ public static partial class InitListViewAndEditBox
             {
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.Wrap,
-                MinHeight = 92,
-                Height = 92,
+                MinHeight = 36, // one line; FillHeight gives it 92 when the area sizes itself
                 [!TextBox.TextProperty] = new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.OriginalText))
                 {
                     Mode = BindingMode.TwoWay
@@ -1677,7 +1796,7 @@ public static partial class InitListViewAndEditBox
         var textEditor = MakeTextEditor();
 
         var defaultBorderBrush = UiUtil.GetBorderBrush();
-        var focusedBorderBrush = new SolidColorBrush(Colors.DodgerBlue);
+        var focusedBorderBrush = new SolidColorBrush(Se.Settings.Appearance.Theme == UiTheme.ThemeNameBlender ? Color.Parse("#4772b3") : Colors.DodgerBlue);
 
         var textEditorBorder = new Border
         {

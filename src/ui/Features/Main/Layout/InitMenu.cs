@@ -21,6 +21,138 @@ public static class InitMenu
     // One notch below the Fluent theme default (~14).
     private const double MenuFontSize = 13.0;
 
+    private static MenuItem MakeProjectMenu(MainViewModel vm)
+    {
+        var p = Se.Language.Project;
+
+        MenuItem WhenOpen(string header, IRelayCommand command) => new()
+        {
+            Header = header,
+            Command = command,
+            [!MenuItem.IsVisibleProperty] = new Binding(nameof(vm.IsProjectOpen)),
+        };
+
+        Separator SeparatorWhenOpen() => new() { [!Separator.IsVisibleProperty] = new Binding(nameof(vm.IsProjectOpen)) };
+
+        return new MenuItem
+        {
+            Header = p.Project,
+            Items =
+            {
+                new MenuItem { Header = p.NewProject, Command = vm.ProjectNewCommand },
+                new MenuItem { Header = p.OpenProject, Command = vm.ProjectOpenCommand },
+                new MenuItem { Header = p.ImportFromGitHub, Command = vm.ProjectImportFromGitHubCommand },
+                SeparatorWhenOpen(),
+                WhenOpen(p.EditProject, vm.ProjectEditCommand),
+                WhenOpen(p.CloseProject, vm.ProjectCloseCommand),
+                SeparatorWhenOpen(),
+                WhenOpen(p.NextEpisode, vm.ProjectNextEpisodeCommand),
+                WhenOpen(p.PreviousEpisode, vm.ProjectPreviousEpisodeCommand),
+                SeparatorWhenOpen(),
+                WhenOpen(p.EditProjectStyles, vm.ProjectEditStylesCommand),
+                WhenOpen(p.ApplyProjectStyles, vm.ProjectApplyStylesCommand),
+                SeparatorWhenOpen(),
+                new MenuItem
+                {
+                    Header = p.ConnectToGitHub,
+                    Command = vm.ProjectConnectGitHubCommand,
+                    [!MenuItem.IsVisibleProperty] = new Binding(nameof(vm.CanConnectProjectToGitHub)),
+                },
+                new MenuItem
+                {
+                    Header = p.GitHub,
+                    Command = vm.ShowProjectGitHubCommand,
+                    [!MenuItem.IsVisibleProperty] = new Binding(nameof(vm.IsProjectUsingGitHub)),
+                },
+            },
+        };
+    }
+
+    private static MenuItem MakeWindowMenu(MainViewModel vm)
+    {
+        var w = Se.Language.Workspace;
+
+        var workspaces = new MenuItem { Header = w.Workspaces };
+        workspaces.Items.Add(new MenuItem()); // placeholder so the submenu arrow shows; filled on open
+        workspaces.SubmenuOpened += (_, _) =>
+        {
+            workspaces.Items.Clear();
+            var list = Se.Settings.Appearance.Workspaces;
+            for (var i = 0; i < list.Count; i++)
+            {
+                var index = i;
+                workspaces.Items.Add(new MenuItem
+                {
+                    Header = list[i].Name,
+                    ToggleType = MenuItemToggleType.Radio,
+                    IsChecked = i == Se.Settings.Appearance.ActiveWorkspace,
+                    Command = new RelayCommand(() => vm.SwitchWorkspace(index)),
+                });
+            }
+
+            workspaces.Items.Add(new Separator());
+            workspaces.Items.Add(new MenuItem { Header = w.NextWorkspace, Command = vm.NextWorkspaceCommand });
+            workspaces.Items.Add(new MenuItem { Header = w.PreviousWorkspace, Command = vm.PreviousWorkspaceCommand });
+            var newItem = new MenuItem { Header = w.NewWorkspace };
+            foreach (var item in WorkspaceBar.MakeNewMenuItems(vm))
+            {
+                newItem.Items.Add(item);
+            }
+
+            workspaces.Items.Add(newItem);
+        };
+
+        var addPanel = new MenuItem { Header = w.AddPanel };
+        addPanel.Items.Add(new MenuItem());
+        addPanel.SubmenuOpened += (_, _) =>
+        {
+            addPanel.Items.Clear();
+            foreach (var info in PanelRegistry.All)
+            {
+                addPanel.Items.Add(new MenuItem
+                {
+                    Header = info.Title(),
+                    IsEnabled = !info.AssOnly || vm.IsFormatAssa || vm.IsFormatSsa,
+                    Command = new RelayCommand(() => AreaHost.AddPanelToActiveArea(info.Id)),
+                });
+            }
+        };
+
+        return new MenuItem
+        {
+            Header = w.Window,
+            Items =
+            {
+                workspaces,
+                addPanel,
+                new MenuItem { Header = w.MaximizeArea, Command = vm.ToggleMaximizeAreaCommand },
+                new MenuItem
+                {
+                    Header = w.ShowAreaHeaders,
+                    Command = vm.ToggleAreaHeadersCommand,
+                    ToggleType = MenuItemToggleType.CheckBox,
+                    [!MenuItem.IsCheckedProperty] = new Binding(nameof(vm.ShowAreaHeaders)),
+                },
+                new MenuItem
+                {
+                    Header = w.AssaToolsBar,
+                    Command = vm.ToggleAssaToolsBarCommand,
+                    ToggleType = MenuItemToggleType.CheckBox,
+                    [!MenuItem.IsCheckedProperty] = new Binding(nameof(vm.ShowAssaToolsBar)),
+                },
+                new MenuItem
+                {
+                    Header = w.MainToolbar,
+                    Command = vm.ToggleMainToolbarCommand,
+                    ToggleType = MenuItemToggleType.CheckBox,
+                    [!MenuItem.IsCheckedProperty] = new Binding(nameof(vm.ShowMainToolbar)),
+                },
+                new Separator(),
+                new MenuItem { Header = w.LoadLayoutPreset, Command = vm.CommandShowLayoutCommand },
+            },
+        };
+    }
+
     public static void Make(MainViewModel vm)
     {
         var l = Se.Language.Main.Menu;
@@ -295,6 +427,8 @@ public static class InitMenu
                 }
             }
         });
+
+        menu.Items.Add(MakeProjectMenu(vm));
 
         menu.Items.Add(new MenuItem
         {
@@ -818,6 +952,8 @@ public static class InitMenu
             },
         });
 
+        menu.Items.Add(MakeWindowMenu(vm));
+
         menu.Items.Add(new MenuItem
         {
             Header = l.HelpTitle,
@@ -884,6 +1020,21 @@ public static class InitMenu
             {
                 Header = l.AssaDraw,
                 Command = vm.ShowAssaDrawCommand,
+            },
+            new MenuItem
+            {
+                Header = l.AssaFadeInToVideoPosition,
+                Command = vm.AssaFadeInToVideoPositionCommand,
+            },
+            new MenuItem
+            {
+                Header = l.AssaFadeOutFromVideoPosition,
+                Command = vm.AssaFadeOutFromVideoPositionCommand,
+            },
+            new MenuItem
+            {
+                Header = l.AssaMotionTracking,
+                Command = vm.ShowAssaMotionTrackingCommand,
             },
             new MenuItem
             {

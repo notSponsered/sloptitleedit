@@ -1285,6 +1285,20 @@ public sealed class LibMpvDynamicPlayer : IDisposable, IVideoPlayer
         }
     }
 
+    /// <summary>
+    /// Saves the frame being shown (video only - no subtitles/OSD, video resolution) to a .png/.jpg file.
+    /// Returns false when mpv isn't playing anything or the command failed.
+    /// </summary>
+    public bool ScreenshotToFile(string fileName)
+    {
+        if (_mpv == IntPtr.Zero)
+        {
+            return false;
+        }
+
+        return DoMpvCommand("screenshot-to-file", fileName, "video") >= 0;
+    }
+
     public void StepOneFrameBack()
     {
         _pausedValue = null;

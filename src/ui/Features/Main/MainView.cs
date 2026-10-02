@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Data;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Declarative;
 using Avalonia.Threading;
@@ -77,33 +78,50 @@ public class MainView : ViewBase
         {
             _vm.Menu.IsVisible = false;
         }
-        DockPanel.SetDock(_vm.Menu, Dock.Top);
-        root.Children.Add(_vm.Menu);
+        // Top bar like Blender's: menus, the workspace tabs (they stay visible on macOS where the menu is native),
+        // then the format/episode pickers on the right.
+        var workspaceBar = WorkspaceBar.Make(_vm);
+        Grid.SetColumn(workspaceBar, 1);
+        _vm.ToolbarPickers.Child = InitToolbar.MakePickers(_vm);
+        Grid.SetColumn(_vm.ToolbarPickers, 3);
+        var menuRow = new Grid
+        {
+            Classes = { "se-bar" },
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto"),
+            Children = { _vm.Menu, workspaceBar, _vm.ToolbarPickers },
+        };
+        DockPanel.SetDock(menuRow, Dock.Top);
+        root.Children.Add(menuRow);
 
         _vm.ToolbarTopSeparator = UiUtil.MakeHorizontalSeparator(0.5, 0.5, new Thickness(0, 0, 0, 0));
-        _vm.ToolbarTopSeparator.IsVisible = Se.Settings.Appearance.ShowHorizontalLineAboveToolbar;
+        _vm.UpdateToolbarSeparator();
         DockPanel.SetDock(_vm.ToolbarTopSeparator, Dock.Top);
         root.Children.Add(_vm.ToolbarTopSeparator);
 
-        // Toolbar
+        // The classic icon toolbar: off by default (Window → Main toolbar); the ASSA tools bar is an area panel.
         _vm.Toolbar = InitToolbar.Make(_vm);
+        _vm.Toolbar.Classes.Add("se-bar");
+        _vm.Toolbar.Bind(Visual.IsVisibleProperty, new Binding(nameof(MainViewModel.ShowMainToolbar)));
         DockPanel.SetDock(_vm.Toolbar, Dock.Top);
         root.Children.Add(_vm.Toolbar);
 
         // Footer
         var footer = InitFooter.Make(_vm);
+        footer.Classes.Add("se-bar");
         DockPanel.SetDock(footer, Dock.Bottom);
         root.Children.Add(footer);
 
-        // Main content (fills all remaining space)
+        // Main content (fills all remaining space); the gap color shows between the areas
         _vm.ContentGrid = ViewContent.Make(_vm);
+        _vm.ContentGrid.Classes.Add("se-gap");
 
         // Wait for the view to be attached to visual tree before initializing layout
         this.AttachedToVisualTree += (s, e) =>
         {
             Dispatcher.UIThread.Post(() =>
             {
-                InitLayout.MakeLayout(this, _vm, Se.Settings.General.LayoutNumber);
+                AreaHost.Init(this, _vm);
+                _vm.RebuildLayout();
                 _vm.ContentGrid.InvalidateMeasure();
                 _vm.ContentGrid.InvalidateArrange();
                 Dispatcher.UIThread.Post(() => _vm.SubtitleGrid.Focus());

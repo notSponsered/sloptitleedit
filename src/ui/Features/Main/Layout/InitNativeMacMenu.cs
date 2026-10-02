@@ -334,6 +334,9 @@ public static class InitNativeMacMenu
             Item(Clean(l.AssaApplyAdvancedEffects), v => v.ShowAssaApplyAdvancedEffectCommand),
             Item(Clean(l.AssaApplyCustomOverrideTags), v => v.ShowAssaApplyCustomOverrideTagsCommand),
             Item(Clean(l.AssaDraw), v => v.ShowAssaDrawCommand),
+            Item(Clean(l.AssaFadeInToVideoPosition), v => v.AssaFadeInToVideoPositionCommand),
+            Item(Clean(l.AssaFadeOutFromVideoPosition), v => v.AssaFadeOutFromVideoPositionCommand),
+            Item(Clean(l.AssaMotionTracking), v => v.ShowAssaMotionTrackingCommand),
             Item(Clean(l.AssaProperties), v => v.ShowAssaPropertiesCommand),
             Item(Clean(l.AssaAttachments), v => v.ShowAssaAttachmentsCommand),
             Item(Clean(l.AssaStyles), v => v.ShowAssaStylesCommand),
@@ -346,8 +349,37 @@ public static class InitNativeMacMenu
         var assaMenu = new NativeMenuItem(Clean(l.AssaTools)) { Menu = assaItems };
         _visibilities.Add((assaMenu, v => v.IsFormatAssa, [nameof(MainViewModel.IsFormatAssa)]));
 
+        // ── Project ───────────────────────────────────────────────────────────
+        var p = Se.Language.Project;
+        var projectOpen = nameof(MainViewModel.IsProjectOpen);
+        var projectItems = new NativeMenu();
+        projectItems.Items.Add(Item(Clean(p.NewProject), v => v.ProjectNewCommand));
+        projectItems.Items.Add(Item(Clean(p.OpenProject), v => v.ProjectOpenCommand));
+        projectItems.Items.Add(Item(Clean(p.ImportFromGitHub), v => v.ProjectImportFromGitHubCommand));
+        projectItems.Items.Add(Conditional(Clean(p.EditProject), v => v.ProjectEditCommand, v => v.IsProjectOpen, projectOpen));
+        projectItems.Items.Add(Conditional(Clean(p.CloseProject), v => v.ProjectCloseCommand, v => v.IsProjectOpen, projectOpen));
+        projectItems.Items.Add(new NativeMenuItemSeparator());
+        projectItems.Items.Add(Conditional(Clean(p.NextEpisode), v => v.ProjectNextEpisodeCommand, v => v.IsProjectOpen, projectOpen));
+        projectItems.Items.Add(Conditional(Clean(p.PreviousEpisode), v => v.ProjectPreviousEpisodeCommand, v => v.IsProjectOpen, projectOpen));
+        projectItems.Items.Add(Conditional(Clean(p.EditProjectStyles), v => v.ProjectEditStylesCommand, v => v.IsProjectOpen, projectOpen));
+        projectItems.Items.Add(Conditional(Clean(p.ApplyProjectStyles), v => v.ProjectApplyStylesCommand, v => v.IsProjectOpen, projectOpen));
+        projectItems.Items.Add(Conditional(Clean(p.ConnectToGitHub), v => v.ProjectConnectGitHubCommand, v => v.CanConnectProjectToGitHub, nameof(MainViewModel.CanConnectProjectToGitHub)));
+        projectItems.Items.Add(Conditional(Clean(p.GitHub), v => v.ShowProjectGitHubCommand, v => v.IsProjectUsingGitHub, nameof(MainViewModel.IsProjectUsingGitHub)));
+
+        // ── Window (workspace tabs themselves are in the bar next to the menu) ─
+        var w = Se.Language.Workspace;
+        var windowItems = new NativeMenu();
+        windowItems.Items.Add(Item(Clean(w.NextWorkspace), v => v.NextWorkspaceCommand));
+        windowItems.Items.Add(Item(Clean(w.PreviousWorkspace), v => v.PreviousWorkspaceCommand));
+        windowItems.Items.Add(Item(Clean(w.MaximizeArea), v => v.ToggleMaximizeAreaCommand));
+        windowItems.Items.Add(Toggle(Clean(w.ShowAreaHeaders), v => v.ToggleAreaHeadersCommand, v => v.ShowAreaHeaders, nameof(MainViewModel.ShowAreaHeaders)));
+        windowItems.Items.Add(Toggle(Clean(w.AssaToolsBar), v => v.ToggleAssaToolsBarCommand, v => v.ShowAssaToolsBar, nameof(MainViewModel.ShowAssaToolsBar)));
+        windowItems.Items.Add(Toggle(Clean(w.MainToolbar), v => v.ToggleMainToolbarCommand, v => v.ShowMainToolbar, nameof(MainViewModel.ShowMainToolbar)));
+        windowItems.Items.Add(Item(Clean(w.LoadLayoutPreset), v => v.CommandShowLayoutCommand));
+
         // ── Assemble ──────────────────────────────────────────────────────────
         root.Items.Add(new NativeMenuItem(Clean(l.File)) { Menu = fileItems });
+        root.Items.Add(new NativeMenuItem(Clean(p.Project)) { Menu = projectItems });
         root.Items.Add(new NativeMenuItem(Clean(l.Edit)) { Menu = editItems });
         root.Items.Add(new NativeMenuItem(Clean(l.Tools)) { Menu = toolItems });
         root.Items.Add(_pluginsItem);
@@ -356,6 +388,7 @@ public static class InitNativeMacMenu
         root.Items.Add(new NativeMenuItem(Clean(l.Synchronization)) { Menu = syncItems });
         root.Items.Add(new NativeMenuItem(Clean(l.Translate)) { Menu = translateItems });
         root.Items.Add(new NativeMenuItem(Clean(l.Options)) { Menu = optionsItems });
+        root.Items.Add(new NativeMenuItem(Clean(w.Window)) { Menu = windowItems });
         root.Items.Add(new NativeMenuItem(Clean(l.HelpTitle)) { Menu = helpItems });
         root.Items.Add(assaMenu);
     }

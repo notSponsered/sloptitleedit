@@ -332,7 +332,20 @@ public sealed class UndoRedoManager : IUndoRedoManager
             return true;
         }
 
-        return DetectContentChanges(prev, next);
+        if (DetectContentChanges(prev, next))
+        {
+            return true;
+        }
+
+        // Style edits only touch the header; dropping them here made the next
+        // recorded edit's undo silently revert the styles too.
+        if (prev.SubtitleHeader != next.SubtitleHeader || prev.SubtitleFooter != next.SubtitleFooter)
+        {
+            next.Description = Se.Language.Main.StylesOrHeaderChanged;
+            return true;
+        }
+
+        return false;
     }
 
     private static bool DetectContentChanges(UndoRedoItem prev, UndoRedoItem next)
@@ -340,6 +353,7 @@ public sealed class UndoRedoManager : IUndoRedoManager
         var changedLines = new List<int>();
         var textChanges = 0;
         var timingChanges = 0;
+        var styleChanges = 0;
 
         for (var i = 0; i < prev.Subtitles.Length; i++)
         {
@@ -351,8 +365,9 @@ public sealed class UndoRedoManager : IUndoRedoManager
                 Math.Abs(o.StartTime.TotalMilliseconds - n.StartTime.TotalMilliseconds) > 0.5 ||
                 Math.Abs(o.EndTime.TotalMilliseconds - n.EndTime.TotalMilliseconds) > 0.5;
             var bookmarkChanged = o.Bookmark != n.Bookmark;
+            var styleChanged = o.Style != n.Style || o.Extra != n.Extra || o.Actor != n.Actor || o.Layer != n.Layer;
 
-            if (!textChanged && !timingChanged && !bookmarkChanged)
+            if (!textChanged && !timingChanged && !bookmarkChanged && !styleChanged)
             {
                 continue;
             }
@@ -366,6 +381,10 @@ public sealed class UndoRedoManager : IUndoRedoManager
             {
                 timingChanges++;
             }
+            if (styleChanged)
+            {
+                styleChanges++;
+            }
         }
 
         if (changedLines.Count == 0)
@@ -376,8 +395,8 @@ public sealed class UndoRedoManager : IUndoRedoManager
         next.Description = changedLines.Count switch
         {
             1 => SingleLineDescription(changedLines[0], prev, next),
-            <= MaxLinesToList => MultiLineDescription(changedLines, textChanges, timingChanges),
-            _ => SummaryDescription(changedLines.Count, textChanges, timingChanges)
+            <= MaxLinesToList => MultiLineDescription(changedLines, textChanges, timingChanges, styleChanges),
+            _ => SummaryDescription(changedLines.Count, textChanges, timingChanges, styleChanges)
         };
 
         return true;
@@ -404,16 +423,16 @@ public sealed class UndoRedoManager : IUndoRedoManager
     }
 
     private static string MultiLineDescription(
-        List<int> lines, int textChanges, int timingChanges) =>
-        $"Lines {string.Join(", ", lines)}: {FormatChangeTypes(textChanges, timingChanges)} changes";
+        List<int> lines, int textChanges, int timingChanges, int styleChanges) =>
+        $"Lines {string.Join(", ", lines)}: {FormatChangeTypes(textChanges, timingChanges, styleChanges)} changes";
 
     private static string SummaryDescription(
-        int lineCount, int textChanges, int timingChanges) =>
-        $"{lineCount} lines modified: {FormatChangeTypes(textChanges, timingChanges)} changes";
+        int lineCount, int textChanges, int timingChanges, int styleChanges) =>
+        $"{lineCount} lines modified: {FormatChangeTypes(textChanges, timingChanges, styleChanges)} changes";
 
-    private static string FormatChangeTypes(int textChanges, int timingChanges)
+    private static string FormatChangeTypes(int textChanges, int timingChanges, int styleChanges)
     {
-        var parts = new List<string>(2);
+        var parts = new List<string>(3);
         if (textChanges > 0)
         {
             parts.Add($"{textChanges} text");
@@ -421,6 +440,10 @@ public sealed class UndoRedoManager : IUndoRedoManager
         if (timingChanges > 0)
         {
             parts.Add($"{timingChanges} timing");
+        }
+        if (styleChanges > 0)
+        {
+            parts.Add($"{styleChanges} style");
         }
         return string.Join(" and ", parts);
     }

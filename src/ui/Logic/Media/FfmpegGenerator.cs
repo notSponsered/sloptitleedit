@@ -385,26 +385,63 @@ public class FfmpegGenerator
         return File.Exists(outputFileName) ? outputFileName : null;
     }
 
-    public static string[] GetScreenShotsForEachFrame(string videoFileName, string outputFolder)
+    /// <summary>
+    /// Extracts every frame in [startSeconds, startSeconds + durationSeconds) as JPEG (max 1920 wide) to
+    /// outputFolder/00001.jpg, 00002.jpg... and returns each frame's real time in seconds (from showinfo,
+    /// so VFR and container start offsets match what the player shows).
+    /// </summary>
+    public static List<double> ExtractFrames(string videoFileName, double startSeconds, double durationSeconds, string outputFolder,
+        Action<int>? progress, System.Threading.CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(outputFolder);
-        var outputFileName = Path.Combine(outputFolder, "image%05d.png");
-        var process = new Process
-        {
-            StartInfo =
+        var ss = startSeconds.ToString("0.000", CultureInfo.InvariantCulture);
+        var duration = durationSeconds.ToString("0.000", CultureInfo.InvariantCulture);
+        var outputFileName = Path.Combine(outputFolder, "%05d.jpg");
+        var ptsRegex = new System.Text.RegularExpressions.Regex(@"pts_time:\s*([-\d.]+)");
+        var times = new List<double>();
+        var process = GetProcess(
+            $"-hide_banner -nostats -ss {ss} -t {duration} -i \"{videoFileName}\" -map 0:V:0 -an -sn -dn -fps_mode passthrough " +
+            $"-vf \"showinfo,scale='min(1920,iw)':-2\" -q:v 2 \"{outputFileName}\"",
+            (_, e) =>
             {
-                FileName = GetFfmpegLocation(),
-                Arguments = $"-i \"{videoFileName}\" -vf \"select=1\" -vsync vfr \"{outputFileName}\"",
-                UseShellExecute = false,
-                CreateNoWindow = true
-            }
-        };
+                var match = e.Data == null ? null : ptsRegex.Match(e.Data);
+                if (match is { Success: true } &&
+                    double.TryParse(match.Groups[1].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out var pts))
+                {
+                    lock (times)
+                    {
+                        times.Add(startSeconds + pts);
+                        progress?.Invoke(times.Count);
+                    }
+                }
+            });
 
 #pragma warning disable CA1416
         _ = process.Start();
 #pragma warning restore CA1416
-        process.WaitForExit();
-        return Directory.GetFiles(outputFolder, "*.png").OrderBy(p => p).ToArray();
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        while (!process.WaitForExit(100))
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                try
+                {
+                    process.Kill();
+                }
+                catch
+                {
+                    // already exited
+                }
+            }
+        }
+
+        process.WaitForExit(); // flush async output handlers
+        var fileCount = Directory.GetFiles(outputFolder, "*.jpg").Length;
+        lock (times)
+        {
+            return times.Take(fileCount).ToList();
+        }
     }
 
     private static string GetFfmpegLocation()

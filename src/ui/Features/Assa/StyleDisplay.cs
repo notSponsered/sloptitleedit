@@ -247,6 +247,7 @@ public partial class StyleDisplay : ObservableObject
             FontSize = FontSize,
             Italic = Italic,
             Bold = Bold,
+            Underline = Underline,
             Strikeout = Strikeout,
             Primary = ColorPrimary.ToSKColor(),
             Secondary = ColorSecondary.ToSKColor(),

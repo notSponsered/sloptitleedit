@@ -1,4 +1,5 @@
 ﻿using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
@@ -92,7 +93,6 @@ public class InitWaveform
                 VerticalAlignment = VerticalAlignment.Stretch,
                 Height = double.NaN, // Auto height
                 WaveformDrawStyle = GetWaveformDrawStyle(settings.WaveformDrawStyle),
-                MinGapSeconds = Se.Settings.General.MinimumBetweenLines.GetMilliseconds() / 1000.0,
                 FocusOnMouseOver = settings.FocusOnMouseOver,
                 IsReadOnly = Se.Settings.General.LockTimeCodes,
                 WaveformHeightPercentage = settings.SpectrogramCombinedWaveformHeight,
@@ -107,6 +107,8 @@ public class InitWaveform
             vm.AudioVisualizer.PointerReleased += vm.ControlMacPointerReleased;
             vm.AudioVisualizer.OnSelectRequested += vm.AudioVisualizerSelectRequested;
             vm.AudioVisualizer.OnSetStartAndOffsetTheRest += vm.AudioVisualizerSetStartAndOffsetTheRest;
+            vm.AudioVisualizer.OnRazorCut += vm.AudioVisualizerRazorCut;
+            vm.AudioVisualizer.RazorMode = vm.WaveformRazor;
 
             // Create a Flyout for the DataGrid
             var flyout = new MenuFlyout();
@@ -213,6 +215,13 @@ public class InitWaveform
             flyout.Items.Add(splitAtPositionMenuItem);
             vm.MenuItemAudioVisualizerSplitAtPosition = splitAtPositionMenuItem;
 
+            flyout.Items.Add(new MenuItem
+            {
+                Header = languageHints.RazorAtVideoPosition,
+                Command = vm.RazorAtVideoPositionCommand,
+                [!Visual.IsVisibleProperty] = splitAtPositionMenuItem[!Visual.IsVisibleProperty], // shown when a line is under the playhead
+            });
+
             var MergeWithPreviousMenuItem = new MenuItem
             {
                 Header = Se.Language.General.MergeBefore,
@@ -228,6 +237,22 @@ public class InitWaveform
             };
             flyout.Items.Add(MergeWithNextMenuItem);
             vm.MenuItemAudioVisualizerMergeWithNext = MergeWithNextMenuItem;
+
+            var fadeInMenuItem = new MenuItem
+            {
+                Header = Se.Language.Assa.FadeInToHere,
+                Command = vm.AssaFadeInToVideoPositionCommand,
+            };
+            flyout.Items.Add(fadeInMenuItem);
+            vm.MenuItemAudioVisualizerFadeIn = fadeInMenuItem;
+
+            var fadeOutMenuItem = new MenuItem
+            {
+                Header = Se.Language.Assa.FadeOutFromHere,
+                Command = vm.AssaFadeOutFromVideoPositionCommand,
+            };
+            flyout.Items.Add(fadeOutMenuItem);
+            vm.MenuItemAudioVisualizerFadeOut = fadeOutMenuItem;
 
             flyout.Items.Add(new Separator());
 
@@ -645,6 +670,28 @@ public class InitWaveform
         Attached.SetIcon(toggleButtonCenter, IconNames.AlignHorizontalCenter);
         toggleButtonCenter.IsCheckedChanged += (s, e) => vm.WaveformCenterCheckedChanged();
 
+        var settingSnap = GetToolbarSettingFor(SeWaveformToolbarItemType.Snap);
+        var toggleButtonSnap = new ToggleButton
+        {
+            DataContext = vm,
+            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(vm.WaveformSnap)) { Mode = BindingMode.TwoWay },
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(settingSnap.LeftMargin, 0, settingSnap.RightMargin, 0),
+            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SnapHint, shortcuts, nameof(vm.ToggleWaveformSnapCommand)),
+        };
+        Attached.SetIcon(toggleButtonSnap, "mdi-magnet");
+
+        var settingRazor = GetToolbarSettingFor(SeWaveformToolbarItemType.Razor);
+        var toggleButtonRazor = new ToggleButton
+        {
+            DataContext = vm,
+            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(vm.WaveformRazor)) { Mode = BindingMode.TwoWay },
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(settingRazor.LeftMargin, 0, settingRazor.RightMargin, 0),
+            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.RazorHint, shortcuts, nameof(vm.ToggleWaveformRazorCommand)),
+        };
+        Attached.SetIcon(toggleButtonRazor, "mdi-box-cutter");
+
         var settingMore = GetToolbarSettingFor(SeWaveformToolbarItemType.More);
         var buttonMore = new NonSpaceButton
         {
@@ -687,6 +734,8 @@ public class InitWaveform
             panelSpeed,
             toggleButtonAutoSelectOnPlay,
             toggleButtonCenter,
+            toggleButtonSnap,
+            toggleButtonRazor,
             buttonMore
         );
         foreach (var sortedButton in sortableButtons)
@@ -697,8 +746,32 @@ public class InitWaveform
             }
         }
 
-        mainGrid.Children.Add(controlsPanel);
-        Grid.SetRow(controlsPanel, 1);
+        // Waveform settings (gear) at the bottom right; the toolbar buttons stay centered in the rest
+        var buttonSettings = new NonSpaceButton
+        {
+            Margin = new Thickness(4, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            [ToolTip.TipProperty] = languageHints.WaveformSettings,
+        };
+        AutomationProperties.SetName(buttonSettings, languageHints.WaveformSettings);
+        Attached.SetIcon(buttonSettings, "mdi-cog-outline");
+        var flyoutSettings = new MenuFlyout();
+        buttonSettings.Click += (_, _) =>
+        {
+            WaveformSettingsMenu.Fill(flyoutSettings, vm);
+            flyoutSettings.ShowAt(buttonSettings);
+        };
+
+        var footer = new Grid
+        {
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
+            Children = { controlsPanel, buttonSettings },
+        };
+        footer.Bind(Grid.IsVisibleProperty, new Binding(nameof(vm.IsWaveformToolbarVisible)));
+        controlsPanel.ClearValue(StackPanel.IsVisibleProperty); // the footer row shows/hides as a whole
+        Grid.SetColumn(buttonSettings, 1);
+        mainGrid.Children.Add(footer);
+        Grid.SetRow(footer, 1);
 
         DragDrop.SetAllowDrop(vm.AudioVisualizer, true);
         vm.AudioVisualizer.AddHandler(DragDrop.DragOverEvent, vm.VideoOnDragOver, RoutingStrategies.Bubble);
@@ -709,7 +782,16 @@ public class InitWaveform
 
     private static SeWaveformToolbarItem GetToolbarSettingFor(SeWaveformToolbarItemType type)
     {
-        return Se.Settings.Waveform.ToolbarItems.First(p => p.Type == type);
+        var items = Se.Settings.Waveform.ToolbarItems;
+        var item = items.FirstOrDefault(p => p.Type == type);
+        if (item == null)
+        {
+            // An item added after this settings file was saved (e.g. Snap, Razor): start from its default.
+            item = new SeWaveform().ToolbarItems.First(p => p.Type == type);
+            items.Add(item);
+        }
+
+        return item;
     }
 
     private static List<SortedControl> MakeCustomSortableButtons(
@@ -731,6 +813,8 @@ public class InitWaveform
         StackPanel panelSpeed,
         ToggleButton toggleButtonAutoSelectOnPlay,
         ToggleButton toggleButtonCenter,
+        ToggleButton toggleButtonSnap,
+        ToggleButton toggleButtonRazor,
         Button buttonMore)
     {
         var toolbarButtonForSort = new List<SortedControl>();
@@ -790,6 +874,12 @@ public class InitWaveform
                     break;
                 case SeWaveformToolbarItemType.Center:
                     toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = toggleButtonCenter });
+                    break;
+                case SeWaveformToolbarItemType.Snap:
+                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = toggleButtonSnap });
+                    break;
+                case SeWaveformToolbarItemType.Razor:
+                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = toggleButtonRazor });
                     break;
                 case SeWaveformToolbarItemType.More:
                     toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonMore });

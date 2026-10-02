@@ -3,7 +3,6 @@ using Nikse.SubtitleEdit.Features.Assa;
 using Nikse.SubtitleEdit.Features.Assa.AssaApplyAdvancedEffect;
 using Nikse.SubtitleEdit.Features.Assa.AssaApplyCustomOverrideTags;
 using Nikse.SubtitleEdit.Features.Assa.AssaDraw;
-using Nikse.SubtitleEdit.Features.Assa.AssaImageColorPicker;
 using Nikse.SubtitleEdit.Features.Assa.AssaProgressBar;
 using Nikse.SubtitleEdit.Features.Assa.AssaSetBackground;
 using Nikse.SubtitleEdit.Features.Assa.AssaSetPosition;
@@ -166,7 +165,6 @@ using Nikse.SubtitleEdit.Logic.Ocr.GoogleLens;
 using Nikse.SubtitleEdit.Logic.UndoRedo;
 using AssaApplyCustomOverrideTagsViewModel = Nikse.SubtitleEdit.Features.Assa.AssaApplyCustomOverrideTags.AssaApplyCustomOverrideTagsViewModel;
 using SpeechToTextViewModel = Nikse.SubtitleEdit.Features.Video.SpeechToText.SpeechToTextViewModel;
-using AudioVisualizerUndockedViewModel = Nikse.SubtitleEdit.Features.Shared.Undocked.AudioVisualizerUndockedViewModel;
 using BatchConvertFixCommonErrorsSettingsViewModel = Nikse.SubtitleEdit.Features.Tools.BatchConvert.BatchConvertFixCommonErrorsSettingsViewModel;
 using BatchConvertSettingsViewModel = Nikse.SubtitleEdit.Features.Tools.BatchConvert.BatchConvertSettingsViewModel;
 using BinaryEditViewModel = Nikse.SubtitleEdit.Features.Shared.BinaryEdit.BinaryEditViewModel;
@@ -180,7 +178,6 @@ using ReviewSpeechViewModel = Nikse.SubtitleEdit.Features.Video.TextToSpeech.Rev
 using RosettaPropertiesViewModel = Nikse.SubtitleEdit.Features.Files.FormatProperties.RosettaProperties.RosettaPropertiesViewModel;
 using SetVideoOffsetViewModel = Nikse.SubtitleEdit.Features.Shared.SetVideoOffset.SetVideoOffsetViewModel;
 using TmpegEncXmlPropertiesViewModel = Nikse.SubtitleEdit.Features.Files.FormatProperties.TmpegEncXmlProperties.TmpegEncXmlPropertiesViewModel;
-using VideoPlayerUndockedViewModel = Nikse.SubtitleEdit.Features.Shared.Undocked.VideoPlayerUndockedViewModel;
 using SpeechToTextAdvancedViewModel = Nikse.SubtitleEdit.Features.Video.SpeechToText.SpeechToTextAdvancedViewModel;
 using SpeechToTextPostProcessingViewModel = Nikse.SubtitleEdit.Features.Video.SpeechToText.SpeechToTextPostProcessingViewModel;
 
@@ -267,7 +264,8 @@ public static class DependencyInjectionExtensions
         collection.AddTransient<AssaApplyCustomOverrideTagsViewModel>();
         collection.AddTransient<AssaAttachmentsViewModel>();
         collection.AddTransient<AssaDrawViewModel>();
-        collection.AddTransient<AssaImageColorPickerViewModel>();
+        collection.AddTransient<Features.Assa.AssaMotionTracking.AssaMotionTrackingViewModel>();
+        collection.AddTransient<Features.Project.GitHubLinkViewModel>();
         collection.AddTransient<AssaProgressBarViewModel>();
         collection.AddTransient<AssaPropertiesViewModel>();
         collection.AddTransient<AssaResolutionResamplerViewModel>();
@@ -281,7 +279,6 @@ public static class DependencyInjectionExtensions
         collection.AddTransient<AssaTagHistoryViewModel>();
         collection.AddTransient<SpeechToTextViewModel>();
         collection.AddTransient<SpeechToTextEngineSettingsViewModel>();
-        collection.AddTransient<AudioVisualizerUndockedViewModel>();
         collection.AddTransient<AutoTranslateViewModel>();
         collection.AddTransient<BatchConvertAssaViewModel>();
         collection.AddTransient<BatchConvertFixCommonErrorsSettingsViewModel>();
@@ -320,6 +317,7 @@ public static class DependencyInjectionExtensions
         collection.AddTransient<ChangeFrameRateViewModel>();
         collection.AddTransient<ChangeSpeedViewModel>();
         collection.AddHttpClient<CheckForUpdatesViewModel>();
+        collection.AddHttpClient<Features.Project.ProjectViewModel>();
         collection.AddTransient<ColorPickerViewModel>();
         collection.AddTransient<ColumnPasteViewModel>();
         collection.AddTransient<CompareViewModel>();
@@ -479,7 +477,6 @@ public static class DependencyInjectionExtensions
         collection.AddTransient<TranslationErrorViewModel>();
         collection.AddTransient<TransparentSettingsViewModel>();
         collection.AddTransient<TransparentSubtitlesViewModel>();
-        collection.AddTransient<VideoPlayerUndockedViewModel>();
         collection.AddTransient<VisualSyncViewModel>();
         collection.AddTransient<VoiceSettingsViewModel>();
         collection.AddTransient<WaveformGuessTimeCodesViewModel>();

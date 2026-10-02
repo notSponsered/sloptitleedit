@@ -67,9 +67,16 @@ public class SeWaveform
 
     // SE 4 parity: small footer at the bottom-left of each paragraph rectangle showing
     // the subtitle number, duration, and characters-per-second. Defaults on so SE 5
-    // matches the SE 4 out-of-box look; users can hide them via Settings.json.
-    public bool WaveformShowNumberAndDuration { get; set; }
+    // matches the SE 4 out-of-box look; each can be hidden from the waveform settings menu.
+    public bool WaveformShowNumber { get; set; }
+    public bool WaveformShowDuration { get; set; }
     public bool WaveformShowCps { get; set; }
+
+    // The subtitle text at the top of each paragraph rectangle (waveform settings menu).
+    public bool WaveformShowText { get; set; }
+
+    // Every subtitle on the waveform in a clip color (off: only stacked/overlapping lines are colored).
+    public bool WaveformColorSubtitles { get; set; }
 
     public SeWaveform()
     {
@@ -119,7 +126,10 @@ public class SeWaveform
         ExtractAudioSampleRate = 0; // keep source sample rate
         ExtractAudioBitRate = "192k";
 
-        WaveformShowNumberAndDuration = true;
+        WaveformShowNumber = true;
+        WaveformShowDuration = true;
+        WaveformShowText = true;
+        WaveformColorSubtitles = true;
         WaveformShowCps = true;
 
         ToolbarItems =
@@ -139,6 +149,8 @@ public class SeWaveform
             new SeWaveformToolbarItem { Type = SeWaveformToolbarItemType.PlaybackSpeed, IsVisible = true, SortOrder = 130 },
             new SeWaveformToolbarItem { Type = SeWaveformToolbarItemType.AutoSelectOnPlay, IsVisible = true, SortOrder = 140 },
             new SeWaveformToolbarItem { Type = SeWaveformToolbarItemType.Center, IsVisible = true, SortOrder = 150 },
+            new SeWaveformToolbarItem { Type = SeWaveformToolbarItemType.Snap, IsVisible = true, SortOrder = 152 },
+            new SeWaveformToolbarItem { Type = SeWaveformToolbarItemType.Razor, IsVisible = true, SortOrder = 154 },
             new SeWaveformToolbarItem { Type = SeWaveformToolbarItemType.More, IsVisible = true, SortOrder = 160 },
         ];
     }

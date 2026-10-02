@@ -248,6 +248,9 @@ public static class ShortcutsMain
         { nameof(MainViewModel.WaveformSetEndCommand),  Se.Language.General.SetEnd },
         { nameof(MainViewModel.WaveformSetEndAndGoToNextCommand),  Se.Language.General.SetEndAndGoToNext },
         { nameof(MainViewModel.DoWaveformCenterCommand),  Se.Language.General.WaveformCenterOnVideoPosition },
+        { nameof(MainViewModel.ToggleWaveformSnapCommand), Se.Language.Main.Waveform.SnapToggle },
+        { nameof(MainViewModel.ToggleWaveformRazorCommand), Se.Language.Main.Waveform.RazorToggle },
+        { nameof(MainViewModel.RazorAtVideoPositionCommand), Se.Language.Main.Waveform.RazorAtVideoPosition },
         { nameof(MainViewModel.ToggleShotChangesAtVideoPositionCommand),  Se.Language.General.ToggleShotChangesAtVideoPosition },
         { nameof(MainViewModel.GoToPreviousShotChangeCommand),  Se.Language.General.GoToPreviousShotChange },
         { nameof(MainViewModel.GoToNextShotChangeCommand),  Se.Language.General.GoToNextShotChange },
@@ -390,6 +393,19 @@ public static class ShortcutsMain
         { nameof(MainViewModel.ShowAssaSetPositionCommand), Se.Language.Assa.SetPosition },
         { nameof(MainViewModel.ShowAssaApplyCustomOverrideTagsCommand), Se.Language.Assa.ApplyOverrideTags },
         { nameof(MainViewModel.ShowAssaDrawCommand), Se.Language.Options.Shortcuts.AssaDraw },
+        { nameof(MainViewModel.AssaFadeInToVideoPositionCommand), Se.Language.Assa.FadeInToHere },
+        { nameof(MainViewModel.AssaFadeOutFromVideoPositionCommand), Se.Language.Assa.FadeOutFromHere },
+        { nameof(MainViewModel.ShowAssaMotionTrackingCommand), Se.Language.Assa.MotionTracking },
+        { nameof(MainViewModel.ProjectNextEpisodeCommand), Se.Language.Project.NextEpisode },
+        { nameof(MainViewModel.ProjectPreviousEpisodeCommand), Se.Language.Project.PreviousEpisode },
+        { nameof(MainViewModel.ProjectEditCommand), Se.Language.Project.EditProject.Replace("_", string.Empty) },
+        { nameof(MainViewModel.ShowProjectGitHubCommand), Se.Language.Workspace.GitHub },
+        { nameof(MainViewModel.NextWorkspaceCommand), Se.Language.Workspace.NextWorkspace },
+        { nameof(MainViewModel.PreviousWorkspaceCommand), Se.Language.Workspace.PreviousWorkspace },
+        { nameof(MainViewModel.ToggleMaximizeAreaCommand), Se.Language.Workspace.MaximizeArea },
+        { nameof(MainViewModel.ToggleAreaHeadersCommand), Se.Language.Workspace.ShowAreaHeaders },
+        { nameof(MainViewModel.ToggleAssaToolsBarCommand), Se.Language.Workspace.AssaToolsBar },
+        { nameof(MainViewModel.ToggleMainToolbarCommand), Se.Language.Workspace.MainToolbar },
         { nameof(MainViewModel.ShowAssaGenerateProgressBarCommand), Se.Language.Options.Shortcuts.AssaGenerateProgressBar },
         { nameof(MainViewModel.ShowAssaGenerateBackgroundCommand), Se.Language.Options.Shortcuts.AssaGenerateBackgroundBox },
         { nameof(MainViewModel.ShowAssaStylesCommand), Se.Language.Options.Shortcuts.AssaStyles },
@@ -581,6 +597,9 @@ public static class ShortcutsMain
 
         AddShortcut(shortcuts, vm.WaveformSetStartAndOffsetTheRestCommand, nameof(vm.WaveformSetStartAndOffsetTheRestCommand), ShortcutCategory.Waveform);
         AddShortcut(shortcuts, vm.WaveformSetEndAndOffsetTheRestCommand, nameof(vm.WaveformSetEndAndOffsetTheRestCommand), ShortcutCategory.Waveform);
+        AddShortcut(shortcuts, vm.ToggleWaveformSnapCommand, nameof(vm.ToggleWaveformSnapCommand), ShortcutCategory.Waveform);
+        AddShortcut(shortcuts, vm.ToggleWaveformRazorCommand, nameof(vm.ToggleWaveformRazorCommand), ShortcutCategory.Waveform);
+        AddShortcut(shortcuts, vm.RazorAtVideoPositionCommand, nameof(vm.RazorAtVideoPositionCommand), ShortcutCategory.Waveform);
         AddShortcut(shortcuts, vm.WaveformSetStartCommand, nameof(vm.WaveformSetStartCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.WaveformSetEndCommand, nameof(vm.WaveformSetEndCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.WaveformSetEndAndGoToNextCommand, nameof(vm.WaveformSetEndAndGoToNextCommand), ShortcutCategory.General);
@@ -722,6 +741,19 @@ public static class ShortcutsMain
         AddShortcut(shortcuts, vm.ShowAssaSetPositionCommand, nameof(vm.ShowAssaSetPositionCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ShowAssaApplyCustomOverrideTagsCommand, nameof(vm.ShowAssaApplyCustomOverrideTagsCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ShowAssaDrawCommand, nameof(vm.ShowAssaDrawCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.AssaFadeInToVideoPositionCommand, nameof(vm.AssaFadeInToVideoPositionCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.AssaFadeOutFromVideoPositionCommand, nameof(vm.AssaFadeOutFromVideoPositionCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ShowAssaMotionTrackingCommand, nameof(vm.ShowAssaMotionTrackingCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ProjectNextEpisodeCommand, nameof(vm.ProjectNextEpisodeCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ProjectPreviousEpisodeCommand, nameof(vm.ProjectPreviousEpisodeCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ProjectEditCommand, nameof(vm.ProjectEditCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ShowProjectGitHubCommand, nameof(vm.ShowProjectGitHubCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.NextWorkspaceCommand, nameof(vm.NextWorkspaceCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.PreviousWorkspaceCommand, nameof(vm.PreviousWorkspaceCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ToggleMaximizeAreaCommand, nameof(vm.ToggleMaximizeAreaCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ToggleAreaHeadersCommand, nameof(vm.ToggleAreaHeadersCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ToggleAssaToolsBarCommand, nameof(vm.ToggleAssaToolsBarCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ToggleMainToolbarCommand, nameof(vm.ToggleMainToolbarCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ShowAssaGenerateProgressBarCommand, nameof(vm.ShowAssaGenerateProgressBarCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ShowAssaGenerateBackgroundCommand, nameof(vm.ShowAssaGenerateBackgroundCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ShowAssaStylesCommand, nameof(vm.ShowAssaStylesCommand), ShortcutCategory.General);

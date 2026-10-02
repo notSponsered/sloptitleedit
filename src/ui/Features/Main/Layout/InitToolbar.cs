@@ -11,6 +11,7 @@ using Avalonia.Media.Imaging;
 using Nikse.SubtitleEdit.Core.SubtitleFormats;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
+using Nikse.SubtitleEdit.UiLogic.Project;
 using SkiaSharp;
 using System.IO;
 using System.Linq;
@@ -396,25 +397,74 @@ public static class InitToolbar
             },
         });
 
+        var grid = new Grid
+        {
+            RowDefinitions =
+            {
+                new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) },
+            },
+            ColumnDefinitions =
+            {
+                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
+            },
+            Width = double.NaN,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+
+        grid.Add(stackPanelLeft, 0, 0);
+
+        return grid;
+    }
+
+    /// <summary>
+    /// Episode / format / encoding / frame-rate pickers. They live in the menu row (right side), so they
+    /// stay reachable when the icon toolbar is hidden. Rebuilt with the toolbar.
+    /// </summary>
+    public static StackPanel MakePickers(MainViewModel vm)
+    {
+        var appearance = Se.Settings.Appearance;
         var stackPanelRight = new StackPanel
         {
+            Classes = { "se-pickers" },
             Orientation = Orientation.Horizontal,
-            Spacing = 1,
-            Margin = new Thickness(2, 6, 8, 6),
+            Spacing = 6,
+            Margin = new Thickness(8, 0, 6, 0),
             HorizontalAlignment = HorizontalAlignment.Right,
             VerticalAlignment = VerticalAlignment.Center,
         };
 
+        // project episodes (only while a project is open)
+        stackPanelRight.Children.Add(new TextBlock
+        {
+            Classes = { "se-caption" },
+            Text = Se.Language.Project.Episode,
+            VerticalAlignment = VerticalAlignment.Center,
+            DataContext = vm,
+            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsProjectOpen)),
+        });
+        stackPanelRight.Children.Add(new ComboBox
+        {
+            Width = 240,
+            Margin = new Thickness(0, 0, 8, 0),
+            [AutomationProperties.NameProperty] = Se.Language.Project.Episode,
+            [!ComboBox.ItemsSourceProperty] = new Binding(nameof(vm.ProjectEpisodes)),
+            [!ComboBox.SelectedItemProperty] = new Binding(nameof(vm.SelectedProjectEpisode)) { Mode = BindingMode.TwoWay },
+            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsProjectOpen)),
+            DisplayMemberBinding = new Binding(nameof(ProjectEpisode.Display)),
+            DataContext = vm,
+        });
+
         // subtitle formats
         stackPanelRight.Children.Add(new TextBlock
         {
+            Classes = { "se-caption" },
             Text = Se.Language.General.Format,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(5, 0, 3, 0),
         });
         var comboBoxSubtitleFormat = new ComboBox
         {
-            Width = 200,
+            Width = 240,
             [AutomationProperties.NameProperty] = Se.Language.General.Format,
             [!ComboBox.ItemsSourceProperty] = new Binding(nameof(vm.SubtitleFormats)),
             [!ComboBox.SelectedItemProperty] = new Binding(nameof(vm.SelectedSubtitleFormat)),
@@ -423,7 +473,7 @@ public static class InitToolbar
                 new TextBlock
                 {
                     [!TextBlock.TextProperty] = new Binding(nameof(SubtitleFormat.Name)),
-                    Width = 150,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
                 }, true)
         };
         comboBoxSubtitleFormat.SelectionChanged += vm.ComboBoxSubtitleFormatChanged;
@@ -435,15 +485,15 @@ public static class InitToolbar
             RoutingStrategies.Tunnel,
             handledEventsToo: true);
         stackPanelRight.Children.Add(comboBoxSubtitleFormat);
-        isLastSeparator = false;
 
         if (appearance.ToolbarShowEncoding)
         {
             stackPanelRight.Children.Add(new TextBlock
             {
+                Classes = { "se-caption" },
                 Text = Se.Language.General.Encoding,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(5, 0, 3, 0),
+                Margin = new Thickness(8, 0, 0, 0),
             });
             var comboBoxEncoding = new ComboBox
             {
@@ -460,9 +510,10 @@ public static class InitToolbar
         {
             stackPanelRight.Children.Add(new TextBlock
             {
+                Classes = { "se-caption" },
                 Text = Se.Language.General.FrameRate,
                 VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(5, 0, 3, 0),
+                Margin = new Thickness(8, 0, 0, 0),
             });
             var comboBoxFrameRate = new ComboBox
             {
@@ -476,26 +527,7 @@ public static class InitToolbar
             comboBoxFrameRate.SelectionChanged += vm.ComboBoxFrameRateSelectionChanged;
         }
 
-        var grid = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) },
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) },
-            },
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
-            },
-            Width = double.NaN,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-
-        grid.Add(stackPanelLeft, 0, 0);
-        grid.Add(stackPanelRight, 0, 1);
-
-        return grid;
+        return stackPanelRight;
     }
 
     private static Image MakeImage(string image)
@@ -560,9 +592,9 @@ public static class InitToolbar
     {
         return new Border
         {
+            Classes = { "se-sep" },
             Width = 1,
-            Background = Brushes.Gray,
-            Margin = new Thickness(5, 5, 5, 5),
+            Margin = new Thickness(5, 8, 5, 8),
         };
     }
 }

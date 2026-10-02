@@ -1,4 +1,4 @@
-﻿namespace Nikse.SubtitleEdit.Logic.Config.Language.Assa;
+namespace Nikse.SubtitleEdit.Logic.Config.Language.Assa;
 
 public class LanguageAssa
 {
@@ -18,6 +18,18 @@ public class LanguageAssa
     public string DrawZoomOut { get; set; }
     public string DrawResetView { get; set; }
     public string DrawToggleGrid { get; set; }
+    public string DrawToggleVideoBackground { get; set; }
+    public string DrawOnVideoHintStart { get; set; }
+    public string DrawOnVideoHintClickToClose { get; set; }
+    public string DrawOnVideoHintEscAgain { get; set; }
+    public string DrawOnVideoDone { get; set; }
+    public string DrawOnVideoCancel { get; set; }
+    public string DrawOnVideoUndo { get; set; }
+    public string DrawOnVideoGrid { get; set; }
+    public string DrawOnVideoFit { get; set; }
+    public string DrawOnVideoNotEditableX { get; set; }
+    public string DrawOnVideoColor { get; set; }
+    public string DrawOnVideoName { get; set; }
     public string DrawCopyToClipboard { get; set; }
     public string DrawShapes { get; set; }
     public string DrawSelectedPoint { get; set; }
@@ -202,8 +214,80 @@ public class LanguageAssa
     public string AdvancedEffectFadeInOutDescription { get; set; }
     public string OverrideTagsHistory { get; set; }
 
+    // Fade to video position
+    public string FadeInToHere { get; set; }
+    public string FadeOutFromHere { get; set; }
+
+    // Motion tracking
+    public string MotionTracking { get; set; }
+    public string MotionTrackBackward { get; set; }
+    public string MotionTrackForward { get; set; }
+    public string MotionStop { get; set; }
+    public string MotionTrackScaleAndRotation { get; set; }
+    public string MotionRecordedTracks { get; set; }
+    public string MotionNewTrack { get; set; }
+    public string MotionDeleteTrack { get; set; }
+    public string MotionReferenceFrameX { get; set; }
+    public string MotionUseThisFrame { get; set; }
+    public string MotionApplyToSelectedLines { get; set; }
+    public string MotionExtractingFramesX { get; set; }
+    public string MotionTrackingXOfY { get; set; }
+    public string MotionLostAtFrameX { get; set; }
+    public string MotionDrawBoxHint { get; set; }
+    public string MotionPickMoreDetailedArea { get; set; }
+    public string MotionNoTrack { get; set; }
+    public string MotionFrameInfo { get; set; }
+    public string MotionSpanTooLongX { get; set; }
+    public string MotionSelectLinesFirst { get; set; }
+    public string MotionLinesNotCoveredX { get; set; }
+    public string MotionKaraokeWarning { get; set; }
+    public string MotionPoints { get; set; }
+    public string MotionAddPoint { get; set; }
+    public string MotionRemovePoint { get; set; }
+    public string MotionPointX { get; set; }
+    public string MotionShowPreview { get; set; }
+    public string MotionGoToReferenceFrame { get; set; }
+    public string MotionIsReferenceFrame { get; set; }
+    public string MotionCheckPreview { get; set; }
+    public string MotionUntrackedFramesX { get; set; }
+
     public LanguageAssa()
     {
+        FadeInToHere = "Fade in to here";
+        FadeOutFromHere = "Fade out from here";
+
+        MotionTracking = "Motion tracking";
+        MotionTrackBackward = "Track backward";
+        MotionTrackForward = "Track forward";
+        MotionStop = "Stop";
+        MotionTrackScaleAndRotation = "Track scale and rotation";
+        MotionRecordedTracks = "Recorded tracks";
+        MotionNewTrack = "New";
+        MotionDeleteTrack = "Delete";
+        MotionReferenceFrameX = "Reference frame: {0}. The lines' current position must be right on this frame (it starts at the video position when you opened this window).";
+        MotionUseThisFrame = "Use this frame";
+        MotionApplyToSelectedLines = "Apply to selected lines";
+        MotionExtractingFramesX = "Extracting frames... {0}";
+        MotionTrackingXOfY = "Tracking frame {0} of {1}...";
+        MotionLostAtFrameX = "Lost the target at frame {0} - draw a box there and track again";
+        MotionDrawBoxHint = "Add points, then move/resize each box onto a detail that moves with the sign (2-3 spread-out points track best), then track forward/backward";
+        MotionPoints = "Tracking points";
+        MotionAddPoint = "Add point";
+        MotionRemovePoint = "Remove";
+        MotionPointX = "Point {0}   ({1} x {2})";
+        MotionShowPreview = "Show subtitle preview";
+        MotionGoToReferenceFrame = "Go to";
+        MotionIsReferenceFrame = "[reference frame - lines are shown as typed]";
+        MotionCheckPreview = "Step through the frames and check the preview. If the text is off by the same amount on every frame, go to a frame where it should sit exactly as typed and click 'Use this frame'";
+        MotionUntrackedFramesX = "{0} frame(s) have no tracking data and will hold the nearest tracked position. Click Apply again to continue, or track those frames first";
+        MotionPickMoreDetailedArea = "The box has too little detail to track - pick an area with more texture";
+        MotionNoTrack = "Track something first";
+        MotionFrameInfo = "Frame {0}/{1}   {2}   score {3}";
+        MotionSpanTooLongX = "Selected lines span {0:0.0} seconds - motion tracking is limited to 15 seconds";
+        MotionSelectLinesFirst = "Select the line(s) to track - e.g. the sign text and its background box";
+        MotionLinesNotCoveredX = "{0} line(s) were not changed because the track does not cover them";
+        MotionKaraokeWarning = "Note: karaoke (\\k) restarts in every per-frame line";
+
         // ASSA Draw
         AssaDraw = "ASSA Draw";
         DrawSelectTool = "Select (move points)";
@@ -219,6 +303,18 @@ public class LanguageAssa
         DrawZoomOut = "Zoom Out (Ctrl+-)";
         DrawResetView = "Reset View (Ctrl+0)";
         DrawToggleGrid = "Toggle Grid (Ctrl+G)";
+        DrawToggleVideoBackground = "Toggle video frame background (Ctrl+B)";
+        DrawOnVideoHintStart = "Click to add a point, drag for a curve  ·  Wheel: zoom  ·  Middle mouse: pan  ·  Enter: done  ·  Esc: cancel";
+        DrawOnVideoHintClickToClose = "Click to close the shape";
+        DrawOnVideoHintEscAgain = "Press Esc again to discard the drawing";
+        DrawOnVideoDone = "Done";
+        DrawOnVideoCancel = "Cancel";
+        DrawOnVideoUndo = "Undo point";
+        DrawOnVideoGrid = "Grid";
+        DrawOnVideoFit = "Fit frame";
+        DrawOnVideoColor = "Color";
+        DrawOnVideoName = "Name";
+        DrawOnVideoNotEditableX = "{0} selected drawing line(s) can't be edited here (only top-left aligned drawings without splines)";
         DrawCopyToClipboard = "Copy to Clipboard (Ctrl+C)";
         DrawShapes = "Shapes";
         DrawSelectedPoint = "Selected point";

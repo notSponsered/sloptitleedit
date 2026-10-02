@@ -5,6 +5,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
+using Nikse.SubtitleEdit.Logic;
+using SkiaSharp;
 
 namespace Nikse.SubtitleEdit.Features.Assa.AssaDraw;
 
@@ -48,6 +51,17 @@ public class AssaDrawCanvas : Control
 
     public static readonly StyledProperty<DrawingTool> CurrentToolProperty =
         AvaloniaProperty.Register<AssaDrawCanvas, DrawingTool>(nameof(CurrentTool), DrawingTool.Line);
+
+    public static readonly StyledProperty<Bitmap?> BackgroundImageProperty =
+        AvaloniaProperty.Register<AssaDrawCanvas, Bitmap?>(nameof(BackgroundImage));
+
+    public static readonly StyledProperty<bool> ShowBackgroundImageProperty =
+        AvaloniaProperty.Register<AssaDrawCanvas, bool>(nameof(ShowBackgroundImage), true);
+
+    static AssaDrawCanvas()
+    {
+        AffectsRender<AssaDrawCanvas>(BackgroundImageProperty, ShowBackgroundImageProperty);
+    }
 
     public List<DrawShape> Shapes
     {
@@ -107,6 +121,21 @@ public class AssaDrawCanvas : Control
     {
         get => GetValue(CurrentToolProperty);
         set => SetValue(CurrentToolProperty, value);
+    }
+
+    /// <summary>
+    /// Video frame (or other image) shown behind the drawing, stretched to the canvas resolution.
+    /// </summary>
+    public Bitmap? BackgroundImage
+    {
+        get => GetValue(BackgroundImageProperty);
+        set => SetValue(BackgroundImageProperty, value);
+    }
+
+    public bool ShowBackgroundImage
+    {
+        get => GetValue(ShowBackgroundImageProperty);
+        set => SetValue(ShowBackgroundImageProperty, value);
     }
 
     public float ZoomFactor
@@ -240,27 +269,61 @@ public class AssaDrawCanvas : Control
         }
     }
 
+    private static IBrush? _checkerBrush;
+
+    /// <summary>
+    /// A small checker tile rendered once and repeated as a tiled brush, so the
+    /// whole background is a single fill instead of thousands of rectangles per render.
+    /// </summary>
+    private static IBrush GetCheckerBrush()
+    {
+        if (_checkerBrush != null)
+        {
+            return _checkerBrush;
+        }
+
+        const int size = 10;
+        var color1 = new SKColor(60, 60, 60);
+        var color2 = new SKColor(80, 80, 80);
+
+        var tile = new SKBitmap(size * 2, size * 2);
+        using (var canvas = new SKCanvas(tile))
+        {
+            using var paint1 = new SKPaint { Color = color1 };
+            using var paint2 = new SKPaint { Color = color2 };
+            canvas.DrawRect(0, 0, size, size, paint1);
+            canvas.DrawRect(size, 0, size, size, paint2);
+            canvas.DrawRect(0, size, size, size, paint2);
+            canvas.DrawRect(size, size, size, size, paint1);
+        }
+
+        _checkerBrush = new ImageBrush(tile.ToAvaloniaBitmap())
+        {
+            TileMode = TileMode.Tile,
+            Stretch = Stretch.None,
+            DestinationRect = new RelativeRect(0, 0, size * 2, size * 2, RelativeUnit.Absolute),
+        };
+
+        return _checkerBrush;
+    }
+
     private void DrawCheckerBackground(DrawingContext context, Rect bounds)
     {
-        const int size = 10;
-        var color1 = Color.FromRgb(60, 60, 60);
-        var color2 = Color.FromRgb(80, 80, 80);
-
-        for (var y = 0; y < bounds.Height; y += size)
-        {
-            for (var x = 0; x < bounds.Width; x += size)
-            {
-                var isEven = ((x / size) + (y / size)) % 2 == 0;
-                var brush = new SolidColorBrush(isEven ? color1 : color2);
-                context.FillRectangle(brush, new Rect(x, y, size, size));
-            }
-        }
+        context.FillRectangle(GetCheckerBrush(), bounds);
     }
 
     private void DrawCanvasArea(DrawingContext context)
     {
-        var brush = new SolidColorBrush(DrawSettings.BackgroundColor);
         var rect = new Rect(_panX, _panY, CanvasWidth * _zoomFactor, CanvasHeight * _zoomFactor);
+
+        var image = BackgroundImage;
+        if (image != null && ShowBackgroundImage)
+        {
+            context.DrawImage(image, new Rect(image.Size), rect);
+            return;
+        }
+
+        var brush = new SolidColorBrush(DrawSettings.BackgroundColor);
         context.FillRectangle(brush, rect);
     }
 
@@ -379,11 +442,24 @@ public class AssaDrawCanvas : Control
         }
     }
 
+    private static readonly Dictionary<Color, IPen> _pointPenCache = new();
+
+    private static IPen GetPointPen(Color color)
+    {
+        if (!_pointPenCache.TryGetValue(color, out var pen))
+        {
+            pen = new Pen(new SolidColorBrush(color), 2);
+            _pointPenCache[color] = pen;
+        }
+
+        return pen;
+    }
+
     private void DrawShapePoints(DrawingContext context, DrawShape shape)
     {
         foreach (var point in shape.Points)
         {
-            var pen = new Pen(new SolidColorBrush(point.PointColor), 2);
+            var pen = GetPointPen(point.PointColor);
             var x = ToZoomFactorX(point.X);
             var y = ToZoomFactorY(point.Y);
 

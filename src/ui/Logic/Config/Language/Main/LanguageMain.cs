@@ -42,6 +42,7 @@ public class LanguageMain
     public string LineXTextAndTimingChanged { get; set; }
     public string LineXTextChangedFromYToZ { get; set; }
     public string LineXTimingChanged { get; set; }
+    public string StylesOrHeaderChanged { get; set; }
     public string LoadingWaveInfoFromCache { get; set; }
     public string NoTextInClipboard { get; set; }
     public string NumberOfLinesEvenlyDistributedX { get; set; }
@@ -85,6 +86,7 @@ public class LanguageMain
     public string YoutubeDlNotInstalledDownloadNow { get; set; }
     public string YoutubeDlOutdatedDownloadNow { get; set; }
     public string InsertUnicodeSymbol { get; set; }
+    public string ShowPadding { get; set; }
     public string TrimmedXLines { get; set; }
     public string OpenOriginalDifferentNumberOfSubtitlesXY { get; set; }
     public string ImportXMatchingOriginalLines { get; set; }
@@ -151,6 +153,7 @@ public class LanguageMain
         LineXTextAndTimingChanged = "Line {0}: Text and timing changed";
         LineXTextChangedFromYToZ = "Line {0}: Text changed from \"{1}\" to \"{2}\"";
         LineXTimingChanged = "Line {0}: Timing changed";
+        StylesOrHeaderChanged = "Styles/header changed";
         LoadingWaveInfoFromCache = "Loading wave info from cache...";
         NoTextInClipboard = "No text in clipboard";
         NumberOfLinesEvenlyDistributedX = "Evenly distributed {0} lines";
@@ -194,6 +197,7 @@ public class LanguageMain
         YoutubeDlNotInstalledDownloadNow = "\"yt-dlp\" is not installed and is required for playing online videos.\n\nDownload now?";
         YoutubeDlOutdatedDownloadNow = "\"yt-dlp\" is outdated and may not work with online videos.\n\nDownload the current version now?";
         InsertUnicodeSymbol = "Insert Unicode symbol";
+        ShowPadding = "Show padding";
         TrimmedXLines = "Trimmed {0} subtitle lines";
         OpenOriginalDifferentNumberOfSubtitlesXY = "The original subtitle file does not have the same number of subtitles as the current subtitle file.\n\n• Original subtitles: {0}\n• Current subtitles: {1}";
         ImportXMatchingOriginalLines = "Import {0} matching original subtitles?";

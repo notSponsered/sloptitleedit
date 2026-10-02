@@ -75,6 +75,9 @@ public class LanguageMainMenu
     public string AssaSetPosition { get; set; }
     public string AssaImageColorPicker { get; set; }
     public string AssaDraw { get; set; }
+    public string AssaFadeInToVideoPosition { get; set; }
+    public string AssaFadeOutFromVideoPosition { get; set; }
+    public string AssaMotionTracking { get; set; }
     public string AssaStyles { get; set; }
     public string AssaProperties { get; set; }
     public string AssaAttachments { get; set; }
@@ -210,6 +213,9 @@ public class LanguageMainMenu
         AssaSetPosition = "_Set position...";
         AssaImageColorPicker = "_Image color picker...";
         AssaDraw = "_Draw...";
+        AssaFadeInToVideoPosition = "_Fade in to video position";
+        AssaFadeOutFromVideoPosition = "Fade _out from video position";
+        AssaMotionTracking = "_Motion tracking...";
         AssaStyles = "S_tyles...";
         AssaProperties = "P_roperties...";
         AssaAttachments = "_Attachments...";

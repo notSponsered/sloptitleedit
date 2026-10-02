@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Media;
-using static Nikse.SubtitleEdit.Features.Main.Layout.InitLayout;
+using Nikse.SubtitleEdit.UiLogic.Layout;
+using System.Collections.Generic;
 
 namespace Nikse.SubtitleEdit.Logic.Config;
 
@@ -22,6 +23,7 @@ public class SeAppearance
     public bool SubtitleGridLiveSpellCheck { get; set; }
 
     public bool SubtitleTextBoxCenterText { get; set; }
+    public bool SubtitleTextBoxShowPadding { get; set; } // tint leading/trailing spaces and blank lines in the text box
     public bool SubtitleTextBoxLiveSpellCheck { get; set; }
     public bool ShowHints { get; set; }
     public bool GridCompactMode { get; set; }
@@ -59,7 +61,12 @@ public class SeAppearance
     public bool ShowUpDownDuration { get; set; }
     public bool ShowUpDownLabels { get; set; }
 
-    public LayoutPositions CurrentLayoutPositions { get; set; }
+    public List<Workspace> Workspaces { get; set; }
+    public int ActiveWorkspace { get; set; }
+    public bool ShowAreaHeaders { get; set; }
+    public bool ShowMainToolbar { get; set; }      // the big icon toolbar under the menu (off: its pickers live in the menu row)
+    public bool AssaToolbarAdded { get; set; }     // one-time: the ASSA tools bar was added to existing workspaces
+    public bool ProjectWorkspaceAdded { get; set; } // one-time: the "Project" workspace was added to existing setups
     public bool TextBoxShowButtonAutoBreak { get; set; }
     public bool TextBoxShowButtonUnbreak { get; set; }
     public bool TextBoxShowButtonItalic { get; set; }
@@ -68,7 +75,8 @@ public class SeAppearance
 
     public SeAppearance()
     {
-        CurrentLayoutPositions = new LayoutPositions();
+        Workspaces = [];
+        ShowAreaHeaders = true;
         Theme = "System";
         IconTheme = string.Empty;
         MatchIconColorToDarkTheme = false;
@@ -82,6 +90,7 @@ public class SeAppearance
         SubtitleTextBoxColorTags = true;
         ShowHints = true;
         SubtitleTextBoxCenterText = false;
+        SubtitleTextBoxShowPadding = true;
         SubtitleTextBoxLiveSpellCheck = false;
         SubtitleGridFormattingType = (int)SubtitleGridFormattingTypes.ShowFormatting;
         GridLinesAppearance = DataGridGridLinesVisibility.None.ToString();

@@ -12,11 +12,11 @@
 #define app_copyright_start  "2001"
 #define app_copyright_end    GetDateTimeString('yyyy','','')
 
-; Version constants — updated by installer/WindowsInno/update-version.ps1
+; Version constants â€” updated by installer/WindowsInno/update-version.ps1
 
-#define app_ver              "5.0.0"
-#define app_ver_suffix       "beta4"
-#define app_ver_full         "5.0.0.4"
+#define app_ver         "5.0.0"
+#define app_ver_suffix  "rc3"
+#define app_ver_full    "5.0.0.3"
 
 ; Shows "5.0.0 beta4" when suffix is set, plain "5.0.0" for release builds
 #define app_ver_display app_ver_suffix != "" ? app_ver + " " + app_ver_suffix : app_ver

@@ -26,6 +26,7 @@ public static class UiTheme
     public const string ThemeNameDark = "Dark";
     public const string ThemeNameClassic = "Classic";
     public const string ThemeNamePastel = "Pastel";
+    public const string ThemeNameBlender = "Blender";
 
     public static FluentTheme? FluentTheme { get; set; }
 
@@ -50,7 +51,7 @@ public static class UiTheme
 
     public static bool IsDarkThemeEnabled()
     {
-        return ThemeName == ThemeNameDark;
+        return ThemeName is ThemeNameDark or ThemeNameBlender;
     }
 
     public static void SetCurrentTheme()
@@ -94,6 +95,11 @@ public static class UiTheme
             Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
             ApplyPastel();
         }
+        else if (themeSetting == ThemeNameBlender)
+        {
+            Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
+            ApplyBlender();
+        }
         else
         {
             Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
@@ -101,6 +107,7 @@ public static class UiTheme
 
         ApplyMenuScaleStyle(Se.Settings.Appearance.LayoutScale);
         ApplyLayoutScaleToAllWindows();
+        Features.Main.Layout.ChromeStyles.Apply(); // last, so chrome colors win over the theme styles above
     }
 
     private static void OnActualThemeVariantChanged(object? sender, EventArgs e)
@@ -112,6 +119,128 @@ public static class UiTheme
             {
                 ApplyLighterDark();
             }
+
+            Features.Main.Layout.ChromeStyles.Apply();
+        }
+    }
+
+    private static ColorPaletteResources? _savedDarkPalette;
+    private static ResourceDictionary? _blenderResources;
+    private static IStyle? _blenderStyle;
+
+    /// <summary>
+    /// Blender's flat dark look (Blender 4 default theme colors) for the whole app: swaps Fluent's dark
+    /// palette (text, buttons, fields, menus, accent) and adds a few explicit overrides.
+    /// </summary>
+    private static void ApplyBlender()
+    {
+        if (Application.Current == null || FluentTheme == null)
+        {
+            return;
+        }
+
+        static Color C(string hex) => Color.Parse(hex);
+
+        if (_savedDarkPalette == null && FluentTheme.Palettes.TryGetValue(ThemeVariant.Dark, out var original))
+        {
+            _savedDarkPalette = original;
+        }
+
+        FluentTheme.Palettes[ThemeVariant.Dark] = new ColorPaletteResources
+        {
+            Accent = C("#4772b3"),
+            RegionColor = C("#303030"),
+            ErrorText = C("#e06c6c"),
+            BaseHigh = C("#e6e6e6"),
+            BaseMediumHigh = C("#c8c8c8"),
+            BaseMedium = C("#a0a0a0"),
+            BaseMediumLow = C("#6e6e6e"),
+            BaseLow = C("#545454"),
+            AltHigh = C("#1d1d1d"),
+            AltMediumHigh = C("#1d1d1d"),
+            AltMedium = C("#222222"),
+            AltMediumLow = C("#1d1d1d"),
+            AltLow = C("#262626"),
+            ChromeAltLow = C("#e6e6e6"),
+            ChromeBlackHigh = C("#000000"),
+            ChromeBlackLow = C("#33000000"),
+            ChromeBlackMedium = C("#99000000"),
+            ChromeBlackMediumLow = C("#66000000"),
+            ChromeDisabledHigh = C("#2e2e2e"),
+            ChromeDisabledLow = C("#7a7a7a"),
+            ChromeGray = C("#6e6e6e"),
+            ChromeHigh = C("#4d4d4d"),
+            ChromeLow = C("#161616"),
+            ChromeMedium = C("#1d1d1d"),
+            ChromeMediumLow = C("#1e1e1e"),
+            ChromeWhite = C("#ffffff"),
+            ListLow = C("#26ffffff"),
+            ListMedium = C("#40ffffff"),
+        };
+
+        var text = new SolidColorBrush(C("#e6e6e6"));
+        _blenderResources = new ResourceDictionary
+        {
+            ["ControlCornerRadius"] = new CornerRadius(4),
+            ["OverlayCornerRadius"] = new CornerRadius(6),
+            ["ButtonBackground"] = new SolidColorBrush(C("#545454")),
+            ["ButtonBackgroundPointerOver"] = new SolidColorBrush(C("#656565")),
+            ["ButtonBackgroundPressed"] = new SolidColorBrush(C("#4772b3")),
+            ["ButtonForeground"] = text,
+            ["ButtonForegroundPointerOver"] = new SolidColorBrush(Colors.White),
+            ["ButtonForegroundPressed"] = new SolidColorBrush(Colors.White),
+            ["TextControlForeground"] = text,
+            ["TextControlForegroundPointerOver"] = text,
+            ["TextControlForegroundFocused"] = text,
+            ["TextControlBorderBrush"] = new SolidColorBrush(C("#3d3d3d")),
+            ["TextControlBorderBrushPointerOver"] = new SolidColorBrush(C("#4d4d4d")),
+            ["MenuFlyoutPresenterBackground"] = new SolidColorBrush(C("#181818")),
+            ["MenuFlyoutPresenterBorderBrush"] = new SolidColorBrush(C("#2b2b2b")),
+            ["MenuFlyoutItemBackgroundPointerOver"] = new SolidColorBrush(C("#4772b3")),
+            ["MenuFlyoutItemForegroundPointerOver"] = new SolidColorBrush(Colors.White),
+            ["ToolTipBackground"] = new SolidColorBrush(C("#181818")),
+            ["ToolTipBorderBrush"] = new SolidColorBrush(C("#2b2b2b")),
+            ["ToolTipForeground"] = text,
+        };
+        Application.Current.Resources.MergedDictionaries.Add(_blenderResources);
+
+        _blenderStyle = new Styles
+        {
+            new Style(x => x.OfType<DataGridColumnHeader>())
+            {
+                Setters =
+                {
+                    new Setter(DataGridColumnHeader.BackgroundProperty, new SolidColorBrush(C("#303030"))),
+                    new Setter(DataGridColumnHeader.ForegroundProperty, new SolidColorBrush(C("#c3c3c3"))),
+                },
+            },
+        };
+        Application.Current.Styles.Add(_blenderStyle);
+    }
+
+    private static void RemoveBlender()
+    {
+        if (Application.Current == null)
+        {
+            return;
+        }
+
+        if (_savedDarkPalette != null && FluentTheme != null)
+        {
+            FluentTheme.Palettes[ThemeVariant.Dark] = _savedDarkPalette;
+            _savedDarkPalette = null;
+        }
+
+        if (_blenderResources != null)
+        {
+            Application.Current.Resources.MergedDictionaries.Remove(_blenderResources);
+            _blenderResources = null;
+        }
+
+        if (_blenderStyle != null)
+        {
+            Application.Current.Styles.Remove(_blenderStyle);
+            _blenderStyle = null;
         }
     }
 
@@ -569,6 +698,8 @@ public static class UiTheme
 
     private static void RemoveLighterDark()
     {
+        RemoveBlender();
+
         if (_resourceOverrides != null)
         {
             Application.Current!.Resources.MergedDictionaries.Remove(_resourceOverrides);
@@ -813,7 +944,7 @@ public static class UiTheme
         Application.Current.Styles.Add(_lighterDarkStyle);
     }
 
-    private static Color GetDarkThemeBackgroundColor()
+    public static Color GetDarkThemeBackgroundColor()
     {
         return Se.Settings.Appearance.DarkModeBackgroundColor.FromHexToColor();
     }

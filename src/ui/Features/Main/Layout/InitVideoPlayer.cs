@@ -33,7 +33,10 @@ public static class InitVideoPlayer
         {
             mediaFile = vm.VideoPlayerControl.VideoPlayer.FileName;
             position = vm.VideoPlayerControl.VideoPlayer.Position;
-            vm.VideoPlayerControl.VideoPlayer.CloseFile();
+            if (!string.IsNullOrEmpty(mediaFile))
+            {
+                vm.VideoPlayerControl.VideoPlayer.CloseFile(); // closing an mpv that never opened a file only logs "core not initialized"
+            }
             vm.VideoPlayerControl.Content = null;
             vm.VideoPlayerControl = null;
         }
