@@ -1,5 +1,5 @@
 {
-  "title": "Subtitle Edit",
+  "title": "Sloptitle Edit",
   "version": null,
   "translatedBy": "zildan v1 05.04.26",
   "cultureName": "ro-RO",
@@ -2584,7 +2584,7 @@
   "about": {
     "title": "Despre Subtite Edit",
     "translatedBy": "Tradus de: {0}",
-    "licenseText": "Subtitle Edit este un software gratuit sub licența MIT.",
+    "licenseText": "Sloptitle Edit este un software gratuit sub licența MIT.",
     "descriptionTextBeta": "Subtitle Edit 5 beta este o versiune de dezvoltare a viitoarei noastre versiuni majore.\n",
     "issueTrackingAndSourceCode": "Urmărirea problemelor și codul sursă: ",
     "gitHub": "Github",

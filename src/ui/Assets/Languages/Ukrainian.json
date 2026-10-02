@@ -1,5 +1,5 @@
 ﻿{
-  "title": "Subtitle Edit",
+  "title": "Sloptitle Edit",
   "version": "v5.0.0-rc1",
   "translatedBy": "Kilo Code",
   "cultureName": "uk-UA",
@@ -805,15 +805,15 @@
     "deleteText": "Видалити текст",
     "deleteTextAndShiftCellsUp": "Видалити текст і зсунути комірки вгору",
     "endTimeMustBeAfterStartTime": "Час завершення має бути після часу початку.",
-    "errorLoad7Zip": "Цей файл, схоже, є стиснутим файлом 7-Zip.\n\nSubtitle Edit не може відкрити стиснуті файли.",
-    "errorLoadBinaryZeroes": "Вибачте, цей файл містить лише двійкові нулі!\n\nЯкщо ви редагували цей файл за допомогою Subtitle Edit, ви можете знайти резервну копію через пункт меню Файл -> Відновити автозбереження...",
-    "errorLoadGZip": "Цей файл, схоже, є стиснутим файлом GZip.\n\nSubtitle Edit не може відкрити стиснуті файли.",
-    "errorLoadJpg": "Цей файл, схоже, є файлом зображення JPG.\n\nSubtitle Edit не може відкрити файли зображень.",
-    "errorLoadPng": "Цей файл, схоже, є файлом зображення PNG.\n\nSubtitle Edit не може відкрити файли зображень.",
-    "errorLoadRar": "Цей файл, схоже, є стиснутим файлом 7-Zip.\n\nSubtitle Edit не може відкрити стиснуті файли.",
-    "errorLoadSrr": "Цей файл, схоже, є файлом ReScene SRR.\n\nSubtitle Edit не може відкрити файли SRR.",
-    "errorLoadTorrent": "Цей файл, схоже, є файлом BitTorrent.\n\nSubtitle Edit не може відкрити торрент-файли.",
-    "errorLoadZip": "Цей файл, схоже, є стиснутим файлом ZIP.\n\nSubtitle Edit не може відкрити стиснуті файли.",
+    "errorLoad7Zip": "Цей файл, схоже, є стиснутим файлом 7-Zip.\n\nSloptitle Edit не може відкрити стиснуті файли.",
+    "errorLoadBinaryZeroes": "Вибачте, цей файл містить лише двійкові нулі!\n\nЯкщо ви редагували цей файл за допомогою Sloptitle Edit, ви можете знайти резервну копію через пункт меню Файл -> Відновити автозбереження...",
+    "errorLoadGZip": "Цей файл, схоже, є стиснутим файлом GZip.\n\nSloptitle Edit не може відкрити стиснуті файли.",
+    "errorLoadJpg": "Цей файл, схоже, є файлом зображення JPG.\n\nSloptitle Edit не може відкрити файли зображень.",
+    "errorLoadPng": "Цей файл, схоже, є файлом зображення PNG.\n\nSloptitle Edit не може відкрити файли зображень.",
+    "errorLoadRar": "Цей файл, схоже, є стиснутим файлом 7-Zip.\n\nSloptitle Edit не може відкрити стиснуті файли.",
+    "errorLoadSrr": "Цей файл, схоже, є файлом ReScene SRR.\n\nSloptitle Edit не може відкрити файли SRR.",
+    "errorLoadTorrent": "Цей файл, схоже, є файлом BitTorrent.\n\nSloptitle Edit не може відкрити торрент-файли.",
+    "errorLoadZip": "Цей файл, схоже, є стиснутим файлом ZIP.\n\nSloptitle Edit не може відкрити стиснуті файли.",
     "extractingWaveInfo": "Видобування інформації про хвильову форму...",
     "extractingShotChanges": "Видобування змін кадрів...",
     "failedToExtractWaveInfo": "Не вдалося видобути інформацію про хвильову форму.",
@@ -2246,7 +2246,7 @@
     }
   },
   "help": {
-    "aboutSubtitleEdit": "Про Subtitle Edit"
+    "aboutSubtitleEdit": "Про Sloptitle Edit"
   },
   "ocr": {
     "linesToDraw": "Рядки для малювання",
@@ -2496,7 +2496,7 @@
   "about": {
     "title": "Про Subtite Edit",
     "translatedBy": "Перекладено: {0}",
-    "licenseText": "Subtitle Edit - безкоштовне програмне забезпечення за ліцензією MIT.",
+    "licenseText": "Sloptitle Edit - безкоштовне програмне забезпечення за ліцензією MIT.",
     "descriptionTextBeta": "Subtitle Edit 5 - кандидат на реліз нашого майбутнього головного випуску.\nМи активно вдосконалюємо нові інструменти і вдячні вашій допомозі в тестуванні.\nБудь ласка, поділіться своїм відгуком, щоб допомогти нам забезпечити найкращу можливу остаточну версію.\n\nДякуємо, що є частиною спільноти Subtitle Edit! :)",
     "issueTrackingAndSourceCode": "Відстеження проблем і вихідний код: ",
     "gitHub": "Github",

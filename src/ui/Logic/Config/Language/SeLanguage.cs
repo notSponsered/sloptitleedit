@@ -12,7 +12,7 @@ namespace Nikse.SubtitleEdit.Logic.Config.Language;
 
 public class SeLanguage
 {
-    public string Title { get; set; } = "Subtitle Edit";
+    public string Title { get; set; } = "Sloptitle Edit";
     public string Version { get; set; } = Se.Version;
     public string TranslatedBy { get; set; } = string.Empty;
     public string CultureName { get; set; } = "en-US";

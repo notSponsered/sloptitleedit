@@ -7,12 +7,12 @@
   #error Use Inno Setup unicode
 #endif
 
-#define app_name             "Subtitle Edit"
+#define app_name             "Sloptitle Edit"
 #define app_copyright        "Nikse"
 #define app_copyright_start  "2001"
 #define app_copyright_end    GetDateTimeString('yyyy','','')
 
-; Version constants â€” updated by installer/WindowsInno/update-version.ps1
+; Version constants — updated by installer/WindowsInno/update-version.ps1
 
 #define app_ver         "5.0.0"
 #define app_ver_suffix  "rc3"
@@ -24,7 +24,7 @@
 #define bindir "..\..\src\ui\bin\Release\net10.0\publish"
 
 #ifnexist bindir + "\SubtitleEdit.exe"
-  #error Compile Subtitle Edit first
+  #error Compile {#app_name} first
 #endif
 
 #define keyAppPaths  "Software\Microsoft\Windows\CurrentVersion\App Paths"
@@ -136,23 +136,23 @@ Source: ..\LICENSE.rtf;                  DestDir: {app}; Flags: ignoreversion
 Source: {#bindir}\libmpv-2.dll;          DestDir: {userappdata}\Subtitle Edit; Flags: ignoreversion
 
 [Icons]
-Name: {group}\Subtitle Edit;                             Filename: {app}\SubtitleEdit.exe; WorkingDir: {app}; Comment: Subtitle Edit {#app_ver_display}; AppUserModelID: Nikse.SubtitleEdit5; IconFilename: {app}\SubtitleEdit.exe; IconIndex: 0
+Name: {group}\{#app_name};                             Filename: {app}\SubtitleEdit.exe; WorkingDir: {app}; Comment: {#app_name} {#app_ver_display}; AppUserModelID: Nikse.SubtitleEdit5; IconFilename: {app}\SubtitleEdit.exe; IconIndex: 0
 Name: {group}\{cm:sm_com_Changelog};                    Filename: {app}\change-log.txt; WorkingDir: {app}; Comment: {cm:sm_com_Changelog}
-Name: {group}\{cm:ProgramOnTheWeb,Subtitle Edit};        Filename: https://subtitleedit.github.io/subtitleedit/; Comment: {cm:ProgramOnTheWeb,Subtitle Edit}
-Name: {group}\{cm:UninstallProgram,Subtitle Edit};       Filename: {uninstallexe}; Comment: {cm:UninstallProgram,Subtitle Edit}; WorkingDir: {app}
+Name: {group}\{cm:ProgramOnTheWeb,{#app_name}};        Filename: https://subtitleedit.github.io/subtitleedit/; Comment: {cm:ProgramOnTheWeb,{#app_name}}
+Name: {group}\{cm:UninstallProgram,{#app_name}};       Filename: {uninstallexe}; Comment: {cm:UninstallProgram,{#app_name}}; WorkingDir: {app}
 
-Name: {commondesktop}\Subtitle Edit; Filename: {app}\SubtitleEdit.exe; WorkingDir: {app}; Comment: Subtitle Edit {#app_ver_display}; AppUserModelID: Nikse.SubtitleEdit5; IconFilename: {app}\SubtitleEdit.exe; IconIndex: 0; Tasks: desktopicon\common
-Name: {userdesktop}\Subtitle Edit;   Filename: {app}\SubtitleEdit.exe; WorkingDir: {app}; Comment: Subtitle Edit {#app_ver_display}; AppUserModelID: Nikse.SubtitleEdit5; IconFilename: {app}\SubtitleEdit.exe; IconIndex: 0; Tasks: desktopicon\user
+Name: {commondesktop}\{#app_name}; Filename: {app}\SubtitleEdit.exe; WorkingDir: {app}; Comment: {#app_name} {#app_ver_display}; AppUserModelID: Nikse.SubtitleEdit5; IconFilename: {app}\SubtitleEdit.exe; IconIndex: 0; Tasks: desktopicon\common
+Name: {userdesktop}\{#app_name};   Filename: {app}\SubtitleEdit.exe; WorkingDir: {app}; Comment: {#app_name} {#app_ver_display}; AppUserModelID: Nikse.SubtitleEdit5; IconFilename: {app}\SubtitleEdit.exe; IconIndex: 0; Tasks: desktopicon\user
 
 
 [InstallDelete]
-Type: files; Name: {userdesktop}\Subtitle Edit.lnk;   Check: not WizardIsTaskSelected('desktopicon\user')   and WasPreviousVersionInstalled()
-Type: files; Name: {commondesktop}\Subtitle Edit.lnk; Check: not WizardIsTaskSelected('desktopicon\common') and WasPreviousVersionInstalled()
+Type: files; Name: {userdesktop}\{#app_name}.lnk;   Check: not WizardIsTaskSelected('desktopicon\user')   and WasPreviousVersionInstalled()
+Type: files; Name: {commondesktop}\{#app_name}.lnk; Check: not WizardIsTaskSelected('desktopicon\common') and WasPreviousVersionInstalled()
 Type: files; Name: {userappdata}\Subtitle Edit\Settings.xml; Tasks: reset_settings
 
 
 [Run]
-Filename: {app}\SubtitleEdit.exe; Description: {cm:LaunchProgram,Subtitle Edit}; WorkingDir: {app}; Flags: nowait postinstall skipifsilent unchecked
+Filename: {app}\SubtitleEdit.exe; Description: {cm:LaunchProgram,{#app_name}}; WorkingDir: {app}; Flags: nowait postinstall skipifsilent unchecked
 Filename: {app}\change-log.txt;    Description: {cm:run_ViewChangelog};                                Flags: shellexec postinstall skipifsilent unchecked
 
 
@@ -264,7 +264,7 @@ begin
   if not IsDotNet10Installed() then
   begin
     if MsgBox(
-        'Subtitle Edit requires the .NET 10 Runtime, which is not installed on this computer.' + #13#10 + #13#10 +
+        '{#app_name} requires the .NET 10 Runtime, which is not installed on this computer.' + #13#10 + #13#10 +
         'Please download and install the .NET 10 Runtime and run this setup again.' + #13#10 + #13#10 +
         'Do you want to open the .NET 10 download page now?',
         mbConfirmation, MB_YESNO or MB_DEFBUTTON1) = IDYES then

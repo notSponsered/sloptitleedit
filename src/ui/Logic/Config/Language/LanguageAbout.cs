@@ -16,9 +16,9 @@ public class LanguageAbout
 
     public LanguageAbout()
     {
-        Title = "About Subtitle Edit";
+        Title = "About Sloptitle Edit";
         TranslatedBy = "Translated by: {0}";
-        LicenseText = "Subtitle Edit is free software under the MIT license.";
+        LicenseText = "Sloptitle Edit is free software under the MIT license.";
         DescriptionTextBeta = "Subtitle Edit 5 is a release candidate for our upcoming major release.\nWe are putting the finishing touches on the new tools and appreciate your help in testing.\nPlease share your feedback to help us ensure the best possible final version.\n\nThank you for being part of the Subtitle Edit community! :)";
         IssueTrackingAndSourceCode = "Issue tracking and source code: ";
         GitHub = "GitHub";

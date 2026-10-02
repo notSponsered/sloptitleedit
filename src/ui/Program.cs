@@ -22,7 +22,7 @@ namespace Nikse.SubtitleEdit
 {
     internal class Program
     {
-        private const string AppName = "Subtitle Edit";
+        private const string AppName = "Sloptitle Edit";
 
         public static string? PendingFileToOpen { get; set; }
         public static string? PendingVideoToOpen { get; set; }

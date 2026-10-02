@@ -1,5 +1,5 @@
 ﻿{
-  "Title": "Subtitle Edit",
+  "Title": "Sloptitle Edit",
   "Version": "v5.0.0-preview73",
   "TranslatedBy": "\u00DCbersetzt von Christoph Kitsche. \u00DCberarbeitet von Netspark und Stephan Lenhart.",
   "CultureName": "de-DE",
@@ -609,15 +609,15 @@
     "FixedRightToLeftUsingUnicodeControlCharactersX": "Korrigiere rechts-nach-links durch Unicode-Steuerzeichen in {0} Zeilen",
     "RemovedUnicodeControlCharactersX": "Unicode-Steuerzeichen aus {0} Zeilen entfernt",
     "ReversedStartAndEndingsForRightToLeftX": "Anfang und Ende f\u00FCr rechts-nach-links in {0} Zeilen getauscht",
-    "ErrorLoadRar": "Diese Datei scheint eine komprimierte 7-Zip-Datei zu sein.\r\nSubtitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
-    "ErrorLoadZip": "Diese Datei scheint eine komprimierte ZIP-Datei zu sein.\r\nSubtitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
-    "ErrorLoadGZip": "Diese Datei scheint eine komprimierte GZip-Datei zu sein.\r\nSubtitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
-    "ErrorLoad7Zip": "Diese Datei scheint eine komprimierte 7-Zip-Datei zu sein.\r\nSubtitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
+    "ErrorLoadRar": "Diese Datei scheint eine komprimierte 7-Zip-Datei zu sein.\r\nSloptitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
+    "ErrorLoadZip": "Diese Datei scheint eine komprimierte ZIP-Datei zu sein.\r\nSloptitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
+    "ErrorLoadGZip": "Diese Datei scheint eine komprimierte GZip-Datei zu sein.\r\nSloptitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
+    "ErrorLoad7Zip": "Diese Datei scheint eine komprimierte 7-Zip-Datei zu sein.\r\nSloptitle Edit kann keine komprimierten Dateien \u00F6ffnen.",
     "ErrorLoadPng": "Bei dieser Datei handelt es sich offenbar um eine PNG-Bilddatei.\r\nUntertitel bearbeiten kann keine Bilddateien \u00F6ffnen.",
     "ErrorLoadJpg": "Bei dieser Datei scheint es sich um eine JPG-Bilddatei zu handeln.\r\nUntertitel bearbeiten kann keine Bilddateien \u00F6ffnen.",
-    "ErrorLoadSrr": "Bei dieser Datei scheint es sich um eine ReScene SRR-Datei zu handeln.\r\nSubtitle Edit kann SRR-Dateien nicht \u00F6ffnen.",
-    "ErrorLoadTorrent": "Diese Datei scheint eine BitTorrent-Datei zu sein.\r\nSubtitle Edit kann keine Torrent-Dateien \u00F6ffnen.",
-    "ErrorLoadBinaryZeroes": "Diese Datei enth\u00E4llt nur Nullzeichen.\n\r\nFalls Sie diese Datei mit Subtitle Edit bearbeitet haben, d\u00FCrfte eine Sicherung vorliegen unter Men\u00FCpunkt \u0022Datei -\u003E Automatische Sicherung wiederherstellen...\u0022\t\t",
+    "ErrorLoadSrr": "Bei dieser Datei scheint es sich um eine ReScene SRR-Datei zu handeln.\r\nSloptitle Edit kann SRR-Dateien nicht \u00F6ffnen.",
+    "ErrorLoadTorrent": "Diese Datei scheint eine BitTorrent-Datei zu sein.\r\nSloptitle Edit kann keine Torrent-Dateien \u00F6ffnen.",
+    "ErrorLoadBinaryZeroes": "Diese Datei enth\u00E4llt nur Nullzeichen.\n\r\nFalls Sie diese Datei mit Sloptitle Edit bearbeitet haben, d\u00FCrfte eine Sicherung vorliegen unter Men\u00FCpunkt \u0022Datei -\u003E Automatische Sicherung wiederherstellen...\u0022\t\t",
     "YoutubeDlNotInstalledDownloadNow": "\u201Eyt-dlp\u201C ist nicht installiert und wird zum Abspielen von Online-Videos ben\u00F6tigt.\r\n\r\nJetzt herunterladen?",
     "YoutubeDlDownloadedSuccessfully": "\u201Eyt-dlp\u201C erfolgreich heruntergeladen.",
     "GeneratingSpectrogramDotDotDot": "Spektrogramm wird erstellt...",
@@ -1831,7 +1831,7 @@
     }
   },
   "Help": {
-    "AboutSubtitleEdit": "\u00DCber Subtitle Edit"
+    "AboutSubtitleEdit": "\u00DCber Sloptitle Edit"
   },
   "Ocr": {
     "LinesToDraw": "Linien zum Zeichnen",

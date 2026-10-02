@@ -1,5 +1,5 @@
 ﻿{
-  "Title": "Subtitle Edit",
+  "Title": "Sloptitle Edit",
   "TranslatedBy": "",
   "CultureName": "da-DK",
   "Version": "v5.0.0-rc1",
@@ -2792,7 +2792,7 @@
     "UpdatingXOfY": "Opdaterer {0}/{1}..."
   },
   "Help": {
-    "AboutSubtitleEdit": "Om Subtitle Edit",
+    "AboutSubtitleEdit": "Om Sloptitle Edit",
     "CheckForUpdates": "Søg efter opdateringer",
     "CheckForUpdatesChecking": "Søger efter opdateringer...",
     "CheckForUpdatesUpToDate": "Du kører den seneste version.",

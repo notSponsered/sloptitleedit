@@ -12,7 +12,7 @@ public class LanguageHelp
 
     public LanguageHelp()
     {
-        AboutSubtitleEdit = "About Subtitle Edit";
+        AboutSubtitleEdit = "About Sloptitle Edit";
         CheckForUpdates = "Check for updates";
         CheckForUpdatesChecking = "Checking for updates...";
         CheckForUpdatesUpToDate = "You are running the latest version.";
