@@ -1333,26 +1333,6 @@ public class AudioVisualizer : Control
         return Math.Round(seconds / frameDur, MidpointRounding.AwayFromZero) * frameDur;
     }
 
-    private static double SnapToFrameCeil(double seconds)
-    {
-        if (!TryGetFrameDuration(out var frameDur))
-        {
-            return seconds;
-        }
-
-        return Math.Ceiling(seconds / frameDur) * frameDur;
-    }
-
-    private static double SnapToFrameFloor(double seconds)
-    {
-        if (!TryGetFrameDuration(out var frameDur))
-        {
-            return seconds;
-        }
-
-        return Math.Floor(seconds / frameDur) * frameDur;
-    }
-
     private static bool TryGetFrameDuration(out double frameDur)
     {
         frameDur = 0;

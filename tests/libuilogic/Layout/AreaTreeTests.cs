@@ -70,20 +70,6 @@ public class AreaTreeTests
         Assert.Equal(PanelIds.Subtitles, ws.Root.Panels.Single());
     }
 
-    [Fact]
-    public void Swap_KeepsSizes()
-    {
-        var ws = Ws(AreaPresets.Legacy(1));
-        var video = AreaTree.FindLeafWith(ws.Root, PanelIds.Video)!;
-        var wave = AreaTree.FindLeafWith(ws.Root, PanelIds.Waveform)!;
-
-        AreaTree.Swap(video, wave);
-
-        Assert.Equal(SizeMode.FixedSecond, ws.Root.SizeMode);
-        Assert.Equal(PanelIds.Video, ws.Root.B!.Panels.Single());
-        Assert.Equal(PanelIds.Waveform, ws.Root.A!.B!.Panels.Single());
-    }
-
     [Theory]
     [InlineData(PanelIds.Video)]
     [InlineData(PanelIds.Waveform)]

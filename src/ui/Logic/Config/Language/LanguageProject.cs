@@ -17,7 +17,6 @@ public class LanguageProject
     public string Episode { get; set; }
     public string GitHub { get; set; }
     public string UseGitHub { get; set; }
-    public string UseGitHubHint { get; set; }
     public string RepositoryX { get; set; }
     public string NotInRepoUseConnect { get; set; }
 
@@ -120,7 +119,6 @@ public class LanguageProject
     public string XOpen { get; set; }
     public string NoPullRequests { get; set; }
     public string ByXFromY { get; set; }
-    public string CheckedOut { get; set; }
     public string CheckOut { get; set; }
     public string Merge { get; set; }
     public string SquashAndMerge { get; set; }
@@ -181,7 +179,6 @@ public class LanguageProject
         Episode = "Episode";
         GitHub = "_GitHub...";
         UseGitHub = "Use GitHub with this project";
-        UseGitHubHint = "Adds GitHub to the Project menu and opens the GitHub panel beside the Project panel.";
         RepositoryX = "Repository: {0}";
         NotInRepoUseConnect = "This folder isn't in a git repository. Use Project → Connect to GitHub to link it to one.";
 
@@ -280,7 +277,6 @@ public class LanguageProject
         XOpen = "{0} open";
         NoPullRequests = "No open pull requests.";
         ByXFromY = "by {0} from {1}";
-        CheckedOut = "checked out";
         CheckOut = "Check out";
         Merge = "Merge";
         SquashAndMerge = "Squash and merge";

@@ -42,7 +42,7 @@ public class GitHubLinkWindow : Window
         var heading = new TextBlock { FontSize = 16, FontWeight = FontWeight.SemiBold, [!TextBlock.TextProperty] = new Binding(nameof(vm.Heading)) };
         var intro = new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.75, Margin = new Thickness(0, 4, 0, 0), MaxWidth = 560, HorizontalAlignment = HorizontalAlignment.Left, [!TextBlock.TextProperty] = new Binding(nameof(vm.Intro)) };
 
-        var repo = new TextBox { Watermark = "owner/name", [!TextBox.TextProperty] = new Binding(nameof(vm.Repository)) { Mode = BindingMode.TwoWay } };
+        var repo = new TextBox { PlaceholderText = "owner/name", [!TextBox.TextProperty] = new Binding(nameof(vm.Repository)) { Mode = BindingMode.TwoWay } };
 
         var browse = UiUtil.MakeBrowseButton(vm.BrowseLocalCopyCommand);
         browse.Margin = new Thickness(6, 0, 0, 0);

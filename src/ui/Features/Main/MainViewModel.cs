@@ -831,7 +831,7 @@ public partial class MainViewModel :
         var savedAudioTrack = _audioTrack;
         AreaHost.Rebuild();
         SelectAndScrollToRow(Math.Max(0, idx));
-        Dispatcher.UIThread.Post(() => SubtitleGrid.Focus());
+        Dispatcher.UIThread.Post(() => SubtitleGrid?.Focus());
         RefreshSubtitlePreview();
 
         if (savedAudioTrack != null && !string.IsNullOrEmpty(_videoFileName))

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace Nikse.SubtitleEdit.UiLogic.Edit;
 
 /// <summary>

@@ -431,8 +431,22 @@ public partial class AssaMotionTrackingViewModel : ObservableObject
         var scaleAndRotation = TrackScaleAndRotation;
         var baseState = GetBaseState(track, from, direction, boxes, scaleAndRotation);
 
-        var points = await Task.Run(() =>
-            MotionTracker.Track(k => GrayFrame.FromFile(files[k]), from, to, boxes, scaleAndRotation, cancellationToken, progress));
+        List<TrackPoint> points;
+        try
+        {
+            points = await Task.Run(() =>
+                MotionTracker.Track(k => GrayFrame.FromFile(files[k]), from, to, boxes, scaleAndRotation, cancellationToken, progress));
+        }
+        catch (Exception exception)
+        {
+            // e.g. a frame file that can't be read: report it instead of staying busy forever
+            Se.LogError(exception);
+            IsBusy = false;
+            Progress = 0;
+            Status = exception.Message;
+            return;
+        }
+
         if (Window == null)
         {
             return; // closed while tracking
@@ -630,6 +644,8 @@ public partial class AssaMotionTrackingViewModel : ObservableObject
         if (Canvas != null)
         {
             Canvas.Frame = null;
+            Canvas.SubtitlePreview?.Dispose();
+            Canvas.SubtitlePreview = null;
         }
 
         _frameBitmap?.Dispose();

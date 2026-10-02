@@ -420,7 +420,7 @@ internal static class GitHubPanel
             new TextBlock { Text = caption, Classes = { "se-caption" }, Margin = new Thickness(0, 0, 0, 4) },
             new TextBox
             {
-                Watermark = watermark,
+                PlaceholderText = watermark,
                 AcceptsReturn = multiLine,
                 TextWrapping = multiLine ? TextWrapping.Wrap : TextWrapping.NoWrap,
                 MinHeight = multiLine ? 64 : 0,

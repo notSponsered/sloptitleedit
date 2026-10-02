@@ -97,7 +97,8 @@ public static class ProjectRepo
             else if (hasLocal)
             {
                 var relative = System.IO.Path.GetRelativePath(local.Folder, localPath);
-                var target = System.IO.Path.Combine(seriesFolder, relative.StartsWith("..", StringComparison.Ordinal) ? System.IO.Path.GetFileName(localPath) : relative);
+                var outside = relative.StartsWith("..", StringComparison.Ordinal) || System.IO.Path.IsPathRooted(relative); // rooted: another drive
+                var target = System.IO.Path.Combine(seriesFolder, outside ? System.IO.Path.GetFileName(localPath) : relative);
                 Directory.CreateDirectory(System.IO.Path.GetDirectoryName(target)!);
                 if (!File.Exists(target))
                 {

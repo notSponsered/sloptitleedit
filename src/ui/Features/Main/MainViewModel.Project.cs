@@ -6,7 +6,6 @@ using Nikse.SubtitleEdit.Core.SubtitleFormats;
 using Nikse.SubtitleEdit.Features.Assa;
 using Nikse.SubtitleEdit.Features.Project;
 using Nikse.SubtitleEdit.Features.Shared;
-using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.UiLogic.Project;
 using System;

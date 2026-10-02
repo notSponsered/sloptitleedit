@@ -40,6 +40,7 @@ public static class MotionApplier
     private static readonly Regex FadeRegex = new(@"\\fade\s*\(([^)]*)\)", RegexOptions.Compiled);
     private static readonly Regex ScaleRegex = new(@"\\fsc([xy])([-\d.]+)", RegexOptions.Compiled);
     private static readonly Regex RotationRegex = new(@"\\frz?([-\d.]+)", RegexOptions.Compiled);
+    private static readonly Regex TransformRegex = new(@"\\t\s*\((?:[^()]|\([^()]*\))*\)", RegexOptions.Compiled);
     private static readonly Regex KaraokeRegex = new(@"\\(k|K|kf|ko)\d", RegexOptions.Compiled);
 
     public static bool HasKaraoke(string text) => KaraokeRegex.IsMatch(text);
@@ -220,27 +221,25 @@ public static class MotionApplier
             return $"\\fade(255,0,255,{I(-offsetMs)},{I(fadeIn - offsetMs)},{I(durationMs - fadeOut - offsetMs)},{I(durationMs - offsetMs)})";
         });
 
-        // scale + rotation from the track
+        // scale + rotation from the track: every explicit tag is adjusted, and the style's value is set up front for
+        // what the leading block doesn't set itself (e.g. a line with only \fscx, or a tag that only comes mid-line)
+        var lead = LeadingTags(s);
         if (Math.Abs(state.Scale - 1) >= 0.0005)
         {
-            if (ScaleRegex.IsMatch(s))
+            s = ScaleRegex.Replace(s, m => $"\\fsc{m.Groups[1].Value}{F(ParseNumber(m.Groups[2].Value) * state.Scale)}");
+            var missing = (lead.Contains("\\fscx", StringComparison.Ordinal) ? string.Empty : $"\\fscx{F((double)style.ScaleX * state.Scale)}") +
+                          (lead.Contains("\\fscy", StringComparison.Ordinal) ? string.Empty : $"\\fscy{F((double)style.ScaleY * state.Scale)}");
+            if (missing.Length > 0)
             {
-                s = ScaleRegex.Replace(s, m => $"\\fsc{m.Groups[1].Value}{F(ParseNumber(m.Groups[2].Value) * state.Scale)}");
-            }
-            else
-            {
-                s = AssaTags.InsertIntoFirstBlock(s, $"\\fscx{F((double)style.ScaleX * state.Scale)}\\fscy{F((double)style.ScaleY * state.Scale)}");
+                s = AssaTags.InsertIntoFirstBlock(s, missing);
             }
         }
 
         if (Math.Abs(state.Rotation) >= 0.005)
         {
             // track rotation is clockwise on screen, \frz is counter-clockwise
-            if (RotationRegex.IsMatch(s))
-            {
-                s = RotationRegex.Replace(s, m => $"\\frz{F(ParseNumber(m.Groups[1].Value) - state.Rotation)}");
-            }
-            else
+            s = RotationRegex.Replace(s, m => $"\\frz{F(ParseNumber(m.Groups[1].Value) - state.Rotation)}");
+            if (!RotationRegex.IsMatch(lead))
             {
                 s = AssaTags.InsertIntoFirstBlock(s, $"\\frz{F((double)style.Angle - state.Rotation)}");
             }
@@ -320,6 +319,13 @@ public static class MotionApplier
 
         sb.Append(s, position, s.Length - position);
         return sb.ToString();
+    }
+
+    /// <summary>The override block the line starts with, without its \t(...) animations (they don't set the start value).</summary>
+    private static string LeadingTags(string s)
+    {
+        var end = s.StartsWith('{') ? s.IndexOf('}') : -1;
+        return end < 0 ? string.Empty : TransformRegex.Replace(s[..end], string.Empty);
     }
 
     private static List<string> SplitTopLevel(string s)

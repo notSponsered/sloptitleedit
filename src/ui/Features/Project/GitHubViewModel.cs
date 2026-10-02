@@ -427,7 +427,7 @@ public partial class GitHubViewModel : ObservableObject
 
             var title = string.IsNullOrWhiteSpace(PrTitle) ? CommitMessage : PrTitle.Trim();
             var create = await Gh("pr", "create", "--base", BaseBranch, "--head", branch, "--title", title, "--body", PrBody ?? string.Empty);
-            url = create.StdOut.Trim();
+            url = create.Ok ? create.StdOut.Trim() : null;
             return await Check(create);
         });
 

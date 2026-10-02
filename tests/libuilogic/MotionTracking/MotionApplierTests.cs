@@ -77,6 +77,22 @@ public class MotionApplierTests
     }
 
     [Fact]
+    public void Apply_Scale_OnlyOneAxisTagged_ScalesBothAxes()
+    {
+        var pieces = MotionApplier.Apply("{\\pos(960,1070)\\fscx120}x", "Default", 1000, 1100, Header, 1920, 1080, Samples(2), 1.001)!;
+
+        Assert.Equal("{\\pos(1430,1840)\\fscy200\\fscx240}x", pieces[1].Text);
+    }
+
+    [Fact]
+    public void Apply_ScaleAndRotation_TagsOnlyMidLine_AlsoSetFromStyleAtStart()
+    {
+        var pieces = MotionApplier.Apply("{\\pos(960,1070)}a{\\fscx50\\frz10}b", "Default", 1000, 1100, Header, 1920, 1080, Samples(2, 90), 1.001)!;
+
+        Assert.Equal("{\\pos(-1030,1220)\\frz-90\\fscx200\\fscy200}a{\\fscx100\\frz-80}b", pieces[1].Text);
+    }
+
+    [Fact]
     public void Apply_LineOutsideTrack_ReturnsNull()
     {
         Assert.Null(MotionApplier.Apply("x", "Default", 5000, 6000, Header, 1920, 1080, Samples(), 1.001));

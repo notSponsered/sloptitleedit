@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace Nikse.SubtitleEdit.UiLogic.Edit;
 
 /// <summary>Reordering for drag-and-drop in the subtitle list.</summary>

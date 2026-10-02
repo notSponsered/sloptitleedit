@@ -321,7 +321,7 @@ internal sealed class AreaView : Border
     private void FillAddMenu(MenuFlyout menu)
     {
         menu.Items.Clear();
-        foreach (var info in PanelRegistry.All.Where(p => !Leaf.Panels.Contains(p.Id)))
+        foreach (var info in PanelRegistry.All.Where(p => !Leaf.Panels.Contains(p.Id) && !PanelIds.IsCompact(p.Id)))
         {
             menu.Items.Add(new MenuItem
             {

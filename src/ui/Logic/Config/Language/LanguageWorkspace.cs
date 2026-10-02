@@ -40,8 +40,6 @@ public class LanguageWorkspace
     public string SplitRight { get; set; }
     public string SplitUp { get; set; }
     public string SplitDown { get; set; }
-    public string AddAsTab { get; set; }
-    public string Swap { get; set; }
     public string MaximizeArea { get; set; }
     public string RestoreArea { get; set; }
     public string OpenInNewWindow { get; set; }
@@ -101,8 +99,6 @@ public class LanguageWorkspace
         SplitRight = "Split right";
         SplitUp = "Split up";
         SplitDown = "Split down";
-        AddAsTab = "Add as tab";
-        Swap = "Swap areas";
         MaximizeArea = "Maximize area";
         RestoreArea = "Restore area";
         OpenInNewWindow = "Open in new window";

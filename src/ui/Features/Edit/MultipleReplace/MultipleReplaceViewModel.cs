@@ -1141,11 +1141,12 @@ public partial class MultipleReplaceViewModel : ObservableObject
         var replaceExpressions = new List<ReplaceExpression>();
         foreach (var group in Nodes.Where(p => p.IsActive && p.SubNodes != null))
         {
-            foreach (var rule in group.SubNodes!.Where(p => p.IsActive))
+            var rules = group.SubNodes!;
+            foreach (var rule in rules.Where(p => p.IsActive))
             {
                 var ruleInfo = string.IsNullOrEmpty(rule.Description)
-                    ? $"Group name: {group.CategoryName} - Rule number: {group.SubNodes.IndexOf(rule) + 1}"
-                    : $"Group name: {group.CategoryName} - Rule number: {group.SubNodes.IndexOf(rule) + 1}. {rule.Description}";
+                    ? $"Group name: {group.CategoryName} - Rule number: {rules.IndexOf(rule) + 1}"
+                    : $"Group name: {group.CategoryName} - Rule number: {rules.IndexOf(rule) + 1}. {rule.Description}";
                 var mpi = MultipleReplaceEngine.Make(rule.Find, rule.ReplaceWith, rule.Type, ruleInfo, _compiledRegExList);
                 if (mpi != null)
                 {

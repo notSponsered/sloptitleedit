@@ -600,8 +600,6 @@ public static class AreaHost
         Changed();
     }
 
-    public static bool ActiveHas(string id) => AreaTree.Contains(Active, id);
-
     public static void DetachVideoControls()
     {
         foreach (var id in new[] { PanelIds.Video, PanelIds.Waveform })

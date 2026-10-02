@@ -57,8 +57,6 @@ public static class AreaTree
     /// <summary>The tree (main or floating) that holds <paramref name="node"/>.</summary>
     public static AreaNode? RootOf(Workspace ws, AreaNode node) => Roots(ws).FirstOrDefault(r => ContainsNode(r, node));
 
-    public static FloatingArea? FloatingOf(Workspace ws, AreaNode node) => ws.Floating.FirstOrDefault(f => ContainsNode(f.Root, node));
-
     public static AreaNode? FindParent(AreaNode node, AreaNode child)
     {
         if (node.IsLeaf)
@@ -253,12 +251,6 @@ public static class AreaTree
         leaf.Panels.Clear();
         CollapseAll(ws);
         return true;
-    }
-
-    public static void Swap(AreaNode a, AreaNode b)
-    {
-        (a.Panels, b.Panels) = (b.Panels, a.Panels);
-        (a.Active, b.Active) = (b.Active, a.Active);
     }
 
     /// <summary>Puts a floating window's areas back where they were detached from (or on the right if that place is gone).</summary>
