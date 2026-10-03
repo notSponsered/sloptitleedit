@@ -14,7 +14,6 @@ using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.VideoPlayers;
 using Nikse.SubtitleEdit.Logic.VideoPlayers.LibMpvDynamic;
-using Optris.Icons.Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -179,7 +178,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
         private readonly Button _buttonPlay;
         private readonly Button _buttonFullScreen;
         private readonly Button _buttonFullScreenCollapse;
-        private readonly Icon _iconVolume;
+        private readonly ContentControl _iconVolume; // volume / muted glyph
         private DispatcherTimer? _positionTimer;
         private int _slowPollCounter;
         private IVideoPlayer _videoPlayerInstance;
@@ -295,11 +294,13 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
             mainGrid.Children.Add(contentPresenter);
             Grid.SetRow(contentPresenter, 0);
 
-            // Row with buttons + position slider + volume slider
+            // Controls: the position slider across the full width, under it buttons | time | file name (trimmed) |
+            // player | volume. One element per cell, so nothing draws over (or takes clicks from) the slider.
             _gridProgress = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"),
-                Margin = new Thickness(10, 4)
+                ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto,Auto"),
+                RowDefinitions = new RowDefinitions("Auto,Auto"),
+                Margin = new Thickness(10, 0, 10, 2)
             };
             Grid.SetRow(_gridProgress, 1);
             mainGrid.Children.Add(_gridProgress);
@@ -326,7 +327,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                 Margin = new Thickness(0, 0, 3, 0),
                 [AutomationProperties.NameProperty] = Se.Language.General.Play,
             };
-            Attached.SetIcon(_buttonPlay, "fa-solid fa-play");
+            _buttonPlay.Content = Glyphs.Make(Glyphs.Play);
             _buttonPlay.Click += (_, _) =>
             {
                 _videoPlayerInstance.PlayOrPause();
@@ -355,7 +356,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                 Path = nameof(StopIsVisible),
                 Source = this
             });
-            Attached.SetIcon(buttonStop, "fa-solid fa-stop");
+            buttonStop.Content = Glyphs.Make(Glyphs.Stop);
             buttonStop.Click += (_, _) =>
             {
                 _videoPlayerInstance.Stop();
@@ -383,7 +384,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                 Path = nameof(FullScreenIsVisible),
                 Source = this
             });
-            Attached.SetIcon(_buttonFullScreen, "fa-solid fa-expand");
+            _buttonFullScreen.Content = Glyphs.Make(Glyphs.Fullscreen);
             _buttonFullScreen.Click += (_, _) => FullscreenRequested?.Invoke();
             if (Se.Settings.Appearance.ShowHints)
             {
@@ -403,22 +404,26 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                 IsVisible = false,
                 [AutomationProperties.NameProperty] = Se.Language.General.ExitFullScreen,
             };
-            Attached.SetIcon(_buttonFullScreenCollapse, "fa-solid fa-compress");
+            _buttonFullScreenCollapse.Content = Glyphs.Make(Glyphs.FullscreenExit);
             _buttonFullScreenCollapse.Click += (_, _) => FullscreenCollapseRequested?.Invoke();
             if (Se.Settings.Appearance.ShowHints)
             {
                 ToolTip.SetTip(_buttonFullScreenCollapse, Se.Language.General.ExitFullScreen);
             }
             stackPanel.Children.Add(_buttonFullScreenCollapse);
+
+            // flat tool buttons like the ASSA tools bar
+            foreach (var button in new[] { _buttonPlay, buttonStop, _buttonFullScreen, _buttonFullScreenCollapse })
+            {
+                Features.Main.Layout.ChromeStyles.AsTool(button);
+            }
             stackPanel.Children.Add(_contextButtons);
 
-            _gridProgress.Children.Add(stackPanel);
-            Grid.SetColumn(stackPanel, 0);
+            _gridProgress.Add(stackPanel, 1, 0);
 
             var sliderPosition = new Slider
             {
                 Minimum = 0,
-                Margin = new Thickness(2, 0, 0, 0),
                 [AutomationProperties.NameProperty] = Se.Language.General.VideoPosition,
             };
             if (Se.Settings.Appearance.ShowHints)
@@ -446,15 +451,6 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                     ToolTip.SetTip(sliderPosition, TimeCode.FromSeconds(hovered + offsetSec).ToShortDisplayString());
                 });
             }
-            sliderPosition.TemplateApplied += (s, e) =>
-            {
-                if (e.NameScope.Find<Thumb>("thumb") is Thumb thumb)
-                {
-                    thumb.Width = 14;
-                    thumb.Height = 14;
-                }
-            };
-
             sliderPosition.Bind(RangeBase.MaximumProperty, this.GetObservable(DurationProperty));
             sliderPosition.Bind(RangeBase.ValueProperty, this.GetObservable(PositionProperty));
 
@@ -484,17 +480,15 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
                 }
             };
 
-            _gridProgress.Children.Add(sliderPosition);
-            Grid.SetColumn(sliderPosition, 1);
+            _gridProgress.Add(sliderPosition, 0, 0, 1, 6);
 
-            _iconVolume = new Icon
+            _iconVolume = new ContentControl
             {
-                Value = "fa-solid fa-volume-up",
+                Content = Glyphs.Make(Glyphs.Volume, plain: true),
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(10, 0, 4, 0)
             };
-            _gridProgress.Children.Add(_iconVolume);
-            Grid.SetColumn(_iconVolume, 2);
+            _gridProgress.Add(_iconVolume, 1, 4);
 
             var sliderVolume = new Slider
             {
@@ -509,14 +503,6 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
             {
                 ToolTip.SetTip(sliderVolume, Se.Language.General.Volume);
             }
-            sliderVolume.TemplateApplied += (s, e) =>
-            {
-                if (e.NameScope.Find<Thumb>("thumb") is Thumb thumb)
-                {
-                    thumb.Width = 14;
-                    thumb.Height = 14;
-                }
-            };
             sliderVolume.Bind(RangeBase.ValueProperty, this.GetObservable(VolumeProperty));
 
             sliderVolume.ValueChanged += (s, e) =>
@@ -533,45 +519,45 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
             };
 
 
-            _gridProgress.Children.Add(sliderVolume);
-            Grid.SetColumn(sliderVolume, 3);
+            _gridProgress.Add(sliderVolume, 1, 5);
 
 
             // ProgressText
             var progressText = new TextBlock
             {
-                VerticalAlignment = VerticalAlignment.Bottom,
-                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
                 FontSize = 12,
                 FontWeight = FontWeight.Bold,
+                Background = Brushes.Transparent, // clickable between the letters
             };
             progressText.Bind(TextBlock.TextProperty, this.GetObservable(ProgressTextProperty));
-            _gridProgress.Children.Add(progressText);
-            Grid.SetColumn(progressText, 1);
+            _gridProgress.Add(progressText, 1, 1);
             ProgressText = string.Empty;
             progressText.PointerPressed += (_, _) => ToggleDisplayProgressTextModeRequested?.Invoke();
 
             _textBlockPlayerName = new TextBlock
             {
-                VerticalAlignment = VerticalAlignment.Top,
-                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(8, 0, 0, 0),
                 FontSize = 9,
                 FontWeight = FontWeight.Bold,
                 Opacity = 0.6,
             };
-            _gridProgress.Children.Add(_textBlockPlayerName);
-            Grid.SetColumn(_textBlockPlayerName, 3);
+            _gridProgress.Add(_textBlockPlayerName, 1, 3);
 
             _textBlockVideoFileName = new TextBlock
             {
-                VerticalAlignment = VerticalAlignment.Bottom,
+                VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(8, 0, 0, 0),
+                TextTrimming = TextTrimming.CharacterEllipsis,
                 FontSize = 9,
                 FontWeight = FontWeight.Bold,
                 Opacity = 0.6,
                 TextAlignment = TextAlignment.Right,
             };
-            _gridProgress.Add(_textBlockVideoFileName, 0, 1, 1, 3);
+            _gridProgress.Add(_textBlockVideoFileName, 1, 2);
             _textBlockVideoFileName.PointerPressed += (_, e) => { VideoFileNamePointerPressed?.Invoke(e); };
 
             Content = mainGrid;
@@ -737,7 +723,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
         {
             if (isPlaying)
             {
-                Attached.SetIcon(_buttonPlay, "fa-solid fa-pause");
+                _buttonPlay.Content = Glyphs.Make(Glyphs.Pause);
                 AutomationProperties.SetName(_buttonPlay, Se.Language.General.Pause);
                 if (Se.Settings.Appearance.ShowHints)
                 {
@@ -746,7 +732,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
             }
             else
             {
-                Attached.SetIcon(_buttonPlay, "fa-solid fa-play");
+                _buttonPlay.Content = Glyphs.Make(Glyphs.Play);
                 AutomationProperties.SetName(_buttonPlay, Se.Language.General.Play);
                 if (Se.Settings.Appearance.ShowHints)
                 {
@@ -757,7 +743,7 @@ namespace Nikse.SubtitleEdit.Controls.VideoPlayer
 
         public void SetVolumeIcon(bool isMuted)
         {
-            Dispatcher.UIThread.Invoke(() => { _iconVolume.Value = isMuted ? "fa-solid fa-volume-xmark" : "fa-solid fa-volume-up"; });
+            Dispatcher.UIThread.Invoke(() => { _iconVolume.Content = Glyphs.Make(isMuted ? Glyphs.Muted : Glyphs.Volume, plain: true); });
         }
 
         internal async Task Open(string videoFileName)

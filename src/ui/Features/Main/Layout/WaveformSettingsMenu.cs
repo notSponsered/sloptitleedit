@@ -193,7 +193,7 @@ public static class WaveformSettingsMenu
             {
                 Header = track.Header,
                 ToggleType = MenuItemToggleType.Radio,
-                IsChecked = track.Icon != null, // the Video menu marks the current track with a check icon
+                IsChecked = track.IsChecked,
                 Command = track.Command,
                 CommandParameter = track.CommandParameter,
             });

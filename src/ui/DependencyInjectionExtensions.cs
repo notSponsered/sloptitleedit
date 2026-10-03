@@ -219,7 +219,6 @@ public static class DependencyInjectionExtensions
         collection.AddTransient<ISpellCheckManager, SpellCheckManager>();
         collection.AddTransient<ISplitManager, SplitManager>();
         collection.AddTransient<ISubtitleFileService, SubtitleFileService>();
-        collection.AddTransient<IThemeInitializer, ThemeInitializer>();
         collection.AddTransient<ITtsDownloadService, TtsDownloadService>();
         collection.AddTransient<IUndoRedoManager, UndoRedoManager>();
         collection.AddTransient<IVlcReloader, VlcReloader>();
@@ -265,6 +264,7 @@ public static class DependencyInjectionExtensions
         collection.AddTransient<AssaAttachmentsViewModel>();
         collection.AddTransient<AssaDrawViewModel>();
         collection.AddTransient<Features.Assa.AssaMotionTracking.AssaMotionTrackingViewModel>();
+        collection.AddTransient<Features.Assa.AssaMotionShapes.AssaMotionShapesViewModel>();
         collection.AddTransient<Features.Project.GitHubLinkViewModel>();
         collection.AddTransient<AssaProgressBarViewModel>();
         collection.AddTransient<AssaPropertiesViewModel>();

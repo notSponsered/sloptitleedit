@@ -50,7 +50,7 @@ public class CutVideoWindow : Window
 
         var buttonGenerate = UiUtil.MakeButton(Se.Language.General.Generate, vm.GenerateCommand)
             .WithBindEnabled(nameof(vm.IsGenerating), new InverseBooleanConverter());
-        var buttonConfig = UiUtil.MakeButton(vm.OkCommand, IconNames.Settings)
+        var buttonConfig = UiUtil.MakeButton(vm.OkCommand, Glyphs.Settings)
             .WithMarginRight(5)
             .WithBindEnabled(nameof(vm.IsGenerating), new InverseBooleanConverter());
         var buttonPanel = UiUtil.MakeButtonBar(
@@ -220,7 +220,6 @@ public class CutVideoWindow : Window
         vm.AudioVisualizer.OnVideoPositionChanged += vm.AudioVisualizerPositionChanged;
         vm.AudioVisualizer.OnNewSelectionInsert += vm.AudioVisualizerOnNewSelectionInsert;
         vm.AudioVisualizer.DrawGridLines = Se.Settings.Waveform.DrawGridLines;
-        vm.AudioVisualizer.UpdateTheme();
         vm.AudioVisualizer.OnSelectRequested += vm.AudioVisualizerSelectRequested;
         vm.AudioVisualizer.OnPrimarySingleClicked += vm.AudioVisualizerOnPrimarySingleClicked;
         vm.AudioVisualizer.OnPrimaryDoubleClicked += vm.AudioVisualizerOnPrimaryDoubleClicked;

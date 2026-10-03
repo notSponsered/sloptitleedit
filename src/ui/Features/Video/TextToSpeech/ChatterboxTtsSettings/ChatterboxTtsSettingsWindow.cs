@@ -110,7 +110,7 @@ public class ChatterboxTtsSettingsWindow : Window
         grid.Add(MakeLabel("Engine"), 0, 0);
         var enginePanel = MakeStatusPanel(nameof(vm.EngineBrush), nameof(vm.EngineLabel));
         var engineButton = UiUtil.MakeButton(string.Empty, vm.RedownloadEngineCommand)
-            .WithIconLeft(IconNames.Download)
+            .WithIconLeft(Glyphs.Download)
             .WithMarginLeft(12);
         engineButton.Bind(ContentControl.ContentProperty, new Binding(nameof(vm.EngineDownloadButtonText)));
         enginePanel.Children.Add(engineButton);
@@ -171,11 +171,11 @@ public class ChatterboxTtsSettingsWindow : Window
 
     private static Grid BuildActions(ChatterboxTtsSettingsViewModel vm)
     {
-        var redownloadBase = UiUtil.MakeButton(string.Empty, vm.RedownloadBaseModelsCommand).WithIconLeft(IconNames.Download);
+        var redownloadBase = UiUtil.MakeButton(string.Empty, vm.RedownloadBaseModelsCommand).WithIconLeft(Glyphs.Download);
         redownloadBase.Bind(ContentControl.ContentProperty, new Binding(nameof(vm.BaseDownloadButtonText)));
-        var redownloadTurbo = UiUtil.MakeButton(string.Empty, vm.RedownloadTurboModelsCommand).WithIconLeft(IconNames.Download);
+        var redownloadTurbo = UiUtil.MakeButton(string.Empty, vm.RedownloadTurboModelsCommand).WithIconLeft(Glyphs.Download);
         redownloadTurbo.Bind(ContentControl.ContentProperty, new Binding(nameof(vm.TurboDownloadButtonText)));
-        var openFolder = UiUtil.MakeButton(Se.Language.General.OpenContainingFolder, vm.OpenModelsFolderCommand).WithIconLeft(IconNames.FolderOpen);
+        var openFolder = UiUtil.MakeButton(Se.Language.General.OpenContainingFolder, vm.OpenModelsFolderCommand).WithIconLeft(Glyphs.FolderOpen);
         var close = UiUtil.MakeButton(Se.Language.General.Close, vm.OkCommand);
 
         var leftPanel = new StackPanel

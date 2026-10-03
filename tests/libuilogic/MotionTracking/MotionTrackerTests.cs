@@ -1,12 +1,10 @@
 using Nikse.SubtitleEdit.UiLogic.MotionTracking;
+using static LibUiLogicTests.SyntheticFrames;
 
 namespace LibUiLogicTests.MotionTracking;
 
 public class MotionTrackerTests
 {
-    private const int FrameWidth = 256;
-    private const int FrameHeight = 192;
-
     [Fact]
     public void Track_Translation_WithBrightnessChange_IsSubPixelAccurate()
     {
@@ -150,70 +148,5 @@ public class MotionTrackerTests
     {
         var flat = new GrayFrame(64, 64, Enumerable.Repeat((byte)100, 64 * 64).ToArray());
         Assert.False(MotionTracker.HasEnoughDetail(flat, new TrackBox(10, 10, 20, 20)));
-    }
-
-    /// <summary>Smoothed seeded noise, larger than a frame, with frame (0,0) at texture (72,54).</summary>
-    private static double[,] MakeTexture(int seed)
-    {
-        var random = new Random(seed);
-        var texture = new double[300, 400];
-        for (var y = 0; y < 300; y++)
-        {
-            for (var x = 0; x < 400; x++)
-            {
-                texture[y, x] = random.NextDouble() * 255;
-            }
-        }
-
-        for (var pass = 0; pass < 2; pass++)
-        {
-            var blurred = new double[300, 400];
-            for (var y = 1; y < 299; y++)
-            {
-                for (var x = 1; x < 399; x++)
-                {
-                    double sum = 0;
-                    for (var dy = -1; dy <= 1; dy++)
-                    {
-                        for (var dx = -1; dx <= 1; dx++)
-                        {
-                            sum += texture[y + dy, x + dx];
-                        }
-                    }
-
-                    blurred[y, x] = sum / 9;
-                }
-            }
-
-            texture = blurred;
-        }
-
-        return texture;
-    }
-
-    private static GrayFrame MakeFrame(double[,] texture, Func<double, double, (double X, double Y)> sourceOf, double gain, double offset)
-    {
-        var pixels = new byte[FrameWidth * FrameHeight];
-        for (var y = 0; y < FrameHeight; y++)
-        {
-            for (var x = 0; x < FrameWidth; x++)
-            {
-                var (sx, sy) = sourceOf(x, y);
-                var v = 128 + (Bilinear(texture, sx + 72, sy + 54) - 127.5) * 3;
-                pixels[y * FrameWidth + x] = (byte)Math.Clamp(v * gain + offset, 0, 255);
-            }
-        }
-
-        return new GrayFrame(FrameWidth, FrameHeight, pixels);
-    }
-
-    private static double Bilinear(double[,] t, double x, double y)
-    {
-        var x0 = (int)Math.Floor(x);
-        var y0 = (int)Math.Floor(y);
-        var fx = x - x0;
-        var fy = y - y0;
-        return t[y0, x0] * (1 - fx) * (1 - fy) + t[y0, x0 + 1] * fx * (1 - fy) +
-               t[y0 + 1, x0] * (1 - fx) * fy + t[y0 + 1, x0 + 1] * fx * fy;
     }
 }

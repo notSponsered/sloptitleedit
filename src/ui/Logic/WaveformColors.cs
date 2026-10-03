@@ -30,11 +30,15 @@ public static class WaveformColors
 
     internal static Set FromPalette(ChromeStyles.Palette p)
     {
-        var dark = p.Body.R * 0.299 + p.Body.G * 0.587 + p.Body.B * 0.114 < 128;
-        var background = dark ? p.Ground : p.Body;
+        static double Luma(Color c) => c.R * 0.299 + c.G * 0.587 + c.B * 0.114;
+        var dark = Luma(p.Body) < 128;
+        // dark themes: the darker of the panels and the dividers (a grey divider, e.g. High contrast, would wash the text out)
+        var background = !dark ? p.Body : Luma(p.Ground) < Luma(p.Body) ? p.Ground : p.Body;
+        // a light accent (yellow, pale cyan) is dimmed for the wave, so the selection (lightened) still stands out from it
+        var wave = !dark ? Mix(p.Accent, background, 0.2) : Luma(p.Accent) > 150 ? Mix(p.Accent, background, 0.3) : Mix(p.Accent, Colors.White, 0.1);
         return new Set(
             Background: background,
-            Wave: dark ? Mix(p.Accent, Colors.White, 0.1) : Mix(p.Accent, background, 0.2),
+            Wave: wave,
             Selected: dark ? Mix(p.Accent, Colors.White, 0.6) : Mix(p.Accent, Colors.Black, 0.45),
             FancyHigh: Color.Parse(dark ? "#ffb07a" : "#d9622b"),
             Cursor: p.Text,

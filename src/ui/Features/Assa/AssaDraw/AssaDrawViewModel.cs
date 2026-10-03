@@ -736,11 +736,11 @@ public partial class AssaDrawViewModel : ObservableObject
 
         await ClipboardHelper.SetTextAsync(Window, code);
 
-        if (CopyToClipboardButton?.Content is Optris.Icons.Avalonia.Icon icon)
+        if (CopyToClipboardButton != null)
         {
-            icon.Value = "fa-solid fa-check";
+            Glyphs.Set(CopyToClipboardButton, Glyphs.Check);
             await Task.Delay(1500);
-            icon.Value = "fa-solid fa-copy";
+            Glyphs.Set(CopyToClipboardButton, Glyphs.Copy);
         }
     }
 

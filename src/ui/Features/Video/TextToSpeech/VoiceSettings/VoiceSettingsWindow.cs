@@ -8,7 +8,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 using System.ComponentModel;
 
 namespace Nikse.SubtitleEdit.Features.Video.TextToSpeech.VoiceSettings;
@@ -18,7 +17,7 @@ public class VoiceSettingsWindow : Window
     private readonly VoiceSettingsViewModel _vm;
     private Border? _dropBorder;
     private Rectangle? _dropDashRect;
-    private Icon? _dropIcon;
+    private Viewbox? _dropIcon;
 
     public VoiceSettingsWindow(VoiceSettingsViewModel vm)
     {
@@ -83,13 +82,9 @@ public class VoiceSettingsWindow : Window
 
     private Control BuildDropArea(VoiceSettingsViewModel vm)
     {
-        var icon = new Icon
-        {
-            Value = IconNames.Import,
-            FontSize = 32,
-            HorizontalAlignment = HorizontalAlignment.Center,
-            Foreground = UiUtil.GetTextColor(0.55d),
-        };
+        var icon = Glyphs.Make(Glyphs.Import, 36);
+        icon.HorizontalAlignment = HorizontalAlignment.Center;
+        Avalonia.Controls.Documents.TextElement.SetForeground(icon, UiUtil.GetTextColor(0.55d));
         _dropIcon = icon;
 
         var primaryText = new TextBlock
@@ -177,14 +172,14 @@ public class VoiceSettingsWindow : Window
             var accent = new SolidColorBrush(Color.FromRgb(0x2E, 0x8B, 0xC0));
             _dropDashRect.Stroke = accent;
             _dropDashRect.StrokeThickness = 2.0;
-            _dropIcon.Foreground = accent;
+            Avalonia.Controls.Documents.TextElement.SetForeground(_dropIcon, accent);
             _dropBorder.Background = new SolidColorBrush(Color.FromArgb(0x22, 0x2E, 0x8B, 0xC0));
         }
         else
         {
             _dropDashRect.Stroke = UiUtil.GetTextColor(0.35d);
             _dropDashRect.StrokeThickness = 1.5;
-            _dropIcon.Foreground = UiUtil.GetTextColor(0.55d);
+            Avalonia.Controls.Documents.TextElement.SetForeground(_dropIcon, UiUtil.GetTextColor(0.55d));
             _dropBorder.Background = Brushes.Transparent;
         }
     }

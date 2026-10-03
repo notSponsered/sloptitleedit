@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data;
 using Avalonia.Interactivity;
@@ -83,12 +84,14 @@ public class MainView : ViewBase
         var workspaceBar = WorkspaceBar.Make(_vm);
         Grid.SetColumn(workspaceBar, 1);
         _vm.ToolbarPickers.Child = InitToolbar.MakePickers(_vm);
-        Grid.SetColumn(_vm.ToolbarPickers, 3);
+        var pickers = UiUtil.MakeSideScroller(_vm.ToolbarPickers); // a narrow window scrolls them instead of cutting them off
+        pickers.HorizontalAlignment = HorizontalAlignment.Right;
+        Grid.SetColumn(pickers, 2);
         var menuRow = new Grid
         {
             Classes = { "se-bar" },
-            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto"),
-            Children = { _vm.Menu, workspaceBar, _vm.ToolbarPickers },
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"),
+            Children = { _vm.Menu, workspaceBar, pickers },
         };
         DockPanel.SetDock(menuRow, Dock.Top);
         root.Children.Add(menuRow);

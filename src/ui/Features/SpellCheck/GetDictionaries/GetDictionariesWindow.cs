@@ -27,7 +27,7 @@ public class GetDictionariesWindow : Window
         DataContext = vm;
 
         var downloadButton = UiUtil.MakeButton(string.Empty, vm.DownloadCommand)
-            .WithIconLeft(IconNames.Download)
+            .WithIconLeft(Glyphs.Download)
             .WithBindEnabled(nameof(vm.IsDownloadEnabled));
         downloadButton.Bind(ContentControl.ContentProperty, new Binding(nameof(vm.DownloadButtonText)));
 
@@ -163,7 +163,7 @@ public class GetDictionariesWindow : Window
     private static Grid BuildActions(GetDictionariesViewModel vm, Button downloadButton)
     {
         var openFolder = UiUtil.MakeButton(Se.Language.General.OpenDictionaryFolder, vm.OpenFolderCommand)
-            .WithIconLeft(IconNames.FolderOpen);
+            .WithIconLeft(Glyphs.FolderOpen);
 
         var leftPanel = new StackPanel
         {

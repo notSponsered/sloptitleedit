@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Windows.Input;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
@@ -9,15 +11,12 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
-using Avalonia.VisualTree;
 using AvaloniaEdit;
-using AvaloniaEdit.Rendering;
 using Nikse.SubtitleEdit.Controls;
 using Nikse.SubtitleEdit.Features.Shared.TextBoxUtils;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.ValueConverters;
-using Optris.Icons.Avalonia;
 using MenuItem = Avalonia.Controls.MenuItem;
 
 namespace Nikse.SubtitleEdit.Features.Main.Layout;
@@ -110,27 +109,21 @@ public static partial class InitListViewAndEditBox
         vm.SubtitleGrid.Columns.Add(new DataGridTemplateColumn
         {
             Header = Se.Language.General.NumberSymbol,
-            Width = new DataGridLength(50),
+            Width = new DataGridLength(56), // a bookmark + four digits
             MinWidth = 40,
             CellTheme = UiUtil.DataGridNoBorderCellTheme,
             CellTemplate = new FuncDataTemplate<SubtitleLineViewModel>((value, namescope) =>
-                new StackPanel
+            {
+                var bookmark = Glyphs.Make(Glyphs.Bookmark, 14, color: new SolidColorBrush(Se.Settings.Appearance.BookmarkColor.FromHexToColor()));
+                bookmark.Bind(Visual.IsVisibleProperty, new Binding(nameof(SubtitleLineViewModel.Bookmark)) { Converter = notNullConverter });
+                return new StackPanel
                 {
                     Orientation = Orientation.Horizontal,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
-                    Children =
-                    {
-                         new Icon
-                         {
-                            Value = IconNames.Bookmark,
-                            Foreground = new SolidColorBrush(Se.Settings.Appearance.BookmarkColor.FromHexToColor()),
-                            VerticalAlignment = VerticalAlignment.Center,
-                            [!Visual.IsVisibleProperty] = new Binding(nameof(SubtitleLineViewModel.Bookmark)) { Converter = notNullConverter },
-                         },
-                         UiUtil.MakeLabel().WithBindText(value, new Binding(nameof(SubtitleLineViewModel.Number)))
-                    }
-                })
+                    Children = { bookmark, UiUtil.MakeLabel().WithBindText(value, new Binding(nameof(SubtitleLineViewModel.Number))) },
+                };
+            })
         });
 
         var startColumn = new DataGridTextColumn
@@ -416,7 +409,7 @@ public static partial class InitListViewAndEditBox
         {
             Header = Se.Language.General.Layer,
             Binding = new Binding(nameof(SubtitleLineViewModel.Layer)),
-            Width = new DataGridLength(23),
+            Width = new DataGridLength(1, DataGridLengthUnitType.SizeToHeader), // "Layer" fits its column
             CellTheme = UiUtil.DataGridNoBorderCellTheme,
         };
         vm.SubtitleGrid.Columns.Add(layerColumn);
@@ -472,166 +465,46 @@ public static partial class InitListViewAndEditBox
         sepAssa.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.AreAssaContentMenuItemsVisible)));
         flyout.Items.Add(sepAssa);
 
-        var showStartTimeMenuItem = new MenuItem
+        // column toggles (right-click on the header): checked = the column is shown
+        var columnToggles = new (string Header, ICommand Command, string Shown)[]
         {
-            Header = Se.Language.General.ShowStartColumn,
-            Command = vm.ToggleShowColumnStartTimeCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnStartTime)),
-            }
+            (Se.Language.General.ShowStartColumn, vm.ToggleShowColumnStartTimeCommand, nameof(vm.ShowColumnStartTime)),
+            (Se.Language.General.ShowHideColumn, vm.ToggleShowColumnEndTimeCommand, nameof(vm.ShowColumnEndTime)),
+            (Se.Language.General.ShowDurationColumn, vm.ToggleShowColumnDurationCommand, nameof(vm.ShowColumnDuration)),
+            (Se.Language.General.ShowGapColumn, vm.ToggleShowColumnGapCommand, nameof(vm.ShowColumnGap)),
+            (Se.Language.General.ShowStyleColumn, vm.ToggleShowColumnStyleCommand, nameof(vm.ShowColumnStyle)),
+            (Se.Language.General.ShowActorColumn, vm.ToggleShowColumnActorCommand, nameof(vm.ShowColumnActor)),
+            (Se.Language.General.ShowCpsColumn, vm.ToggleShowColumnCpsCommand, nameof(vm.ShowColumnCps)),
+            (Se.Language.General.ShowWpmColumn, vm.ToggleShowColumnWpmCommand, nameof(vm.ShowColumnWpm)),
+            (Se.Language.General.ShowPixelWidthColumn, vm.ToggleShowColumnPixelWidthCommand, nameof(vm.ShowColumnPixelWidth)),
+            (Se.Language.General.ShowLayerColumn, vm.ToggleShowColumnLayerCommand, nameof(vm.ShowColumnLayer)),
         };
-        showStartTimeMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showStartTimeMenuItem);
-        
-        var showEndTimeMenuItem = new MenuItem
+        foreach (var column in columnToggles)
         {
-            Header = Se.Language.General.ShowHideColumn,
-            Command = vm.ToggleShowColumnEndTimeCommand,
-            DataContext = vm,
-            Icon = new Icon
+            var item = new MenuItem
             {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnEndTime)),
-            }
-        };
-        showEndTimeMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showEndTimeMenuItem);
-
-        var showDurationMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowDurationColumn,
-            Command = vm.ToggleShowColumnDurationCommand,
-            DataContext = vm,
-            Icon = new Icon
+                Header = column.Header,
+                Command = column.Command,
+                DataContext = vm,
+                ToggleType = MenuItemToggleType.CheckBox,
+                [!MenuItem.IsCheckedProperty] = new Binding(column.Shown) { Mode = BindingMode.OneWay },
+            };
+            item.Bind(Visual.IsVisibleProperty, column.Shown switch
             {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnDuration)),
-            }
-        };
-        showDurationMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showDurationMenuItem);
-
-        var showGapMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowGapColumn,
-            Command = vm.ToggleShowColumnGapCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnGap)),
-            }
-        };
-        showGapMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showGapMenuItem);
-
-        var showStyleMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowStyleColumn,
-            Command = vm.ToggleShowColumnStyleCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnStyle)),
-            }
-        };
-        var showStyleColumnMultiBinding = new MultiBinding
-        {
-            Converter = booleanAndConverter,
-            Bindings =
-            {
-                new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Source = vm, Mode = BindingMode.OneWay },
-                new Binding(nameof(vm.HasFormatStyle)) { Source = vm, Mode = BindingMode.OneWay }
-            }
-        };
-        showStyleMenuItem.Bind(Visual.IsVisibleProperty, showStyleColumnMultiBinding);
-
-        flyout.Items.Add(showStyleMenuItem);
-
-        var showActorMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowActorColumn,
-            Command = vm.ToggleShowColumnActorCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnActor)),
-            }
-        };
-        showActorMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showActorMenuItem);
-
-        var showCpsMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowCpsColumn,
-            Command = vm.ToggleShowColumnCpsCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnCps)),
-            }
-        };
-        showCpsMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showCpsMenuItem);
-
-        var showWpmMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowWpmColumn,
-            Command = vm.ToggleShowColumnWpmCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnWpm)),
-            }
-        };
-        showWpmMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showWpmMenuItem);
-        
-        var showPixelWidthMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowPixelWidthColumn,
-            Command = vm.ToggleShowColumnPixelWidthCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnPixelWidth)),
-            }
-        };
-        showPixelWidthMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showPixelWidthMenuItem);
-
-        var showLayerMenuItem = new MenuItem
-        {
-            Header = Se.Language.General.ShowLayerColumn,
-            Command = vm.ToggleShowColumnLayerCommand,
-            DataContext = vm,
-            Icon = new Icon
-            {
-                Value = IconNames.CheckBold,
-                VerticalAlignment = VerticalAlignment.Center,
-                [!Visual.IsVisibleProperty] = new Binding(nameof(vm.ShowColumnLayer)),
-            }
-        };
-        showLayerMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.ShowColumnLayerFlyoutMenuItem)) { Source = vm, Mode = BindingMode.TwoWay });
-        flyout.Items.Add(showLayerMenuItem);
-
+                nameof(vm.ShowColumnStyle) => new MultiBinding
+                {
+                    Converter = booleanAndConverter,
+                    Bindings =
+                    {
+                        new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)) { Source = vm, Mode = BindingMode.OneWay },
+                        new Binding(nameof(vm.HasFormatStyle)) { Source = vm, Mode = BindingMode.OneWay },
+                    },
+                },
+                nameof(vm.ShowColumnLayer) => new Binding(nameof(vm.ShowColumnLayerFlyoutMenuItem)) { Source = vm },
+                _ => new Binding(nameof(vm.IsSubtitleGridFlyoutHeaderVisible)),
+            });
+            flyout.Items.Add(item);
+        }
 
         var deleteMenuItem = new MenuItem { Header = Se.Language.General.Delete, DataContext = vm };
         deleteMenuItem.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsSubtitleGridDataMenuVisible)));
@@ -1133,6 +1006,39 @@ public static partial class InitListViewAndEditBox
         panelLayer.Children.Add(upDownLayer);
         timeControlsPanel.Children.Add(panelLayer);
 
+        // ASS margins of the line (the Dialogue fields after style and actor); 0 = the style's margin
+        var marginsGrid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*,*"), ColumnSpacing = 4 };
+        var marginFields = new[]
+        {
+            (nameof(SubtitleLineViewModel.MarginL), Se.Language.Main.MarginLeftHint),
+            (nameof(SubtitleLineViewModel.MarginR), Se.Language.Main.MarginRightHint),
+            (nameof(SubtitleLineViewModel.MarginV), Se.Language.Main.MarginVerticalHint),
+        };
+        for (var i = 0; i < marginFields.Length; i++)
+        {
+            var (property, hint) = marginFields[i];
+            var upDownMargin = UiUtil.MakeNumericUpDownInt(0, 9999, 0, double.NaN, vm, $"{nameof(vm.SelectedSubtitle)}.{property}");
+            upDownMargin.HorizontalAlignment = HorizontalAlignment.Stretch;
+            upDownMargin.ShowButtonSpinner = false; // three in one row: type, or scroll / arrow keys to step
+            ToolTip.SetTip(upDownMargin, hint);
+            AutomationProperties.SetName(upDownMargin, hint);
+            Grid.SetColumn(upDownMargin, i);
+            marginsGrid.Children.Add(upDownMargin);
+        }
+
+        var panelMargins = new StackPanel
+        {
+            Spacing = 0,
+            Orientation = Orientation.Vertical,
+            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatAssa)),
+            Children =
+            {
+                new TextBlock { Text = Se.Language.Main.Margins, Classes = { "se-caption" } }.WithBindVisible(vm, nameof(vm.ShowUpDownLabels)),
+                marginsGrid,
+            },
+        };
+        timeControlsPanel.Children.Add(panelMargins);
+
         if (!Se.Settings.Appearance.ShowUpDownStartTime ||
             !Se.Settings.Appearance.ShowUpDownEndTime || 
             !Se.Settings.Appearance.ShowUpDownDuration)
@@ -1164,15 +1070,10 @@ public static partial class InitListViewAndEditBox
             VerticalAlignment = VerticalAlignment.Center,
         };
 
-        var bookmarkIcon = new Icon
-        {
-            DataContext = vm,
-            Value = IconNames.Bookmark,
-            Foreground = new SolidColorBrush(Se.Settings.Appearance.BookmarkColor.FromHexToColor()),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.Bookmark)) { Converter = notNullConverter },
-            Margin = new Thickness(6, 0, 0, 1),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        var bookmarkIcon = Glyphs.Make(Glyphs.Bookmark, 16, color: new SolidColorBrush(Se.Settings.Appearance.BookmarkColor.FromHexToColor()));
+        bookmarkIcon.DataContext = vm;
+        bookmarkIcon.Margin = new Thickness(6, 0, 0, 1);
+        bookmarkIcon.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.SelectedSubtitle) + "." + nameof(SubtitleLineViewModel.Bookmark)) { Converter = notNullConverter });
         bookmarkIcon.PointerPressed += (_, __) =>
         {
             if (vm.AddOrEditBookmarkCommand.CanExecute(null))
@@ -1223,7 +1124,6 @@ public static partial class InitListViewAndEditBox
         };
 
 
-        textEditGrid.Children.Add(panelForTextLabel);
 
         var textCharsSecLabel = new TextBlock
         {
@@ -1240,7 +1140,7 @@ public static partial class InitListViewAndEditBox
         {
             Mode = BindingMode.OneWay
         });
-        textEditGrid.Children.Add(textCharsSecLabel);
+        textEditGrid.Add(LeftAndRight(panelForTextLabel, textCharsSecLabel), 0, 0);
         var textEditor = MakeTextBox(vm);
         var textEditorHost = new FillHeight { Child = textEditor };
 
@@ -1262,8 +1162,6 @@ public static partial class InitListViewAndEditBox
         {
             Mode = BindingMode.OneWay
         });
-        textEditGrid.Children.Add(textTotalLengthLabel);
-        Grid.SetRow(textTotalLengthLabel, 2);
 
 
         var panelSingleLineLengths = new StackPanel
@@ -1273,8 +1171,7 @@ public static partial class InitListViewAndEditBox
             Orientation = Orientation.Horizontal,
         };
         vm.PanelSingleLineLengths = panelSingleLineLengths;
-        textEditGrid.Children.Add(panelSingleLineLengths);
-        Grid.SetRow(panelSingleLineLengths, 2);
+        textEditGrid.Add(LeftAndRight(panelSingleLineLengths, textTotalLengthLabel), 2, 0);
 
         // Create a Flyout for the TextEditor
         // The TextBox may have TextAlignment=Center; that inherited property would otherwise flow
@@ -1344,25 +1241,6 @@ public static partial class InitListViewAndEditBox
         menuItemTextBoxColor.Command = vm.TextBoxColorCommand;
         flyoutTextBox.Items.Add(menuItemTextBoxColor);
 
-        // Tinted boxes on padding: spaces / \h at the start and end of a line, blank lines (TextPaddingRenderer)
-        var menuItemShowPadding = new MenuItem
-        {
-            Header = Se.Language.Main.ShowPadding,
-            ToggleType = MenuItemToggleType.CheckBox,
-            IsChecked = Se.Settings.Appearance.SubtitleTextBoxShowPadding,
-        };
-        menuItemShowPadding.Click += (_, _) =>
-        {
-            Se.Settings.Appearance.SubtitleTextBoxShowPadding = !Se.Settings.Appearance.SubtitleTextBoxShowPadding;
-            menuItemShowPadding.IsChecked = Se.Settings.Appearance.SubtitleTextBoxShowPadding;
-            Se.SaveSettings();
-            foreach (var editor in textEditor.GetVisualDescendants().OfType<TextEditor>())
-            {
-                editor.TextArea.TextView.InvalidateLayer(KnownLayer.Background);
-            }
-        };
-        flyoutTextBox.Items.Add(menuItemShowPadding);
-
         flyoutTextBox.Items.Add(new Separator());
 
         var unicodeSymbols = Se.Settings.Tools.UnicodeSymbolsToInsert.Split(';', System.StringSplitOptions.RemoveEmptyEntries);
@@ -1387,7 +1265,6 @@ public static partial class InitListViewAndEditBox
             Classes = { "se-caption" },
             Margin = new Thickness(3, 0, 0, 0),
         };
-        textEditGrid.Add(textLabelOriginal, 0, 1);
         textLabelOriginal.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.ShowColumnOriginalText))
         {
             Mode = BindingMode.OneWay,
@@ -1409,7 +1286,7 @@ public static partial class InitListViewAndEditBox
         {
             Mode = BindingMode.OneWay
         });
-        textEditGrid.Add(textCharsSecLabelOriginal, 0, 1);
+        textEditGrid.Add(LeftAndRight(textLabelOriginal, textCharsSecLabelOriginal), 0, 1);
         textCharsSecLabelOriginal.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.ShowColumnOriginalText))
         {
             Mode = BindingMode.OneWay,
@@ -1439,7 +1316,6 @@ public static partial class InitListViewAndEditBox
         {
             Mode = BindingMode.OneWay
         });
-        textEditGrid.Add(textTotalLengthLabelOriginal, 2, 1);
         textTotalLengthLabelOriginal.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.ShowColumnOriginalText))
         {
             Mode = BindingMode.OneWay,
@@ -1454,7 +1330,7 @@ public static partial class InitListViewAndEditBox
             Orientation = Orientation.Horizontal,
         };
         vm.PanelSingleLineLengthsOriginal = panelSingleLineLengthsOriginal;
-        textEditGrid.Add(panelSingleLineLengthsOriginal, 2, 1);
+        textEditGrid.Add(LeftAndRight(panelSingleLineLengthsOriginal, textTotalLengthLabelOriginal), 2, 1);
         panelSingleLineLengthsOriginal.DataContext = vm;
         panelSingleLineLengthsOriginal.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.ShowColumnOriginalText))
         {
@@ -1474,64 +1350,32 @@ public static partial class InitListViewAndEditBox
         var buttonPanel = new WrapPanel
         {
             Orientation = Orientation.Vertical,
-            ItemSpacing = 3,
+            ItemSpacing = 2,
             LineSpacing = 3,
             Margin = new Thickness(6,3,3,3)
         };
 
-        if (Se.Settings.Appearance.TextBoxShowButtonAutoBreak)
+        // the text tools (Settings → Appearance picks which), flat icon buttons like the toolbars
+        var appearance = Se.Settings.Appearance;
+        var textTools = new (bool Show, ICommand Command, string Glyph, string Hint)[]
         {
-            var autoBreakButton = UiUtil.MakeButton(vm.AutoBreakCommand, IconNames.ScaleBalance);
-            if (Se.Settings.Appearance.ShowHints)
+            (appearance.TextBoxShowButtonAutoBreak, vm.AutoBreakCommand, Glyphs.Balance, Se.Language.Main.AutoBreakHint),
+            (appearance.TextBoxShowButtonUnbreak, vm.UnbreakCommand, Glyphs.Merge, Se.Language.Main.UnbreakHint),
+            (appearance.TextBoxShowButtonItalic, vm.ToggleLinesItalicOrSelectedTextCommand, Glyphs.Italic, Se.Language.Main.ItalicHint),
+            (appearance.TextBoxShowButtonColor, vm.ShowColorPickerCommand, Glyphs.Palette, Se.Language.Main.ColorHint),
+            (appearance.TextBoxShowButtonRemoveFormatting, vm.RemoveFormattingAllCommand, Glyphs.FormatClear, Se.Language.Main.RemoveFormattingHint),
+        };
+        foreach (var tool in textTools.Where(t => t.Show))
+        {
+            var button = new Button { Command = tool.Command, Content = Glyphs.Make(tool.Glyph) };
+            if (appearance.ShowHints)
             {
-                ToolTip.SetTip(autoBreakButton, Se.Language.Main.AutoBreakHint);
+                ToolTip.SetTip(button, tool.Hint);
             }
-            Avalonia.Automation.AutomationProperties.SetName(autoBreakButton, Se.Language.Main.AutoBreakHint); // icon-only: name it for screen readers
-            buttonPanel.Children.Add(autoBreakButton);
-        }
 
-        if (Se.Settings.Appearance.TextBoxShowButtonUnbreak)
-        {
-            var unbreakButton = UiUtil.MakeButton(vm.UnbreakCommand, IconNames.SetMerge);
-            if (Se.Settings.Appearance.ShowHints)
-            {
-                ToolTip.SetTip(unbreakButton, Se.Language.Main.UnbreakHint);
-            }
-            Avalonia.Automation.AutomationProperties.SetName(unbreakButton, Se.Language.Main.UnbreakHint); // icon-only: name it for screen readers
-            buttonPanel.Children.Add(unbreakButton);
-        }
-
-        if (Se.Settings.Appearance.TextBoxShowButtonItalic)
-        {
-            var italicButton = UiUtil.MakeButton(vm.ToggleLinesItalicOrSelectedTextCommand, IconNames.Italic);
-            if (Se.Settings.Appearance.ShowHints)
-            {
-                ToolTip.SetTip(italicButton, Se.Language.Main.ItalicHint);
-            }
-            Avalonia.Automation.AutomationProperties.SetName(italicButton, Se.Language.Main.ItalicHint); // icon-only: name it for screen readers
-            buttonPanel.Children.Add(italicButton);
-        }
-
-        if (Se.Settings.Appearance.TextBoxShowButtonColor)
-        {
-            var colorButton = UiUtil.MakeButton(vm.ShowColorPickerCommand, IconNames.Palette);
-            if (Se.Settings.Appearance.ShowHints)
-            {
-                ToolTip.SetTip(colorButton, Se.Language.Main.ColorHint);
-            }
-            Avalonia.Automation.AutomationProperties.SetName(colorButton, Se.Language.Main.ColorHint); // icon-only: name it for screen readers
-            buttonPanel.Children.Add(colorButton);
-        }
-
-        if (Se.Settings.Appearance.TextBoxShowButtonRemoveFormatting)
-        {
-            var removeFormattingButton = UiUtil.MakeButton(vm.RemoveFormattingAllCommand, IconNames.FormatClear);
-            if (Se.Settings.Appearance.ShowHints)
-            {
-                ToolTip.SetTip(removeFormattingButton, Se.Language.Main.RemoveFormattingHint);
-            }
-            Avalonia.Automation.AutomationProperties.SetName(removeFormattingButton, Se.Language.Main.RemoveFormattingHint); // icon-only: name it for screen readers
-            buttonPanel.Children.Add(removeFormattingButton);
+            Avalonia.Automation.AutomationProperties.SetName(button, tool.Hint); // icon-only: name it for screen readers
+            ChromeStyles.AsTool(button);
+            buttonPanel.Children.Add(button);
         }
 
         textEditGrid.Add(buttonPanel, 1, 2);
@@ -1690,12 +1534,20 @@ public static partial class InitListViewAndEditBox
         }
     }
 
+    /// <summary>Two labels sharing a row: the right one keeps its size, the left one is cut off before it reaches it.</summary>
+    private static Grid LeftAndRight(Control left, Control right)
+    {
+        left.ClipToBounds = true;
+        Grid.SetColumn(right, 1);
+        return new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Children = { left, right } };
+    }
+
     private static Border MakeTextEditor(MainViewModel vm)
     {
         var textEditor = MakeTextEditor();
 
         var defaultBorderBrush = UiUtil.GetBorderBrush();
-        var focusedBorderBrush = new SolidColorBrush(Se.Settings.Appearance.Theme == UiTheme.ThemeNameBlender ? Color.Parse("#4772b3") : Colors.DodgerBlue);
+        var focusedBorderBrush = ChromeStyles.Shared(ChromeStyles.Role.Accent);
 
         var textEditorBorder = new Border
         {
@@ -1743,7 +1595,7 @@ public static partial class InitListViewAndEditBox
 
         // Add syntax highlighting transformer
         textEditor.TextArea.TextView.LineTransformers.Add(new SubtitleSyntaxHighlighting());
-        textEditor.TextArea.TextView.BackgroundRenderers.Add(new TextPaddingRenderer());
+        ChromeStyles.WhileAttached(textEditor, textEditor.TextArea.TextView.Redraw); // syntax colors follow the theme
 
         if (!string.IsNullOrEmpty(Se.Settings.Appearance.SubtitleTextBoxAndGridFontName))
         {
@@ -1796,7 +1648,7 @@ public static partial class InitListViewAndEditBox
         var textEditor = MakeTextEditor();
 
         var defaultBorderBrush = UiUtil.GetBorderBrush();
-        var focusedBorderBrush = new SolidColorBrush(Se.Settings.Appearance.Theme == UiTheme.ThemeNameBlender ? Color.Parse("#4772b3") : Colors.DodgerBlue);
+        var focusedBorderBrush = ChromeStyles.Shared(ChromeStyles.Role.Accent);
 
         var textEditorBorder = new Border
         {

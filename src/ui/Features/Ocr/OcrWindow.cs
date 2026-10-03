@@ -12,7 +12,6 @@ using Nikse.SubtitleEdit.Features.Ocr.FixEngine;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.ValueConverters;
-using Optris.Icons.Avalonia;
 using System;
 using System.Collections;
 using System.ComponentModel;
@@ -161,7 +160,7 @@ public class OcrWindow : Window
         };
 
         var toggleButtonCaptureAlignment = new ToggleButton();
-        Attached.SetIcon(toggleButtonCaptureAlignment, IconNames.DockTop);
+        toggleButtonCaptureAlignment.Content = Glyphs.Make(Glyphs.DockTop, 16);
         ToolTip.SetTip(toggleButtonCaptureAlignment, Se.Language.Ocr.CaptureTopAlign);
         toggleButtonCaptureAlignment.Bind(ToggleButton.IsCheckedProperty, new Binding(nameof(vm.HasCaptureAlignment)));
 
@@ -170,7 +169,7 @@ public class OcrWindow : Window
             Command = vm.ShowPreProcessingCommand,
         };
         toggleButtonPreProcessing.Bind(ToggleButton.IsCheckedProperty, new Binding(nameof(vm.HasPreProcessingSettings)));
-        Attached.SetIcon(toggleButtonPreProcessing, IconNames.Image);
+        toggleButtonPreProcessing.Content = Glyphs.Make(Glyphs.Image, 16);
         ToolTip.SetTip(toggleButtonPreProcessing, Se.Language.Ocr.ImagePreProcessing);
 
         var toggleButtonVobSubColors = new ToggleButton
@@ -180,7 +179,7 @@ public class OcrWindow : Window
         };
         toggleButtonVobSubColors.Bind(ToggleButton.IsCheckedProperty, new Binding(nameof(vm.HasCustomVobSubColors)));
         toggleButtonVobSubColors.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsVobSubVisible)));
-        Attached.SetIcon(toggleButtonVobSubColors, IconNames.Palette);
+        toggleButtonVobSubColors.Content = Glyphs.Make(Glyphs.Palette, 16);
         ToolTip.SetTip(toggleButtonVobSubColors, Se.Language.Ocr.VobSubColors);
 
         var toggleButtonFallbackDatabase = new ToggleButton
@@ -190,7 +189,7 @@ public class OcrWindow : Window
         };
         toggleButtonFallbackDatabase.Bind(ToggleButton.IsCheckedProperty, new Binding(nameof(vm.HasFallbackDatabase)));
         toggleButtonFallbackDatabase.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFallbackDatabaseVisible)));
-        Attached.SetIcon(toggleButtonFallbackDatabase, IconNames.DatabaseArrowRight);
+        toggleButtonFallbackDatabase.Content = Glyphs.Make(Glyphs.Database, 16);
         ToolTip.SetTip(toggleButtonFallbackDatabase, Se.Language.Ocr.FallbackOcrDatabase);
 
         var panelRight = new StackPanel
@@ -228,7 +227,7 @@ public class OcrWindow : Window
                 UiUtil.MakeComboBox(vm.NOcrDatabases, vm, nameof(vm.SelectedNOcrDatabase), nameof(vm.IsNOcrVisible))
                     .WithMarginRight(0)
                     .BindIsEnabled(vm, nameof(OcrViewModel.IsOcrRunning), new InverseBooleanConverter()),
-                UiUtil.MakeButton(vm.ShowNOcrSettingsCommand, IconNames.Settings)
+                UiUtil.MakeButton(vm.ShowNOcrSettingsCommand, Glyphs.Settings)
                     .WithMarginRight(20)
                     .WithMarginBottom(2)
                     .WithBottomAlignment()
@@ -250,7 +249,7 @@ public class OcrWindow : Window
                 UiUtil.MakeComboBox(vm.ImageCompareDatabases, vm, nameof(vm.SelectedImageCompareDatabase), nameof(vm.IsBinaryImageCompareVisible))
                     .WithMarginRight(0)
                     .BindIsEnabled(vm, nameof(OcrViewModel.IsOcrRunning), new InverseBooleanConverter()),
-                UiUtil.MakeButton(vm.ShowBinaryOcrSettingsCommand, IconNames.Settings)
+                UiUtil.MakeButton(vm.ShowBinaryOcrSettingsCommand, Glyphs.Settings)
                     .WithMarginRight(20)
                     .WithMarginBottom(2)
                     .WithBottomAlignment()
@@ -306,7 +305,7 @@ public class OcrWindow : Window
                     .WithWidth(220)
                     .WithMarginRight(5)
                     .BindIsEnabled(vm, nameof(OcrViewModel.IsOcrRunning), new InverseBooleanConverter()),
-                UiUtil.MakeButton(vm.DownloadLlamaCppOcrCommand, IconNames.Download, Se.Language.General.Download)
+                UiUtil.MakeButton(vm.DownloadLlamaCppOcrCommand, Glyphs.Download, Se.Language.General.Download)
                     .WithMarginRight(5)
                     .BindIsVisible(vm, nameof(vm.IsLlamaCppVisible))
                     .BindIsEnabled(vm, nameof(OcrViewModel.IsOcrRunning), new InverseBooleanConverter()),
@@ -314,7 +313,7 @@ public class OcrWindow : Window
                     .WithMarginRight(5)
                     .BindIsVisible(vm, nameof(vm.IsLlamaCppVisible))
                     .BindIsEnabled(vm, nameof(OcrViewModel.IsOcrRunning), new InverseBooleanConverter()),
-                UiUtil.MakeButton(vm.ShowLlamaCppOcrSettingsCommand, IconNames.Settings, Se.Language.General.Settings)
+                UiUtil.MakeButton(vm.ShowLlamaCppOcrSettingsCommand, Glyphs.Settings, Se.Language.General.Settings)
                     .WithMarginRight(10)
                     .BindIsVisible(vm, nameof(vm.IsLlamaCppVisible))
                     .BindIsEnabled(vm, nameof(OcrViewModel.IsOcrRunning), new InverseBooleanConverter()),

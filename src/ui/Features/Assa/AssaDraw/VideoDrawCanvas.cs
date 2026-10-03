@@ -67,6 +67,34 @@ public class VideoDrawCanvas : Control
 
     public bool IsModified { get; private set; }
 
+    /// <summary>No new shape can be started while this many are finished.</summary>
+    public int MaxShapes { get; set; } = int.MaxValue;
+
+    /// <summary>Read-only outlines drawn under the shapes (e.g. neighbouring keyframes): dashed outline, or a translucent fill.</summary>
+    public List<(PenPath Path, Color Color, bool Dashed)> Overlays { get; } = [];
+
+    /// <summary>A shape was closed, reopened, dropped or edited (raised at the end of a drag).</summary>
+    public event EventHandler? Changed;
+
+    private bool _dragMoved;
+
+    private void RaiseChanged() => Changed?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>Empty canvas (shapes, overlays, edit state) - the view and frame stay.</summary>
+    public void Reset()
+    {
+        Shapes.Clear();
+        Overlays.Clear();
+        Active = null;
+        _selected = null;
+        _drag = DragMode.None;
+        _dragAnchor = null;
+        _dragMoved = false; // a drag cut off by the reset must not report a change on the next content
+        IsModified = false;
+        _escArmed = false;
+        InvalidateVisual();
+    }
+
     /// <summary>New shapes get this colour and line (Tag).</summary>
     public Color NewShapeColor { get; set; } = Colors.White;
     public object? NewShapeTag { get; set; }
@@ -201,14 +229,25 @@ public class VideoDrawCanvas : Control
 
     // ----------------------------------------------------------------- editing
 
-    private void CloseActive()
+    /// <summary>Closes the shape being drawn when it has 3+ points (and reports a drag still in progress).</summary>
+    public void CloseActive()
     {
+        if (_dragMoved)
+        {
+            _dragMoved = false;
+            _drag = DragMode.None;
+            _dragAnchor = null;
+            RaiseChanged();
+        }
+
         if (Active is { Path.Anchors.Count: >= 3 })
         {
             Shapes.Add(Active);
             Active = null;
             _selected = null;
             IsModified = true;
+            RaiseChanged();
+            InvalidateVisual();
         }
     }
 
@@ -231,6 +270,7 @@ public class VideoDrawCanvas : Control
 
         _selected = null;
         IsModified = true;
+        RaiseChanged();
         InvalidateVisual();
     }
 
@@ -255,6 +295,7 @@ public class VideoDrawCanvas : Control
         }
 
         IsModified = true;
+        RaiseChanged();
         InvalidateVisual();
     }
 
@@ -284,6 +325,7 @@ public class VideoDrawCanvas : Control
 
         _selected = anchor;
         IsModified = true;
+        RaiseChanged();
         InvalidateVisual();
     }
 
@@ -316,6 +358,7 @@ public class VideoDrawCanvas : Control
                 {
                     Active = null;
                     _selected = null;
+                    RaiseChanged();
                 }
                 else if (IsModified && !escArmed)
                 {
@@ -412,6 +455,11 @@ public class VideoDrawCanvas : Control
             return;
         }
 
+        if (Active == null && Shapes.Count >= MaxShapes)
+        {
+            return;
+        }
+
         // add a point (a new shape starts with its first point)
         var position = Snap(ToVideo(p));
         if (e.KeyModifiers.HasFlag(KeyModifiers.Shift) && Active is { Path.Anchors.Count: > 0 } a)
@@ -427,6 +475,7 @@ public class VideoDrawCanvas : Control
         _dragAnchor = anchor;
         _dragStartScreen = p;
         IsModified = true;
+        _dragMoved = true; // a new point is a change even without moving
         e.Pointer.Capture(this);
         InvalidateVisual();
     }
@@ -467,6 +516,7 @@ public class VideoDrawCanvas : Control
                 var moved = Snap(new Point(v.X - _grabOffset.X, v.Y - _grabOffset.Y));
                 _dragAnchor.MoveTo(moved.X, moved.Y);
                 IsModified = true;
+                _dragMoved = true;
                 break;
             case DragMode.HandleOut when _dragAnchor != null:
                 _dragAnchor.OutX = v.X;
@@ -478,6 +528,7 @@ public class VideoDrawCanvas : Control
                 }
 
                 IsModified = true;
+                _dragMoved = true;
                 break;
             case DragMode.HandleIn when _dragAnchor != null:
                 _dragAnchor.InX = v.X;
@@ -489,6 +540,7 @@ public class VideoDrawCanvas : Control
                 }
 
                 IsModified = true;
+                _dragMoved = true;
                 break;
             default:
                 Cursor = new Cursor(IsOverFirstPoint(p) ? StandardCursorType.Hand
@@ -506,6 +558,11 @@ public class VideoDrawCanvas : Control
         _drag = DragMode.None;
         _dragAnchor = null;
         e.Pointer.Capture(null);
+        if (_dragMoved)
+        {
+            _dragMoved = false;
+            RaiseChanged();
+        }
     }
 
     protected override void OnPointerExited(PointerEventArgs e)
@@ -556,6 +613,12 @@ public class VideoDrawCanvas : Control
             {
                 context.DrawLine(gridPen, ToScreen(0, y), ToScreen(VideoWidth, y));
             }
+        }
+
+        foreach (var (path, color, dashed) in Overlays)
+        {
+            var pen = new Pen(new SolidColorBrush(color, dashed ? 0.8 : 1), 1.5) { DashStyle = dashed ? new DashStyle([4, 4], 0) : null };
+            context.DrawGeometry(dashed ? null : new SolidColorBrush(color, 0.3), pen, MakeGeometry(path, closed: true));
         }
 
         foreach (var shape in Shapes)

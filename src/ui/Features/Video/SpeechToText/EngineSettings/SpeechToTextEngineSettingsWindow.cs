@@ -159,8 +159,8 @@ public class SpeechToTextEngineSettingsWindow : Window
     private static Grid BuildActions(SpeechToTextEngineSettingsViewModel vm)
     {
         var redownload = UiUtil.MakeButton(string.Empty, vm.RedownloadCommand)
-            .WithIconLeftBindText(IconNames.Download, nameof(vm.DownloadButtonLabel));
-        var openFolder = UiUtil.MakeButton(Se.Language.General.OpenContainingFolder, vm.OpenFolderCommand).WithIconLeft(IconNames.FolderOpen);
+            .WithIconLeftBindText(Glyphs.Download, nameof(vm.DownloadButtonLabel));
+        var openFolder = UiUtil.MakeButton(Se.Language.General.OpenContainingFolder, vm.OpenFolderCommand).WithIconLeft(Glyphs.FolderOpen);
         var close = UiUtil.MakeButton(Se.Language.General.Close, vm.OkCommand);
 
         var leftPanel = new StackPanel

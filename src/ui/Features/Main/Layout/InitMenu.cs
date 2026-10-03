@@ -481,18 +481,8 @@ public static class InitMenu
                 {
                     Header = l.RightToLeftMode,
                     Command = vm.RightToLeftToggleCommand,
-                    [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsRightToLeftEnabled)),
-                    Icon = new Optris.Icons.Avalonia.Icon
-                    {
-                        Value = IconNames.CheckBold,
-                        VerticalAlignment = VerticalAlignment.Center,
-                    }
-                },
-                new MenuItem
-                {
-                    Header = l.RightToLeftMode,
-                    Command = vm.RightToLeftToggleCommand,
-                    [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsRightToLeftEnabled)) { Converter = new InverseBooleanConverter() },
+                    ToggleType = MenuItemToggleType.CheckBox,
+                    [!MenuItem.IsCheckedProperty] = new Binding(nameof(vm.IsRightToLeftEnabled)) { Mode = BindingMode.OneWay },
                 },
                 new MenuItem
                 {
@@ -736,12 +726,8 @@ public static class InitMenu
             {
                 Header = Se.Language.Options.Shortcuts.ToggleWaveformToolbar,
                 Command = vm.ToggleIsWaveformToolbarVisibleCommand,
-                Icon = new Optris.Icons.Avalonia.Icon
-                {
-                    Value = IconNames.CheckBold,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsWaveformToolbarVisible)),
-                }
+                ToggleType = MenuItemToggleType.CheckBox,
+                [!MenuItem.IsCheckedProperty] = new Binding(nameof(vm.IsWaveformToolbarVisible)) { Mode = BindingMode.OneWay },
             },
             new MenuItem
             {
@@ -753,12 +739,8 @@ public static class InitMenu
             {
                 Header = l.SmpteTiming,
                 Command = vm.ToggleSmpteTimingCommand,
-                Icon = new Optris.Icons.Avalonia.Icon
-                {
-                    Value = IconNames.CheckBold,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsSmpteTimingEnabled)),
-                }
+                ToggleType = MenuItemToggleType.CheckBox,
+                [!MenuItem.IsCheckedProperty] = new Binding(nameof(vm.IsSmpteTimingEnabled)) { Mode = BindingMode.OneWay },
             },
         };
 
@@ -1035,6 +1017,11 @@ public static class InitMenu
             {
                 Header = l.AssaMotionTracking,
                 Command = vm.ShowAssaMotionTrackingCommand,
+            },
+            new MenuItem
+            {
+                Header = l.AssaMotionShapes,
+                Command = vm.ShowAssaMotionShapesCommand,
             },
             new MenuItem
             {

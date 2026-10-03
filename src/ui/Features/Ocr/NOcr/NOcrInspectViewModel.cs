@@ -489,7 +489,7 @@ public partial class NOcrInspectViewModel : ObservableObject
             if (match == null)
             {
                 var buttonNotFound = UiUtil.MakeButton(string.Empty)
-                    .WithIconLeft(IconNames.Help)
+                    .WithIconLeft(Glyphs.Help)
                     .WithMargin(4)
                     .WithPadding(8)
                     .WithMinWidth(0);

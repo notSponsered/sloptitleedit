@@ -235,7 +235,7 @@ public class ShortcutsWindow : Window
         buttonBrowse.Margin = new Thickness(0, 0, 9, 0);
 
         // configure button
-        var buttonConfig = UiUtil.MakeButton(vm.ConfigureCommand, IconNames.Settings);
+        var buttonConfig = UiUtil.MakeButton(vm.ConfigureCommand, Glyphs.Settings);
         editPanel.Children.Add(buttonConfig);
         buttonConfig.Bind(IsEnabledProperty, new Binding(nameof(vm.IsControlsEnabled)) { Source = vm });
         buttonConfig.Bind(IsVisibleProperty, new Binding(nameof(vm.IsConfigureVisible)) { Source = vm });

@@ -73,19 +73,19 @@ public class PluginManagerWindow : Window
         }, true);
 
         var buttonGetPlugins = UiUtil.MakeButton(Se.Language.Plugins.GetPluginsOnline, vm.GetPluginsOnlineCommand)
-            .WithIconLeft(IconNames.CloudDownload)
+            .WithIconLeft(Glyphs.Download)
             .WithHorizontalAlignmentStretch()
             .WithMinWidth(180);
         var buttonOpenFolder = UiUtil.MakeButton(Se.Language.General.OpenContainingFolder, vm.OpenPluginsFolderCommand)
-            .WithIconLeft(IconNames.FolderOpen)
+            .WithIconLeft(Glyphs.FolderOpen)
             .WithHorizontalAlignmentStretch()
             .WithMinWidth(180);
         var buttonRemove = UiUtil.MakeButton(Se.Language.General.Remove, vm.RemovePluginCommand)
-            .WithIconLeft(IconNames.Trash)
+            .WithIconLeft(Glyphs.Trash)
             .WithHorizontalAlignmentStretch()
             .WithMinWidth(180);
         var buttonUpdateAll = UiUtil.MakeButton(string.Empty, vm.UpdateAllCommand)
-            .WithIconLeft(IconNames.Refresh)
+            .WithIconLeft(Glyphs.Refresh)
             .WithHorizontalAlignmentStretch()
             .WithMinWidth(180);
         // Replace the empty placeholder text with a bound TextBlock inside the icon+text panel.

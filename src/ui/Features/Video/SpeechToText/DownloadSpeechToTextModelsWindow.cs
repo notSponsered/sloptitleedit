@@ -6,7 +6,6 @@ using Avalonia.Layout;
 using Avalonia.Styling;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 
 namespace Nikse.SubtitleEdit.Features.Video.SpeechToText;
 
@@ -41,7 +40,7 @@ public class DownloadSpeechToTextModelsWindow : Window
             Height = 33,
             Command = vm.OpenModelFolderCommand,
         };
-        Attached.SetIcon(buttonOpenFolder, "fa-solid fa-folder-open");
+        buttonOpenFolder.Content = Glyphs.Make(Glyphs.FolderOpen, 16);
 
         var panelModelButtons = new StackPanel
         {

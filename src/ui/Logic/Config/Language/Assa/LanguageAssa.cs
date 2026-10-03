@@ -251,6 +251,29 @@ public class LanguageAssa
     public string MotionCheckPreview { get; set; }
     public string MotionUntrackedFramesX { get; set; }
 
+    // Motion shapes
+    public string MotionShapes { get; set; }
+    public string ShapesAddKey { get; set; }
+    public string ShapesDeleteKey { get; set; }
+    public string ShapesCalculate { get; set; }
+    public string ShapesPlay { get; set; }
+    public string ShapesFollowMotion { get; set; }
+    public string ShapesTrackColor { get; set; }
+    public string ShapesApply { get; set; }
+    public string ShapesHint { get; set; }
+    public string ShapesNeedTwoKeys { get; set; }
+    public string ShapesFramesToLinesXY { get; set; }
+    public string ShapesNotTrackedFromX { get; set; }
+    public string ShapesFrameInfo { get; set; }
+    public string ShapesIsKey { get; set; }
+    public string ShapesSectionShape { get; set; }
+    public string ShapesSectionKeys { get; set; }
+    public string ShapesSimplify { get; set; }
+    public string ShapesKeyCountX { get; set; }
+    public string ShapesPointsPerLineX { get; set; }
+    public string ShapesPreviousKey { get; set; }
+    public string ShapesNextKey { get; set; }
+
     public LanguageAssa()
     {
         FadeInToHere = "Fade in to here";
@@ -287,6 +310,28 @@ public class LanguageAssa
         MotionSelectLinesFirst = "Select the line(s) to track - e.g. the sign text and its background box";
         MotionLinesNotCoveredX = "{0} line(s) were not changed because the track does not cover them";
         MotionKaraokeWarning = "Note: karaoke (\\k) restarts in every per-frame line";
+
+        MotionShapes = "Motion shapes";
+        ShapesAddKey = "Add key";
+        ShapesDeleteKey = "Delete key";
+        ShapesCalculate = "Calculate";
+        ShapesPlay = "Play";
+        ShapesFollowMotion = "Follow the video";
+        ShapesTrackColor = "Match fill color";
+        ShapesApply = "Apply";
+        ShapesHint = "Draw the shape around the object on any frame, then Calculate (F5) - it follows the object's outline through the video. Where it goes wrong, fix the shape there (that makes a key) and calculate again";
+        ShapesNeedTwoKeys = "Draw a shape first";
+        ShapesFramesToLinesXY = "{0} frames → {1} lines";
+        ShapesNotTrackedFromX = "Not tracked from frame {0} - add a key there and calculate again";
+        ShapesFrameInfo = "Frame {0}/{1}   {2}";
+        ShapesIsKey = "◆ key";
+        ShapesSectionShape = "Shape";
+        ShapesSectionKeys = "Keys";
+        ShapesSimplify = "Simplify";
+        ShapesKeyCountX = "{0} key(s)";
+        ShapesPointsPerLineX = "~{0} points per line";
+        ShapesPreviousKey = "Previous key";
+        ShapesNextKey = "Next key";
 
         // ASSA Draw
         AssaDraw = "ASSA Draw";

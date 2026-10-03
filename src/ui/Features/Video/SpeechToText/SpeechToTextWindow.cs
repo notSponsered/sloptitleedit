@@ -36,7 +36,7 @@ public class SpeechToTextWindow : Window
         };
         var buttonCopyConsoleLog = UiUtil.MakeButton(
             vm.CopyConsoleLogCommand,
-            IconNames.Copy,
+            Glyphs.Copy,
             Se.Language.General.CopyTextToClipboard);
         vm.CopyConsoleLogButton = buttonCopyConsoleLog;
         var panelConsoleLogHeader = UiUtil.MakeHorizontalPanel(labelConsoleLog, buttonCopyConsoleLog);
@@ -57,10 +57,10 @@ public class SpeechToTextWindow : Window
         // install-status dot reflects the freshly-written .installed.sha256 sidecar instead
         // of the snapshot taken when each row was first realised.
         vm.RefreshEngineCombo = () => comboEngine.ItemTemplate = MakeEngineItemTemplate();
-        var buttonEngineWebsite = UiUtil.MakeButton(vm.ShowWebLinkCommand, IconNames.Web)
+        var buttonEngineWebsite = UiUtil.MakeButton(vm.ShowWebLinkCommand, Glyphs.Web)
             .WithMarginLeft(5)
             .WithMarginTop(10);
-        var buttonEngineDownload = UiUtil.MakeButton(vm.DownloadSelectedEngineCommand, IconNames.Download)
+        var buttonEngineDownload = UiUtil.MakeButton(vm.DownloadSelectedEngineCommand, Glyphs.Download)
             .WithMarginLeft(5)
             .WithMarginTop(10)
             .BindIsVisible(vm, nameof(vm.IsEngineDownloadButtonVisible))
@@ -72,7 +72,7 @@ public class SpeechToTextWindow : Window
             UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged,
         });
 
-        var buttonEngineSettings = UiUtil.MakeButton(vm.ShowEngineSettingsCommand, IconNames.Settings)
+        var buttonEngineSettings = UiUtil.MakeButton(vm.ShowEngineSettingsCommand, Glyphs.Settings)
             .WithMarginLeft(5)
             .WithMarginTop(10)
             .BindIsVisible(vm, nameof(vm.IsEngineSettingsButtonVisible))
@@ -174,7 +174,7 @@ public class SpeechToTextWindow : Window
 
         var labelPostProcessing = UiUtil.MakeTextBlock(Se.Language.General.PostProcessing).WithMarginTop(15);
         var checkPostProcessing = UiUtil.MakeCheckBox(vm, nameof(vm.DoPostProcessing)).BindIsEnabled(vm, nameof(vm.IsTranscribeEnabled));
-        var buttonPostProcessing = UiUtil.MakeButton(vm.ShowPostProcessingSettingsCommand, IconNames.Settings)
+        var buttonPostProcessing = UiUtil.MakeButton(vm.ShowPostProcessingSettingsCommand, Glyphs.Settings)
                     .BindIsEnabled(vm, nameof(vm.IsTranscribeEnabled));
 
         var panelPostProcessingControls = new StackPanel
@@ -195,7 +195,7 @@ public class SpeechToTextWindow : Window
         var labelAdvancedSettings = UiUtil.MakeTextBlock(Se.Language.General.AdvancedSettings).WithMarginTop(15)
             .BindIsVisible(vm, nameof(vm.IsAdvancedSettingsVisible));
 
-        var buttonAdvancedSettings = UiUtil.MakeButton(vm.ShowAdvancedSettingsCommand, IconNames.Settings)
+        var buttonAdvancedSettings = UiUtil.MakeButton(vm.ShowAdvancedSettingsCommand, Glyphs.Settings)
                     .BindIsEnabled(vm, nameof(vm.IsTranscribeEnabled))
                     .WithMarginTop(15)
                     .BindIsVisible(vm, nameof(vm.IsAdvancedSettingsVisible));

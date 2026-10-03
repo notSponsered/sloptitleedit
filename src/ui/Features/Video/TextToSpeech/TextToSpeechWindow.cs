@@ -56,7 +56,7 @@ public class TextToSpeechWindow : Window
         var buttonDone = UiUtil.MakeButtonDone(vm.DoneCommand).WithBindIsVisible(nameof(vm.IsNotGenerating));
         var buttonCancel = UiUtil.MakeButtonCancel(vm.CancelCommand).WithBindIsVisible(nameof(vm.IsGenerating));
         var buttonCast = UiUtil.MakeButton(string.Empty, vm.ShowCastCommand)
-            .WithIconLeftBindText(IconNames.PoliceBadge, nameof(vm.CastButtonText))
+            .WithIconLeftBindText(Glyphs.Shield, nameof(vm.CastButtonText))
             .WithBindIsVisible(nameof(vm.HasCast))
             .WithBindIsEnabled(nameof(vm.IsNotGenerating));
         if (Se.Settings.Appearance.ShowHints)
@@ -225,7 +225,7 @@ public class TextToSpeechWindow : Window
                     MinWidth = labelMinWidth,
                 },
                 comboBoxEngines,
-                UiUtil.MakeButton(vm.ShowEngineSettingsCommand, IconNames.Settings)
+                UiUtil.MakeButton(vm.ShowEngineSettingsCommand, Glyphs.Settings)
                     .WithMarginLeft(5)
                     .WithBindIsVisible(nameof(vm.IsEngineSettingsVisible)),
             }
@@ -254,7 +254,7 @@ public class TextToSpeechWindow : Window
                     [!Label.ContentProperty] = new Binding(nameof(vm.VoiceCountInfo)) { Mode = BindingMode.TwoWay }
                 },
                 buttonTestVoice,
-                UiUtil.MakeButton(vm.ShowTestVoiceSettingsCommand, IconNames.Settings),
+                UiUtil.MakeButton(vm.ShowTestVoiceSettingsCommand, Glyphs.Settings),
             }
         };
 
@@ -514,7 +514,7 @@ public class TextToSpeechWindow : Window
             Children =
             {
                 checkBoxAddAudioToVideoFile,
-                UiUtil.MakeButton(vm.ShowEncodingSettingsCommand, IconNames.Settings)
+                UiUtil.MakeButton(vm.ShowEncodingSettingsCommand, Glyphs.Settings)
                       .WithMarginLeft(5).WithMarginTop(0).WithTopAlignment(),
             }
         };

@@ -130,7 +130,7 @@ public class ReviewSpeechWindow : Window
                     CellTheme = UiUtil.DataGridNoBorderNoPaddingCellTheme,
                     CellTemplate = new FuncDataTemplate<ReviewRow>((item, _) =>
                     {
-                        var buttonRegenerate = UiUtil.MakeButton(vm.RegenerateAudioCommand, IconNames.Recycle)
+                        var buttonRegenerate = UiUtil.MakeButton(vm.RegenerateAudioCommand, Glyphs.Refresh)
                         .WithBindEnabled(nameof(item.IsPlayingEnabled));
                         buttonRegenerate.CommandParameter = item;
                         if (Se.Settings.Appearance.ShowHints)
@@ -138,7 +138,7 @@ public class ReviewSpeechWindow : Window
                             ToolTip.SetTip(buttonRegenerate, Se.Language.Video.TextToSpeech.RegenerateAudio);
                         }
 
-                        var buttonHistory = UiUtil.MakeButton(vm.ShowHistoryCommand, IconNames.DotsVertical).WithBindEnabled(nameof(ReviewRow.HasHistory));
+                        var buttonHistory = UiUtil.MakeButton(vm.ShowHistoryCommand, Glyphs.DotsVertical).WithBindEnabled(nameof(ReviewRow.HasHistory));
                         buttonHistory.CommandParameter = item;
                         buttonHistory.Bind(Button.OpacityProperty, new Binding(nameof(ReviewRow.HistoryButtonOpacity)));
                         if (Se.Settings.Appearance.ShowHints)
@@ -146,12 +146,12 @@ public class ReviewSpeechWindow : Window
                             ToolTip.SetTip(buttonHistory, Se.Language.General.ShowHistory);
                         }
 
-                        var buttonPlay = UiUtil.MakeButton(vm.PlayRowCommand,"fa-solid fa-play")
+                        var buttonPlay = UiUtil.MakeButton(vm.PlayRowCommand,Glyphs.Play)
                         .WithBindIsVisible(nameof(item.IsPlaying), new InverseBooleanConverter())
                         .WithBindEnabled(nameof(item.IsPlayingEnabled));
                         buttonPlay.CommandParameter = item;
 
-                        var buttonStop = UiUtil.MakeButton(vm.StopCommand, "fa-solid fa-stop")
+                        var buttonStop = UiUtil.MakeButton(vm.StopCommand, Glyphs.Stop)
                         .WithBindIsVisible(nameof(item.IsPlaying));
                         buttonStop.CommandParameter = item;
 
@@ -258,7 +258,7 @@ public class ReviewSpeechWindow : Window
         var comboBoxEngines = UiUtil.MakeComboBox(vm.Engines, vm, nameof(vm.SelectedEngine)).WithMinWidth(controlMinWidth);
         comboBoxEngines.SelectionChanged += vm.SelectedEngineChanged;
         var buttonElevenLabsRest = UiUtil.MakeButton(Se.Language.General.Reset, vm.ElevenLabsResetCommand)
-            .WithIconLeft(IconNames.Repeat)
+            .WithIconLeft(Glyphs.Repeat)
             .WithBindIsVisible(nameof(vm.IsElevenLabsControlsVisible));
         if (Se.Settings.Appearance.ShowHints)
         {
@@ -309,7 +309,7 @@ public class ReviewSpeechWindow : Window
                     MinWidth = labelMinWidth,
                 },
                 comboBoxModels,
-                UiUtil.MakeButton(vm.ShowElevenLabsEngineV3HelpCommand, IconNames.Help)
+                UiUtil.MakeButton(vm.ShowElevenLabsEngineV3HelpCommand, Glyphs.Help)
                     .WithBindIsVisible(nameof(vm.IsElevenLabsEngineV3Selected))
                     .WithMarginLeft(5),
             },
@@ -514,7 +514,7 @@ public class ReviewSpeechWindow : Window
         };
 
         var labelStabilityValue = UiUtil.MakeLabel().WithBindText(vm, nameof(vm.Stability), new DoubleToTwoDecimalConverter());
-        var buttonStability = UiUtil.MakeButton(vm.ShowStabilityHelpCommand, IconNames.Help);
+        var buttonStability = UiUtil.MakeButton(vm.ShowStabilityHelpCommand, Glyphs.Help);
 
         var labelSimilarity = UiUtil.MakeLabel(Se.Language.Video.TextToSpeech.Similarity);
         var sliderSimilarity = new Slider
@@ -526,7 +526,7 @@ public class ReviewSpeechWindow : Window
             [!Slider.ValueProperty] = new Binding(nameof(vm.Similarity)),
         };
         var labelSimilarityValue = UiUtil.MakeLabel().WithBindText(vm, nameof(vm.Similarity), new DoubleToTwoDecimalConverter());
-        var buttonSimilarity = UiUtil.MakeButton(vm.ShowSimilarityHelpCommand, IconNames.Help);
+        var buttonSimilarity = UiUtil.MakeButton(vm.ShowSimilarityHelpCommand, Glyphs.Help);
 
         var labelSpeakerBoost = UiUtil.MakeLabel(Se.Language.Video.TextToSpeech.SpeakerBoost);
         var sliderSpeakerBoost = new Slider
@@ -538,7 +538,7 @@ public class ReviewSpeechWindow : Window
             [!Slider.ValueProperty] = new Binding(nameof(vm.SpeakerBoost)),
         };
         var labelSpeakerBoostValue = UiUtil.MakeLabel().WithBindText(vm, nameof(vm.SpeakerBoost), new DoubleToTwoDecimalConverter());
-        var buttonSpeakerBoost = UiUtil.MakeButton(vm.ShowSpeakerBoostHelpCommand, IconNames.Help);
+        var buttonSpeakerBoost = UiUtil.MakeButton(vm.ShowSpeakerBoostHelpCommand, Glyphs.Help);
 
         var labelSpeed = UiUtil.MakeLabel(Se.Language.General.Speed);
         var sliderSpeed = new Slider
@@ -550,7 +550,7 @@ public class ReviewSpeechWindow : Window
             [!Slider.ValueProperty] = new Binding(nameof(vm.Speed)),
         };
         var labelSpeedValue = UiUtil.MakeLabel().WithBindText(vm, nameof(vm.Speed), new DoubleToTwoDecimalConverter());
-        var buttonSpeed = UiUtil.MakeButton(vm.ShowSpeedHelpCommand, IconNames.Help);
+        var buttonSpeed = UiUtil.MakeButton(vm.ShowSpeedHelpCommand, Glyphs.Help);
 
         var labelStyleExaggeration = UiUtil.MakeLabel(Se.Language.General.StyleExaggeration);
         var sliderStyleExaggeration = new Slider
@@ -563,7 +563,7 @@ public class ReviewSpeechWindow : Window
             [!Slider.ValueProperty] = new Binding(nameof(ElevenLabsSettingsViewModel.StyleExaggeration)),
         };
         var labelStyleExaggerationValue = UiUtil.MakeLabel().WithBindText(vm, nameof(vm.StyleExaggeration), new DoubleToTwoDecimalConverter());
-        var buttonStyleExaggeration = UiUtil.MakeButton(vm.ShowStyleExaggerationHelpCommand, IconNames.Help);
+        var buttonStyleExaggeration = UiUtil.MakeButton(vm.ShowStyleExaggerationHelpCommand, Glyphs.Help);
 
         var grid = new Grid
         {
@@ -635,7 +635,6 @@ public class ReviewSpeechWindow : Window
             WaveformHeightPercentage = settings.SpectrogramCombinedWaveformHeight,
         };
 
-        audioVisualizer.UpdateTheme();
         vm.AudioVisualizer = audioVisualizer;
         audioVisualizer.Bind(AudioVisualizer.WavePeaksProperty, new Binding(nameof(vm.WavePeakData)));
 

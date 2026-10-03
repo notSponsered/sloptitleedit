@@ -103,7 +103,7 @@ public class BookmarksListWindow : Window
                     DataContext = vm,
                     Margin = new Thickness(2),
                 };
-                Optris.Icons.Avalonia.Attached.SetIcon(deleteButton, IconNames.Trash);
+                deleteButton.Content = Glyphs.Make(Glyphs.Trash, 16);
                 return deleteButton;
             }),
             Width = new DataGridLength(1, DataGridLengthUnitType.Auto)

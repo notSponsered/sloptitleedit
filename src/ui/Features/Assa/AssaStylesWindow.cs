@@ -211,11 +211,11 @@ public class AssaStylesWindow : Window
         menuItemTakeUsagesFrom.Bind(MenuItem.IsVisibleProperty, new Binding(nameof(vm.IsTakeUsagesFromVisible)) { Source = vm });
         flyout.Items.Add(menuItemTakeUsagesFrom);
 
-        var buttonNew = UiUtil.MakeButton(vm.FileNewCommand, IconNames.Plus, Se.Language.General.New);
-        var buttonRemove = UiUtil.MakeButton(vm.FileRemoveCommand, IconNames.Trash, Se.Language.General.Delete);
-        var buttonDuplicate = UiUtil.MakeButton(vm.FilesDuplicateCommand, IconNames.Duplicate, Se.Language.General.Duplicate);
-        var buttonImport = UiUtil.MakeButton(vm.FileImportCommand, IconNames.Import, Se.Language.General.Import);
-        var buttonExport = UiUtil.MakeButton(vm.FileExportCommand, IconNames.Export, Se.Language.General.Export);
+        var buttonNew = UiUtil.MakeButton(vm.FileNewCommand, Glyphs.Plus, Se.Language.General.New);
+        var buttonRemove = UiUtil.MakeButton(vm.FileRemoveCommand, Glyphs.Trash, Se.Language.General.Delete);
+        var buttonDuplicate = UiUtil.MakeButton(vm.FilesDuplicateCommand, Glyphs.Copy, Se.Language.General.Duplicate);
+        var buttonImport = UiUtil.MakeButton(vm.FileImportCommand, Glyphs.Import, Se.Language.General.Import);
+        var buttonExport = UiUtil.MakeButton(vm.FileExportCommand, Glyphs.Export, Se.Language.General.Export);
         var buttonCopyToStorage = UiUtil.MakeButton(Se.Language.Assa.CopyToStorageStyles, vm.FileCopyToStorageCommand).WithBindEnabled(nameof(vm.IsFileStyleSelected));
         var panelButtons = UiUtil.MakeButtonBar(
             buttonNew,
@@ -343,12 +343,12 @@ public class AssaStylesWindow : Window
         menuItemClearSetAsDefault.Bind(MenuItem.IsVisibleProperty, new Binding(nameof(vm.IsSetStyleAsDefaultVisible)) { Source = vm });
         flyout.Items.Add(menuItemClearSetAsDefault);
 
-        var buttonNew = UiUtil.MakeButton(vm.StorageNewCommand, IconNames.Plus, Se.Language.General.New);
-        var buttonDuplicate = UiUtil.MakeButton(vm.StorageDuplicateCommand, IconNames.Duplicate, Se.Language.General.Duplicate);
-        var buttonRemove = UiUtil.MakeButton(vm.StorageRemoveCommand, IconNames.Trash, Se.Language.General.Delete);
-        var buttonImport = UiUtil.MakeButton(vm.StorageImportCommand, IconNames.Import, Se.Language.General.Import);
-        var buttonExport = UiUtil.MakeButton(vm.StorageExportCommand, IconNames.Export, Se.Language.General.Export);
-        var buttonSetDefault = UiUtil.MakeButton(vm.StorageSetDefaultCommand, IconNames.Check, Se.Language.Assa.SetStyleAsDefault);
+        var buttonNew = UiUtil.MakeButton(vm.StorageNewCommand, Glyphs.Plus, Se.Language.General.New);
+        var buttonDuplicate = UiUtil.MakeButton(vm.StorageDuplicateCommand, Glyphs.Copy, Se.Language.General.Duplicate);
+        var buttonRemove = UiUtil.MakeButton(vm.StorageRemoveCommand, Glyphs.Trash, Se.Language.General.Delete);
+        var buttonImport = UiUtil.MakeButton(vm.StorageImportCommand, Glyphs.Import, Se.Language.General.Import);
+        var buttonExport = UiUtil.MakeButton(vm.StorageExportCommand, Glyphs.Export, Se.Language.General.Export);
+        var buttonSetDefault = UiUtil.MakeButton(vm.StorageSetDefaultCommand, Glyphs.Check, Se.Language.Assa.SetStyleAsDefault);
         var buttonCopyToFiles = UiUtil.MakeButton(Se.Language.Assa.CopyToFileStyles, vm.StorageCopyToFilesCommand).WithBindEnabled(nameof(vm.IsStorageStyleSelected));
         var panelButtons = UiUtil.MakeButtonBar(
             buttonNew,

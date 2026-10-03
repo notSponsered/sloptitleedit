@@ -9,7 +9,6 @@ using CommunityToolkit.Mvvm.Input;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.UiLogic.Layout;
-using Optris.Icons.Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,23 +56,6 @@ internal sealed class AreaView : Border
             }
 
             var content = info.Make(view, vm);
-            if (info.MinWidth > 0)
-            {
-                // Narrow areas scroll sideways instead of overlapping the panel's own layout. The content is
-                // given the viewport's width (at least MinWidth): a sideways ScrollViewer measures with infinite
-                // width, so text wouldn't wrap and star columns wouldn't follow the area's size.
-                var inner = content;
-                var minWidth = info.MinWidth;
-                inner.Width = minWidth;
-                var scroller = new ScrollViewer
-                {
-                    Content = inner,
-                    HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                };
-                scroller.SizeChanged += (_, e) => inner.Width = Math.Max(minWidth, e.NewSize.Width - inner.Margin.Left - inner.Margin.Right);
-                content = scroller;
-            }
 
             _contents[id] = content;
             _body.Children.Add(content);
@@ -121,13 +103,7 @@ internal sealed class AreaView : Border
             Height = vertical ? 14 : double.NaN,
             Margin = vertical ? new Thickness(0, 0, 0, 2) : new Thickness(0, 0, 2, 0),
             Cursor = new Cursor(StandardCursorType.SizeAll),
-            Child = new Icon
-            {
-                Value = vertical ? "mdi-drag-horizontal" : "mdi-drag-vertical",
-                FontSize = 14,
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center,
-            },
+            Child = Glyphs.Make(vertical ? Glyphs.GripHorizontal : Glyphs.GripVertical, 14),
         };
         ToolTip.SetTip(grip, PanelRegistry.Title(id));
 
@@ -182,23 +158,26 @@ internal sealed class AreaView : Border
 
         // Filled just before showing: a MenuFlyout with no items never opens (so its Opening event never fires).
         var addMenu = new MenuFlyout();
-        var add = MakeIconButton(IconNames.Plus, l.AddPanel, addMenu, () => FillAddMenu(addMenu));
+        var add = MakeIconButton(Glyphs.Plus, l.AddPanel, addMenu, () => FillAddMenu(addMenu));
+        add.Margin = new Thickness(2, 0, 0, 0);
+        tabs.Children.Add(add);
 
         var areaMenu = new MenuFlyout();
-        var more = MakeIconButton(IconNames.DotsVertical, l.AreaMenu, areaMenu, () => FillAreaMenu(areaMenu));
+        var more = MakeIconButton(Glyphs.DotsVertical, l.AreaMenu, areaMenu, () => FillAreaMenu(areaMenu));
 
-        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto"), Margin = new Thickness(4, 0, 4, 0) };
-        grid.Children.Add(tabs);
-        Grid.SetColumn(add, 1);
-        grid.Children.Add(add);
-        Grid.SetColumn(more, 3);
+        // tabs and "+" scroll sideways when the area is narrow, so the area menu and close button stay visible
+        var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), Margin = new Thickness(4, 0, 4, 0) };
+        var tabStrip = UiUtil.MakeSideScroller(tabs);
+        tabStrip.HorizontalAlignment = HorizontalAlignment.Left;
+        grid.Children.Add(tabStrip);
+        Grid.SetColumn(more, 1);
         grid.Children.Add(more);
         if (windowButtons && Window != null)
         {
-            var close = MakeIconButton(IconNames.Close, Se.Language.Workspace.DockBack, null,
+            var close = MakeIconButton(Glyphs.Close, Se.Language.Workspace.DockBack, null,
                 () => Dispatcher.UIThread.Post(() => AreaHost.Dock(Window.Area)));
             close.Margin = new Thickness(2, 0, 0, 0);
-            Grid.SetColumn(close, 4);
+            Grid.SetColumn(close, 2);
             grid.Children.Add(close);
         }
 
@@ -253,7 +232,7 @@ internal sealed class AreaView : Border
                 Spacing = 5,
                 Children =
                 {
-                    new Icon { Value = info.Icon, FontSize = 13, VerticalAlignment = VerticalAlignment.Center, Classes = { ChromeStyles.TintClass(id) } },
+                    ChromeStyles.PanelIcon(id, 14),
                     new TextBlock { Text = info.Title(), FontSize = 12, VerticalAlignment = VerticalAlignment.Center },
                 },
             },
@@ -283,8 +262,8 @@ internal sealed class AreaView : Border
         return chip;
     }
 
-    /// <summary>Flat icon button (a Border, so the chrome style sheet owns its look).</summary>
-    private static Border MakeIconButton(string icon, string tip, FlyoutBase? flyout, Action? click)
+    /// <summary>Flat header icon button (a Border, so the chrome style sheet owns its look); also the workspace bar's "+".</summary>
+    internal static Border MakeIconButton(string icon, string tip, FlyoutBase? flyout, Action? click)
     {
         var button = new Border
         {
@@ -293,7 +272,7 @@ internal sealed class AreaView : Border
             Height = 22,
             VerticalAlignment = VerticalAlignment.Center,
             Cursor = new Cursor(StandardCursorType.Hand),
-            Child = new Icon { Value = icon, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
+            Child = Glyphs.Make(icon, 16),
         };
         ToolTip.SetTip(button, tip);
         if (flyout != null)
@@ -326,7 +305,7 @@ internal sealed class AreaView : Border
             menu.Items.Add(new MenuItem
             {
                 Header = info.Title(),
-                Icon = new Icon { Value = info.Icon, Classes = { ChromeStyles.TintClass(info.Id) } },
+                Icon = ChromeStyles.PanelIcon(info.Id),
                 IsEnabled = !info.AssOnly || _vm.IsFormatAssa || _vm.IsFormatSsa,
                 Command = new RelayCommand(() => AreaHost.AddTab(Leaf, info.Id)),
             });
@@ -381,7 +360,7 @@ internal sealed class AreaView : Border
             item.Items.Add(new MenuItem
             {
                 Header = info.Title(),
-                Icon = new Icon { Value = info.Icon, Classes = { ChromeStyles.TintClass(info.Id) } },
+                Icon = ChromeStyles.PanelIcon(info.Id),
                 IsEnabled = (!info.AssOnly || _vm.IsFormatAssa || _vm.IsFormatSsa) &&
                             !(Leaf.Panels.Count == 1 && Leaf.Panels[0] == info.Id),
                 Command = new RelayCommand(() => AreaHost.Split(Leaf, side, info.Id)),

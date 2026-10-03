@@ -1,54 +1,23 @@
-using Avalonia.Media;
+using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Logic.Config;
 
 namespace Nikse.SubtitleEdit.Logic.Plugins;
 
-/// <summary>
-/// Builds <see cref="PluginThemeColors"/> for the currently active Subtitle Edit theme.
-/// Dark colors come from <see cref="SeAppearance"/>; Classic/Pastel/Light use the same
-/// hard-coded palettes as <see cref="UiTheme"/>.
-/// </summary>
+/// <summary>Builds <see cref="PluginThemeColors"/> from the active color theme (<see cref="ChromeStyles.Current"/>).</summary>
 internal static class PluginThemeColorsFactory
 {
     public static PluginThemeColors Build()
     {
-        var appearance = Se.Settings.Appearance;
-        var themeName = UiTheme.ThemeName;
-        var isDark = UiTheme.IsDarkThemeEnabled();
-
-        Color background;
-        Color foreground;
-
-        if (isDark)
-        {
-            background = appearance.DarkModeBackgroundColor.FromHexToColor();
-            foreground = appearance.DarkModeForegroundColor.FromHexToColor();
-        }
-        else if (themeName == UiTheme.ThemeNameClassic)
-        {
-            background = Color.FromRgb(236, 233, 216);
-            foreground = Color.FromRgb(0, 0, 0);
-        }
-        else if (themeName == UiTheme.ThemeNamePastel)
-        {
-            background = Color.FromRgb(240, 235, 255);
-            foreground = Color.FromRgb(0, 0, 0);
-        }
-        else
-        {
-            background = Color.FromRgb(255, 255, 255);
-            foreground = Color.FromRgb(0, 0, 0);
-        }
-
+        var p = ChromeStyles.Current;
         return new PluginThemeColors
         {
-            IsDark = isDark,
-            BackgroundColor = background.FromColorToHex(),
-            ForegroundColor = foreground.FromColorToHex(),
-            AccentColor = appearance.FocusedButtonBackgroundColor,
-            BackgroundColorLighter = UiUtil.LightenColor(background, 5).FromColorToHex(),
-            BackgroundColorHeader = UiUtil.LightenColor(background, 15).FromColorToHex(),
-            BookmarkColor = appearance.BookmarkColor,
+            IsDark = p.Dark,
+            BackgroundColor = p.Body.FromColorToHex(),
+            ForegroundColor = p.Text.FromColorToHex(),
+            AccentColor = p.Accent.FromColorToHex(),
+            BackgroundColorLighter = p.TabHover.FromColorToHex(),
+            BackgroundColorHeader = p.Header.FromColorToHex(),
+            BookmarkColor = Se.Settings.Appearance.BookmarkColor,
         };
     }
 }

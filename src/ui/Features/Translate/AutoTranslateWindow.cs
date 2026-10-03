@@ -131,7 +131,7 @@ public class AutoTranslateWindow : Window
         // Appears only when the selected SE-managed engine (CrispASR/MADLAD or llama.cpp) is installed
         // but outdated - i.e. it shows the amber "update available" dot - giving the user a way to act on it.
         var updateEngineButton = UiUtil.MakeButton(Se.Language.General.Update, vm.UpdateEngineCommand)
-            .WithIconLeft(IconNames.Download)
+            .WithIconLeft(Glyphs.Download)
             .WithMarginLeft(8);
         updateEngineButton.VerticalAlignment = VerticalAlignment.Center;
         updateEngineButton.Bind(Button.IsVisibleProperty, new Binding(nameof(vm.EngineUpdateButtonIsVisible)));
@@ -144,7 +144,7 @@ public class AutoTranslateWindow : Window
         var sourceCombo = UiUtil.MakeComboBox(vm.SourceLanguages!, vm, nameof(vm.SelectedSourceLanguage));
         sourceCombo.MinWidth = 180;
 
-        var swapButton = UiUtil.MakeButton(vm.SwapLanguagesCommand, IconNames.SwapVertical, Se.Language.Translate.SwapLanguages);
+        var swapButton = UiUtil.MakeButton(vm.SwapLanguagesCommand, Glyphs.SwapVertical, Se.Language.Translate.SwapLanguages);
         swapButton.Margin = new Thickness(8, 0);
         swapButton.VerticalAlignment = VerticalAlignment.Center;
 
@@ -258,7 +258,7 @@ public class AutoTranslateWindow : Window
     private static Border BuildApiConfigCard(AutoTranslateViewModel vm)
     {
         var buttonDownloadCrispAsr = UiUtil.MakeButton(string.Empty, vm.DownloadCrispAsrCommand)
-            .WithIconLeftBindText(IconNames.Download, nameof(vm.CrispAsrDownloadButtonText))
+            .WithIconLeftBindText(Glyphs.Download, nameof(vm.CrispAsrDownloadButtonText))
             .WithMarginLeft(5);
         buttonDownloadCrispAsr.Bind(Button.IsVisibleProperty, new Binding(nameof(vm.ButtonDownloadIsVisible)));
 
@@ -277,7 +277,7 @@ public class AutoTranslateWindow : Window
             GetLlamaCppModelDotStatus);
 
         var buttonDownloadLlamaCpp = UiUtil.MakeButton(string.Empty, vm.DownloadLlamaCppCommand)
-            .WithIconLeftBindText(IconNames.Download, nameof(vm.LlamaCppDownloadButtonText))
+            .WithIconLeftBindText(Glyphs.Download, nameof(vm.LlamaCppDownloadButtonText))
             .WithMarginLeft(5);
         buttonDownloadLlamaCpp.Bind(Button.IsVisibleProperty, new Binding(nameof(vm.LlamaCppButtonsAreVisible)));
 
@@ -285,7 +285,7 @@ public class AutoTranslateWindow : Window
         buttonLlamaCppServer.Bind(Button.ContentProperty, new Binding(nameof(vm.LlamaCppServerButtonText)));
         buttonLlamaCppServer.Bind(Button.IsVisibleProperty, new Binding(nameof(vm.LlamaCppButtonsAreVisible)));
 
-        var buttonLlamaCppOpenFolder = UiUtil.MakeButton(vm.OpenLlamaCppModelsFolderCommand, IconNames.FolderOpen, Se.Language.General.OpenContainingFolder)
+        var buttonLlamaCppOpenFolder = UiUtil.MakeButton(vm.OpenLlamaCppModelsFolderCommand, Glyphs.FolderOpen, Se.Language.General.OpenContainingFolder)
             .WithMarginLeft(5);
         buttonLlamaCppOpenFolder.Bind(Button.IsVisibleProperty, new Binding(nameof(vm.LlamaCppButtonsAreVisible)));
 
@@ -321,7 +321,7 @@ public class AutoTranslateWindow : Window
         settingsPanel.Children.Add(buttonLlamaCppServer);
         settingsPanel.Children.Add(buttonLlamaCppOpenFolder);
 
-        var settingsButton = UiUtil.MakeButton(vm.OpenSettingsCommand, IconNames.Settings, Se.Language.General.Settings);
+        var settingsButton = UiUtil.MakeButton(vm.OpenSettingsCommand, Glyphs.Settings, Se.Language.General.Settings);
         settingsButton.HorizontalAlignment = HorizontalAlignment.Right;
         settingsButton.VerticalAlignment = VerticalAlignment.Center;
         settingsButton.Margin = new Thickness(8, 0, 0, 0);

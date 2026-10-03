@@ -151,9 +151,9 @@ public class ExportCustomTextFormatWindow : Window
 
         grid.Add(UiUtil.MakeBorderForControlNoPadding(dataGrid), 1);
 
-        var buttonAdd = UiUtil.MakeButton(vm.FormatNewCommand, IconNames.Plus, Se.Language.General.New);
-        var buttonRemove = UiUtil.MakeButton(vm.FormatDeleteCommand, IconNames.Trash, Se.Language.General.Remove);
-        var buttonEdit = UiUtil.MakeButton(vm.FormatEditCommand, IconNames.Pencil, Se.Language.General.Edit);
+        var buttonAdd = UiUtil.MakeButton(vm.FormatNewCommand, Glyphs.Plus, Se.Language.General.New);
+        var buttonRemove = UiUtil.MakeButton(vm.FormatDeleteCommand, Glyphs.Trash, Se.Language.General.Remove);
+        var buttonEdit = UiUtil.MakeButton(vm.FormatEditCommand, Glyphs.Pencil, Se.Language.General.Edit);
         var panelButtons = UiUtil.MakeButtonBar(buttonAdd, buttonEdit, buttonRemove).WithAlignmentLeft().WithMarginTop(5);
 
         grid.Add(panelButtons, 2);

@@ -32,7 +32,7 @@ public class ChangeFrameRateWindow : Window
 
         var buttonFromFrameRate = UiUtil.MakeButtonBrowse(vm.BrowseFromFrameRateCommand);
 
-        var buttonSwitch = UiUtil.MakeButton(vm.SwitchFrameRatesCommand, IconNames.SwapVertical);
+        var buttonSwitch = UiUtil.MakeButton(vm.SwitchFrameRatesCommand, Glyphs.SwapVertical);
 
         var labelToFrameRate = new Label
         {

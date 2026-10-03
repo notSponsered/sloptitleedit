@@ -11,11 +11,11 @@ using Avalonia.Threading;
 using Nikse.SubtitleEdit.Controls.AudioVisualizerControl;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Windows.Input;
 using System.Threading.Tasks;
 using MenuItem = Avalonia.Controls.MenuItem;
 
@@ -50,14 +50,6 @@ public class NonSpaceButton : Button
 
 public class InitWaveform
 {
-    public class SortedControl
-    {
-        public int Sort { get; set; }
-        public int LeftMargin { get; set; }
-        public int RightMargin { get; set; }
-        public Control? Control { get; set; }
-    }
-
     public static Grid MakeWaveform(MainViewModel vm)
     {
         var languageHints = Se.Language.Main.Waveform;
@@ -88,13 +80,6 @@ public class InitWaveform
                 WaveformHeightPercentage = settings.SpectrogramCombinedWaveformHeight,
             };
             WaveformColors.ApplyTo(vm.AudioVisualizer);
-            ChromeStyles.Applied += () => // theme changed: theme colors follow
-            {
-                if (vm.AudioVisualizer != null)
-                {
-                    WaveformColors.ApplyTo(vm.AudioVisualizer);
-                }
-            };
             vm.AudioVisualizer.OnNewSelectionInsert += vm.AudioVisualizerOnNewSelectionInsert;
             vm.AudioVisualizer.OnVideoPositionChanged += vm.AudioVisualizerOnVideoPositionChanged;
             vm.AudioVisualizer.OnToggleSelection += vm.AudioVisualizerOnToggleSelection;
@@ -334,211 +319,103 @@ public class InitWaveform
         Grid.SetRow(vm.AudioVisualizer, 0);
         mainGrid.Children.Add(vm.AudioVisualizer);
 
-        // Footer
-        var controlsPanel = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalAlignment = HorizontalAlignment.Center
-        };
-        controlsPanel.Bind(StackPanel.IsVisibleProperty, new Binding(nameof(vm.IsWaveformToolbarVisible)));
+        // Footer: the toolbar (the user's items in the user's order, Settings → Waveform toolbar) and the gear
+        var items = new Dictionary<SeWaveformToolbarItemType, Control[]>();
 
-        var settingPlay = GetToolbarSettingFor(SeWaveformToolbarItemType.Play);
-        var buttonPlay = new NonSpaceButton
+        T Tool<T>(T button, SeWaveformToolbarItemType type, string glyph, string hint, string? commandName = null) where T : Button
         {
-            Margin = new Thickness(settingPlay.LeftMargin, 0, settingPlay.RightMargin, 0),
-            FontSize = settingPlay.FontSize,
-            Command = vm.TogglePlayPauseCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.PlayPauseHint, shortcuts, nameof(vm.TogglePlayPauseCommand)),
-        };
-        Attached.SetIcon(buttonPlay, IconNames.Play);
-        vm.ButtonWaveformPlay = buttonPlay;
+            var setting = GetToolbarSettingFor(type);
+            button.Margin = new Thickness(setting.LeftMargin, 0, setting.RightMargin, 0);
+            button.Content = Glyphs.Make(glyph);
+            ToolTip.SetTip(button, UiUtil.MakeToolTip(hint, shortcuts, commandName ?? string.Empty));
+            ChromeStyles.AsTool(button);
+            items[type] = [button];
+            return button;
+        }
 
-        var settingPlaySelection = GetToolbarSettingFor(SeWaveformToolbarItemType.PlaySelection);
-        var buttonPlaySelectedLines = new NonSpaceButton
-        {
-            Margin = new Thickness(settingPlaySelection.LeftMargin, 0, settingPlaySelection.RightMargin, 0),
-            FontSize = settingPlaySelection.FontSize,
-            Command = vm.PlaySelectedLinesWithoutLoopCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.PlaySelectionHint, shortcuts, nameof(vm.PlaySelectedLinesWithoutLoopCommand)),
-        };
-        Attached.SetIcon(buttonPlaySelectedLines, IconNames.PlayPlaylist);
+        Button Command(SeWaveformToolbarItemType type, string glyph, ICommand command, string hint, string commandName) =>
+            Tool(new NonSpaceButton { Command = command }, type, glyph, hint, commandName);
 
-        var settingSelectionRepeat = GetToolbarSettingFor(SeWaveformToolbarItemType.Repeat);
-        var buttonPlaySelectedLinesRepeat = new NonSpaceButton
-        {
-            Margin = new Thickness(settingSelectionRepeat.LeftMargin, 0, settingSelectionRepeat.RightMargin, 0),
-            FontSize = settingSelectionRepeat.FontSize,
-            DataContext = vm,
-            VerticalAlignment = VerticalAlignment.Center,
-            Command = vm.PlaySelectedLinesWithLoopCommand,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.PlaySelectedRepeatHint, shortcuts, nameof(vm.PlaySelectedLinesWithLoopCommand)),
-        };
-        Attached.SetIcon(buttonPlaySelectedLinesRepeat, IconNames.Refresh);
+        ToggleButton Toggle(SeWaveformToolbarItemType type, string glyph, string isCheckedPath, string hint, string? commandName = null) =>
+            Tool(new ToggleButton { DataContext = vm, [!ToggleButton.IsCheckedProperty] = new Binding(isCheckedPath) { Mode = BindingMode.TwoWay } },
+                type, glyph, hint, commandName);
 
-        var settingPlayNext = GetToolbarSettingFor(SeWaveformToolbarItemType.PlayNext);
-        var buttonPlayNext = new NonSpaceButton
-        {
-            Margin = new Thickness(settingPlayNext.LeftMargin, 0, settingPlayNext.RightMargin, 0),
-            FontSize = settingPlayNext.FontSize,
-            Command = vm.PlayNextCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.PlayNextHint, shortcuts, nameof(vm.PlayNextCommand)),
-        };
-        Attached.SetIcon(buttonPlayNext, IconNames.SkipNext);
+        vm.ButtonWaveformPlay = Command(SeWaveformToolbarItemType.Play, Glyphs.Play, vm.TogglePlayPauseCommand, languageHints.PlayPauseHint, nameof(vm.TogglePlayPauseCommand));
+        Command(SeWaveformToolbarItemType.PlaySelection, Glyphs.PlaySelection, vm.PlaySelectedLinesWithoutLoopCommand, languageHints.PlaySelectionHint, nameof(vm.PlaySelectedLinesWithoutLoopCommand));
+        Command(SeWaveformToolbarItemType.Repeat, Glyphs.Repeat, vm.PlaySelectedLinesWithLoopCommand, languageHints.PlaySelectedRepeatHint, nameof(vm.PlaySelectedLinesWithLoopCommand));
+        Command(SeWaveformToolbarItemType.PlayNext, Glyphs.PlayNext, vm.PlayNextCommand, languageHints.PlayNextHint, nameof(vm.PlayNextCommand));
+        Command(SeWaveformToolbarItemType.New, Glyphs.Add, vm.WaveformInsertAtPositionAndFocusTextBoxCommand, languageHints.NewHint, nameof(vm.WaveformInsertAtPositionAndFocusTextBoxCommand));
+        Command(SeWaveformToolbarItemType.SetStartAndOffsetTheRest, Glyphs.SetStartAndOffset, vm.WaveformSetStartAndOffsetTheRestCommand, languageHints.SetStartAndOffsetTheRestHint, nameof(vm.WaveformSetStartAndOffsetTheRestCommand));
+        Command(SeWaveformToolbarItemType.SetStart, Glyphs.SetStart, vm.WaveformSetStartCommand, languageHints.SetStartHint, nameof(vm.WaveformSetStartCommand));
+        Command(SeWaveformToolbarItemType.SetEnd, Glyphs.SetEnd, vm.WaveformSetEndCommand, languageHints.SetEndHint, nameof(vm.WaveformSetEndCommand));
+        Command(SeWaveformToolbarItemType.RemoveBlankLines, Glyphs.RemoveBlankLines, vm.RemoveBlankLinesCommand, languageHints.RemoveBlankLines, nameof(vm.RemoveBlankLinesCommand));
+        Toggle(SeWaveformToolbarItemType.AutoSelectOnPlay, Glyphs.FollowPlayback, nameof(vm.SelectCurrentSubtitleWhilePlaying), languageHints.SelectCurrentLineWhilePlayingHint)
+            .IsCheckedChanged += (_, _) => vm.AutoSelectOnPlayCheckedChanged();
+        Toggle(SeWaveformToolbarItemType.Center, Glyphs.Center, nameof(vm.WaveformCenter), languageHints.CenterWaveformHint)
+            .IsCheckedChanged += (_, _) => vm.WaveformCenterCheckedChanged();
+        Toggle(SeWaveformToolbarItemType.Snap, Glyphs.Snap, nameof(vm.WaveformSnap), languageHints.SnapHint, nameof(vm.ToggleWaveformSnapCommand));
+        Toggle(SeWaveformToolbarItemType.Razor, Glyphs.Razor, nameof(vm.WaveformRazor), languageHints.RazorHint, nameof(vm.ToggleWaveformRazorCommand));
 
-        var settingPlayNew = GetToolbarSettingFor(SeWaveformToolbarItemType.New);
-        var buttonNew = new NonSpaceButton
+        var buttonMore = Tool(new NonSpaceButton(), SeWaveformToolbarItemType.More, Glyphs.More, Se.Language.General.More);
+        buttonMore.Flyout = new MenuFlyout
         {
-            Margin = new Thickness(settingPlayNew.LeftMargin, 0, settingPlayNew.RightMargin, 0),
-            FontSize = settingPlayNew.FontSize,
-            Command = vm.WaveformInsertAtPositionAndFocusTextBoxCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.NewHint, shortcuts, nameof(vm.WaveformInsertAtPositionAndFocusTextBoxCommand)),
-        };
-        Attached.SetIcon(buttonNew, IconNames.Plus);
-
-        var settingOffsetTheRest = GetToolbarSettingFor(SeWaveformToolbarItemType.SetStartAndOffsetTheRest);
-        var buttonSetStartAndOffsetTheRest = new NonSpaceButton
-        {
-            Margin = new Thickness(settingOffsetTheRest.LeftMargin, 0, settingOffsetTheRest.RightMargin, 0),
-            FontSize = settingOffsetTheRest.FontSize,
-            Command = vm.WaveformSetStartAndOffsetTheRestCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SetStartAndOffsetTheRestHint, shortcuts, nameof(vm.WaveformSetStartAndOffsetTheRestCommand)),
-        };
-        Attached.SetIcon(buttonSetStartAndOffsetTheRest, IconNames.ArrowExpandRight);
-
-        var settingSetStart = GetToolbarSettingFor(SeWaveformToolbarItemType.SetStart);
-        var buttonSetStart = new NonSpaceButton
-        {
-            Margin = new Thickness(settingSetStart.LeftMargin, 0, settingSetStart.RightMargin, 0),
-            FontSize = settingSetStart.FontSize,
-            Command = vm.WaveformSetStartCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SetStartHint, shortcuts, nameof(vm.WaveformSetStartCommand)),
-        };
-        Attached.SetIcon(buttonSetStart, IconNames.RayStart);
-
-        var settingSetEnd = GetToolbarSettingFor(SeWaveformToolbarItemType.SetStart);
-        var buttonSetEnd = new NonSpaceButton
-        {
-            Margin = new Thickness(settingSetEnd.LeftMargin, 0, settingSetEnd.RightMargin, 0),
-            FontSize = settingSetEnd.FontSize,
-            Command = vm.WaveformSetEndCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SetEndHint, shortcuts, nameof(vm.WaveformSetEndCommand)),
-        };
-        //buttonSetEnd.KeyUp += vm.KeyDownIgnoreAfterShortcuts;
-        Attached.SetIcon(buttonSetEnd, IconNames.RayEnd);
-
-        var settingRemoveBlank = GetToolbarSettingFor(SeWaveformToolbarItemType.RemoveBlankLines);
-        var buttonRemoveBlankLines = new NonSpaceButton
-        {
-            Margin = new Thickness(settingRemoveBlank.LeftMargin, 0, settingRemoveBlank.RightMargin, 0),
-            FontSize = settingRemoveBlank.FontSize,
-            Command = vm.RemoveBlankLinesCommand,
-            FontWeight = FontWeight.Bold,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.RemoveBlankLines, shortcuts, nameof(vm.RemoveBlankLinesCommand)),
-        };
-        Attached.SetIcon(buttonRemoveBlankLines, IconNames.CardRemoveOutline);
-
-        var settingHorizontalZoom = GetToolbarSettingFor(SeWaveformToolbarItemType.HorizontalZoom);
-        var iconHorizontal = new Icon
-        {
-            Value = IconNames.ArrowLeftRightBold,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(10, 0, 4, 0),
-            FontSize = settingHorizontalZoom.FontSize,
-        };
-        var sliderHorizontalZoom = new Slider
-        {
-            Minimum = 0.1,
-            Maximum = 5.0,
-            Width = 80,
-            VerticalAlignment = VerticalAlignment.Center,
-            Value = 1,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.ZoomHorizontalHint, shortcuts),
-        };
-        sliderHorizontalZoom.TemplateApplied += (s, e) =>
-        {
-            if (e.NameScope.Find<Thumb>("thumb") is Thumb thumb)
+            Items =
             {
-                thumb.Width = 14;
-                thumb.Height = 14;
-            }
-        };
-        sliderHorizontalZoom.Bind(RangeBase.ValueProperty, new Binding(nameof(vm.AudioVisualizer) + "." + nameof(vm.AudioVisualizer.ZoomFactor)));
-
-        var labelHorizontalZoom = new TextBlock
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            FontSize = 10,
-            Margin = new Thickness(0, -15, 0, 0),
-        };
-        labelHorizontalZoom.Bind(TextBlock.TextProperty, new Binding(nameof(vm.AudioVisualizer) + "." + nameof(vm.AudioVisualizer.ZoomFactor))
-        {
-            StringFormat = "{0:0}%",
-            Converter = new Avalonia.Data.Converters.FuncValueConverter<double, int>(v => (int)(v * 100)),
-        });
-
-        var panelHorizontalZoom = new StackPanel
-        {
-            Orientation = Orientation.Vertical,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(settingHorizontalZoom.LeftMargin, 0, settingHorizontalZoom.RightMargin, 0),
-            Children = { sliderHorizontalZoom, labelHorizontalZoom },
+                new MenuItem
+                {
+                    Header = string.Format(languageHints.ResetZoomAndSpeed, UiUtil.MakeShortcutsString(shortcuts, nameof(vm.ResetWaveformZoomAndSpeedCommand))),
+                    Command = vm.ResetWaveformZoomAndSpeedCommand,
+                },
+                new MenuItem
+                {
+                    Header = string.Format(languageHints.HideWaveformToolbar, string.Empty),
+                    Command = vm.HideWaveformToolbarCommand,
+                },
+            },
         };
 
-        var settingVerticalZoom = GetToolbarSettingFor(SeWaveformToolbarItemType.VerticalZoom);
-        var iconVertical = new Icon
+        // zoom: icon, slider and its percent side by side
+        void Zoom(SeWaveformToolbarItemType type, string glyph, string valuePath, string hint)
         {
-            Value = IconNames.ArrowUpDownBold,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(10, 0, 4, 0),
-            FontSize = settingVerticalZoom.FontSize,
-        };
-        var sliderVerticalZoom = new Slider
-        {
-            Minimum = 0.1,
-            Maximum = 5.0,
-            Width = 80,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 0),
-            Value = 1,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.ZoomVerticalHint, shortcuts),
-        };
-        sliderVerticalZoom.TemplateApplied += (s, e) =>
-        {
-            if (e.NameScope.Find<Thumb>("thumb") is Thumb thumb)
+            var setting = GetToolbarSettingFor(type);
+            var icon = Glyphs.Make(glyph, plain: true);
+            icon.Margin = new Thickness(10, 0, 4, 0);
+            var slider = new Slider
             {
-                thumb.Width = 14;
-                thumb.Height = 14;
-            }
-        };
-        sliderVerticalZoom.Bind(RangeBase.ValueProperty, new Binding(nameof(vm.AudioVisualizer) + "." + nameof(vm.AudioVisualizer.VerticalZoomFactor)));
+                Minimum = 0.1,
+                Maximum = 5.0,
+                Width = 80,
+                Value = 1,
+                VerticalAlignment = VerticalAlignment.Center,
+                [ToolTip.TipProperty] = UiUtil.MakeToolTip(hint, shortcuts),
+                [!RangeBase.ValueProperty] = new Binding(nameof(vm.AudioVisualizer) + "." + valuePath),
+            };
+            var percent = new TextBlock
+            {
+                Classes = { "se-caption" },
+                MinWidth = 34,
+                Margin = new Thickness(4, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                [!TextBlock.TextProperty] = new Binding(nameof(vm.AudioVisualizer) + "." + valuePath)
+                {
+                    StringFormat = "{0:0}%",
+                    Converter = new Avalonia.Data.Converters.FuncValueConverter<double, int>(v => (int)(v * 100)),
+                },
+            };
+            items[type] =
+            [
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(setting.LeftMargin, 0, setting.RightMargin, 0),
+                    Children = { icon, slider, percent },
+                },
+            ];
+        }
 
-        var labelVerticalZoom = new TextBlock
-        {
-            HorizontalAlignment = HorizontalAlignment.Center,
-            FontSize = 10,
-            Margin = new Thickness(0, -15, 0, 0),
-        };
-        labelVerticalZoom.Bind(TextBlock.TextProperty, new Binding(nameof(vm.AudioVisualizer) + "." + nameof(vm.AudioVisualizer.VerticalZoomFactor))
-        {
-            StringFormat = "{0:0}%",
-            Converter = new Avalonia.Data.Converters.FuncValueConverter<double, int>(v => (int)(v * 100)),
-        });
-
-        var panelVerticalZoom = new StackPanel
-        {
-            Orientation = Orientation.Vertical,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(settingVerticalZoom.LeftMargin, 0, settingVerticalZoom.RightMargin, 0),
-            Children = { sliderVerticalZoom, labelVerticalZoom },
-        };
+        Zoom(SeWaveformToolbarItemType.HorizontalZoom, Glyphs.ZoomHorizontal, nameof(vm.AudioVisualizer.ZoomFactor), languageHints.ZoomHorizontalHint);
+        Zoom(SeWaveformToolbarItemType.VerticalZoom, Glyphs.ZoomVertical, nameof(vm.AudioVisualizer.VerticalZoomFactor), languageHints.ZoomVerticalHint);
 
         var settingPosition = GetToolbarSettingFor(SeWaveformToolbarItemType.VideoPositionSlider);
         var sliderPosition = new Slider
@@ -551,14 +428,7 @@ public class InitWaveform
             Focusable = true,
             [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.VideoPosition, shortcuts),
         };
-        sliderPosition.TemplateApplied += (s, e) =>
-        {
-            if (e.NameScope.Find<Thumb>("thumb") is Thumb thumb)
-            {
-                thumb.Width = 14;
-                thumb.Height = 14;
-            }
-        };
+        items[SeWaveformToolbarItemType.VideoPositionSlider] = [sliderPosition];
 
         if (vm.VideoPlayerControl != null)
         {
@@ -610,15 +480,14 @@ public class InitWaveform
         };
 
         var settingSpeed = GetToolbarSettingFor(SeWaveformToolbarItemType.PlaybackSpeed);
-        var labelSpeed = UiUtil.MakeLabel(Se.Language.General.Speed);
         var comboBoxSpeed = new ComboBox
         {
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 10, 0),
+            Margin = new Thickness(4, 0, 10, 0),
             FontSize = 12,
-            MaxHeight = 22,
-            MinHeight = 22,
-            Padding = new Thickness(2, 2, 0, 2),
+            MinHeight = 24,
+            Padding = new Thickness(4, 0, 0, 0),
+            VerticalContentAlignment = VerticalAlignment.Center,
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
         };
@@ -632,127 +501,32 @@ public class InitWaveform
                 vm.GetVideoPlayerControl()?.SetSpeed(speed);
             }
         };
-        var panelSpeed = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(settingSpeed.LeftMargin, 0, settingSpeed.RightMargin, 0),
-            Children =
+        items[SeWaveformToolbarItemType.PlaybackSpeed] =
+        [
+            new StackPanel
             {
-                labelSpeed,
-                comboBoxSpeed
-            }
-        };
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(settingSpeed.LeftMargin, 0, settingSpeed.RightMargin, 0),
+                Children = { new TextBlock { Classes = { "se-caption" }, Text = Se.Language.General.Speed, VerticalAlignment = VerticalAlignment.Center }, comboBoxSpeed },
+            },
+        ];
 
-        var settingAutoSelectOnPlay = GetToolbarSettingFor(SeWaveformToolbarItemType.AutoSelectOnPlay);
-        var toggleButtonAutoSelectOnPlay = new ToggleButton
+        var controlsPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        foreach (var item in settings.ToolbarItems.Where(i => i.IsVisible).OrderBy(i => i.SortOrder))
         {
-            DataContext = vm,
-            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(vm.SelectCurrentSubtitleWhilePlaying)) { Mode = BindingMode.TwoWay },
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(settingAutoSelectOnPlay.LeftMargin, 0, settingAutoSelectOnPlay.RightMargin, 0),
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SelectCurrentLineWhilePlayingHint, shortcuts),
-        };
-        Attached.SetIcon(toggleButtonAutoSelectOnPlay, IconNames.AnimationPlay);
-        toggleButtonAutoSelectOnPlay.IsCheckedChanged += (s, e) => vm.AutoSelectOnPlayCheckedChanged();
-
-        var settingCenter = GetToolbarSettingFor(SeWaveformToolbarItemType.Center);
-        var toggleButtonCenter = new ToggleButton
-        {
-            DataContext = vm,
-            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(vm.WaveformCenter)) { Mode = BindingMode.TwoWay },
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(settingCenter.LeftMargin, 0, settingCenter.RightMargin, 0),
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.CenterWaveformHint, shortcuts),
-        };
-        Attached.SetIcon(toggleButtonCenter, IconNames.AlignHorizontalCenter);
-        toggleButtonCenter.IsCheckedChanged += (s, e) => vm.WaveformCenterCheckedChanged();
-
-        var settingSnap = GetToolbarSettingFor(SeWaveformToolbarItemType.Snap);
-        var toggleButtonSnap = new ToggleButton
-        {
-            DataContext = vm,
-            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(vm.WaveformSnap)) { Mode = BindingMode.TwoWay },
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(settingSnap.LeftMargin, 0, settingSnap.RightMargin, 0),
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SnapHint, shortcuts, nameof(vm.ToggleWaveformSnapCommand)),
-        };
-        Attached.SetIcon(toggleButtonSnap, "mdi-magnet");
-
-        var settingRazor = GetToolbarSettingFor(SeWaveformToolbarItemType.Razor);
-        var toggleButtonRazor = new ToggleButton
-        {
-            DataContext = vm,
-            [!ToggleButton.IsCheckedProperty] = new Binding(nameof(vm.WaveformRazor)) { Mode = BindingMode.TwoWay },
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(settingRazor.LeftMargin, 0, settingRazor.RightMargin, 0),
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.RazorHint, shortcuts, nameof(vm.ToggleWaveformRazorCommand)),
-        };
-        Attached.SetIcon(toggleButtonRazor, "mdi-box-cutter");
-
-        var settingMore = GetToolbarSettingFor(SeWaveformToolbarItemType.More);
-        var buttonMore = new NonSpaceButton
-        {
-            Margin = new Thickness(settingMore.LeftMargin, 0, settingMore.RightMargin, 0),
-        };
-        Attached.SetIcon(buttonMore, "fa-ellipsis-v");
-
-        var flyoutMore = new MenuFlyout();
-        buttonMore.Flyout = flyoutMore;
-        buttonMore.Click += (s, e) => flyoutMore.ShowAt(buttonMore, true);
-        var menuItemResetZoom = new MenuItem
-        {
-            Header = string.Format(languageHints.ResetZoomAndSpeed, UiUtil.MakeShortcutsString(shortcuts, nameof(vm.ResetWaveformZoomAndSpeedCommand))),
-            Command = vm.ResetWaveformZoomAndSpeedCommand,
-        };
-        flyoutMore.Items.Add(menuItemResetZoom);
-        var menuItemHideControls = new MenuItem
-        {
-            Header = string.Format(languageHints.HideWaveformToolbar, string.Empty),
-            Command = vm.HideWaveformToolbarCommand,
-        };
-        flyoutMore.Items.Add(menuItemHideControls);
-
-        var sortableButtons = MakeCustomSortableButtons(
-            settings,
-            buttonPlay,
-            buttonPlaySelectedLines,
-            buttonPlaySelectedLinesRepeat,
-            buttonPlayNext,
-            buttonNew,
-            buttonSetStartAndOffsetTheRest,
-            buttonSetStart,
-            buttonSetEnd,
-            buttonRemoveBlankLines,
-            iconHorizontal,
-            panelHorizontalZoom,
-            iconVertical,
-            panelVerticalZoom,
-            sliderPosition,
-            panelSpeed,
-            toggleButtonAutoSelectOnPlay,
-            toggleButtonCenter,
-            toggleButtonSnap,
-            toggleButtonRazor,
-            buttonMore
-        );
-        foreach (var sortedButton in sortableButtons)
-        {
-            if (sortedButton.Control != null)
-            {
-                controlsPanel.Children.Add(sortedButton.Control);
-            }
+            controlsPanel.Children.AddRange(items.GetValueOrDefault(item.Type, []));
         }
 
-        // Waveform settings (gear) at the bottom right; the toolbar buttons stay centered in the rest
+        // Waveform settings (gear) at the bottom right
         var buttonSettings = new NonSpaceButton
         {
             Margin = new Thickness(4, 0, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center,
+            Content = Glyphs.Make(Glyphs.Settings),
             [ToolTip.TipProperty] = languageHints.WaveformSettings,
         };
         AutomationProperties.SetName(buttonSettings, languageHints.WaveformSettings);
-        Attached.SetIcon(buttonSettings, "mdi-cog-outline");
+        ChromeStyles.AsTool(buttonSettings);
         var flyoutSettings = new MenuFlyout();
         buttonSettings.Click += (_, _) =>
         {
@@ -760,13 +534,15 @@ public class InitWaveform
             flyoutSettings.ShowAt(buttonSettings);
         };
 
+        // the toolbar stays centered, and scrolls sideways when the area is narrower instead of running under the gear
+        var toolbar = UiUtil.MakeSideScroller(controlsPanel);
+        toolbar.HorizontalAlignment = HorizontalAlignment.Center;
         var footer = new Grid
         {
             ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-            Children = { controlsPanel, buttonSettings },
+            Children = { toolbar, buttonSettings },
+            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsWaveformToolbarVisible)),
         };
-        footer.Bind(Grid.IsVisibleProperty, new Binding(nameof(vm.IsWaveformToolbarVisible)));
-        controlsPanel.ClearValue(StackPanel.IsVisibleProperty); // the footer row shows/hides as a whole
         Grid.SetColumn(buttonSettings, 1);
         mainGrid.Children.Add(footer);
         Grid.SetRow(footer, 1);
@@ -790,102 +566,6 @@ public class InitWaveform
         }
 
         return item;
-    }
-
-    private static List<SortedControl> MakeCustomSortableButtons(
-        SeWaveform settings,
-        Button buttonPlay,
-        Button buttonPlaySelectedLines,
-        Button buttonPlaySelectedLinesRepeat,
-        Button buttonPlayNext,
-        Button buttonNew,
-        Button buttonSetStartAndOffsetTheRest,
-        Button buttonSetStart,
-        NonSpaceButton buttonSetEnd,
-        Button buttonRemoveBlankLines,
-        Icon iconHorizontal,
-        StackPanel panelHorizontalZoom,
-        Icon iconVertical,
-        StackPanel panelVerticalZoom,
-        Slider sliderPosition,
-        StackPanel panelSpeed,
-        ToggleButton toggleButtonAutoSelectOnPlay,
-        ToggleButton toggleButtonCenter,
-        ToggleButton toggleButtonSnap,
-        ToggleButton toggleButtonRazor,
-        Button buttonMore)
-    {
-        var toolbarButtonForSort = new List<SortedControl>();
-
-        foreach (var item in settings.ToolbarItems)
-        {
-            if (!item.IsVisible)
-            {
-                continue;
-            }
-
-            switch (item.Type)
-            {
-                case SeWaveformToolbarItemType.Play:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonPlay });
-                    break;
-                case SeWaveformToolbarItemType.PlaySelection:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonPlaySelectedLines });
-                    break;
-                case SeWaveformToolbarItemType.Repeat:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonPlaySelectedLinesRepeat });
-                    break;
-                case SeWaveformToolbarItemType.PlayNext:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonPlayNext });
-                    break;
-                case SeWaveformToolbarItemType.New:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonNew });
-                    break;
-                case SeWaveformToolbarItemType.SetStartAndOffsetTheRest:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonSetStartAndOffsetTheRest });
-                    break;
-                case SeWaveformToolbarItemType.SetStart:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonSetStart });
-                    break;
-                case SeWaveformToolbarItemType.SetEnd:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonSetEnd });
-                    break;
-                case SeWaveformToolbarItemType.RemoveBlankLines:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonRemoveBlankLines });
-                    break;
-                case SeWaveformToolbarItemType.HorizontalZoom:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = iconHorizontal });
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = panelHorizontalZoom });
-                    break;
-                case SeWaveformToolbarItemType.VerticalZoom:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = iconVertical });
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = panelVerticalZoom });
-                    break;
-                case SeWaveformToolbarItemType.VideoPositionSlider:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = sliderPosition });
-                    break;
-                case SeWaveformToolbarItemType.PlaybackSpeed:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = panelSpeed });
-                    break;
-                case SeWaveformToolbarItemType.AutoSelectOnPlay:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = toggleButtonAutoSelectOnPlay });
-                    break;
-                case SeWaveformToolbarItemType.Center:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = toggleButtonCenter });
-                    break;
-                case SeWaveformToolbarItemType.Snap:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = toggleButtonSnap });
-                    break;
-                case SeWaveformToolbarItemType.Razor:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = toggleButtonRazor });
-                    break;
-                case SeWaveformToolbarItemType.More:
-                    toolbarButtonForSort.Add(new SortedControl { Sort = item.SortOrder, Control = buttonMore });
-                    break;
-            }
-        }
-
-        return toolbarButtonForSort.OrderBy(p => p.Sort).ToList();
     }
 
     public static WaveformDrawStyle GetWaveformDrawStyle(string waveformDrawStyle)

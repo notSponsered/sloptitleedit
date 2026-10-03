@@ -67,7 +67,7 @@ public class SplitSubtitleWindow : Window
         var labelOutputFolder = UiUtil.MakeLabel(Se.Language.General.OutputFolder).WithMinWidth(100);
         var textBoxOutputFolder = UiUtil.MakeTextBox(450, vm, nameof(vm.OutputFolder));
         var buttonBrowse = UiUtil.MakeBrowseButton(vm.BrowseCommand);
-        var buttonOpen = UiUtil.MakeButton(vm.OpenFolderCommand, IconNames.FolderOpen, Se.Language.General.OpenOutputFolder);
+        var buttonOpen = UiUtil.MakeButton(vm.OpenFolderCommand, Glyphs.FolderOpen, Se.Language.General.OpenOutputFolder);
         var panelOutputFolder = new StackPanel
         {
             Orientation = Orientation.Horizontal,

@@ -11,7 +11,6 @@ using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.ValueConverters;
-using Optris.Icons.Avalonia;
 using MenuItem = Avalonia.Controls.MenuItem;
 
 namespace Nikse.SubtitleEdit.Features.Shared.BinaryEdit;
@@ -132,7 +131,7 @@ public class BinaryEditWindow : Window
                 {
                     Header = l.Open,
                     Command = vm.FileOpenCommand,
-                    Icon = new Icon { Value = IconNames.FolderOpen },
+                    Icon = Glyphs.Make(Glyphs.FolderOpen, 16),
                 },
                 new MenuItem
                 {
@@ -274,7 +273,7 @@ public class BinaryEditWindow : Window
                 {
                     Header = l.OpenVideo,
                     Command = vm.OpenVideoCommand,
-                    Icon = new Icon { Value = IconNames.Play },
+                    Icon = Glyphs.Make(Glyphs.Play, 16),
                 },
             },
         });
@@ -289,7 +288,7 @@ public class BinaryEditWindow : Window
                 {
                     Header = l.Settings,
                     Command = vm.SettingsCommand,
-                    Icon = new Icon { Value = IconNames.Settings },
+                    Icon = Glyphs.Make(Glyphs.Settings, 16),
                 },
             },
         });
@@ -601,15 +600,15 @@ public class BinaryEditWindow : Window
             VerticalAlignment = VerticalAlignment.Bottom,
         };
 
-        var exportImageButton = UiUtil.MakeButton(vm.ExportImageCommand, IconNames.Export);
+        var exportImageButton = UiUtil.MakeButton(vm.ExportImageCommand, Glyphs.Export);
         ToolTip.SetTip(exportImageButton, Se.Language.General.Export);
         buttonsPanel.Children.Add(exportImageButton);
 
-        var importImageButton = UiUtil.MakeButton(vm.ImportImageCommand, IconNames.Import);
+        var importImageButton = UiUtil.MakeButton(vm.ImportImageCommand, Glyphs.Import);
         ToolTip.SetTip(importImageButton, Se.Language.General.Import);
         buttonsPanel.Children.Add(importImageButton);
 
-        var setTextButton = UiUtil.MakeButton(vm.SetTextCommand, IconNames.NewText);
+        var setTextButton = UiUtil.MakeButton(vm.SetTextCommand, Glyphs.New);
         ToolTip.SetTip(setTextButton, Se.Language.Tools.ImageBasedEdit.SetTextForSubtitle);
         buttonsPanel.Children.Add(setTextButton);
 

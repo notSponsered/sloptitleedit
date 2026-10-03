@@ -80,9 +80,9 @@ public class AssaDrawWindow : Window
         };
 
         // File actions
-        var saveButton = CreateToolButton("fa-solid fa-floppy-disk", "Save", vm.SaveCommand);
-        var loadButton = CreateToolButton("fa-solid fa-folder-open", "Load", vm.LoadCommand);
-        var copyButton = CreateToolButton("fa-solid fa-copy", Se.Language.Assa.DrawCopyToClipboard, vm.CopyToClipboardCommand);
+        var saveButton = CreateToolButton(Glyphs.Save, "Save", vm.SaveCommand);
+        var loadButton = CreateToolButton(Glyphs.FolderOpen, "Load", vm.LoadCommand);
+        var copyButton = CreateToolButton(Glyphs.Copy, Se.Language.Assa.DrawCopyToClipboard, vm.CopyToClipboardCommand);
         vm.CopyToClipboardButton = copyButton;
 
         toolbarPanel.Children.Add(saveButton);
@@ -92,11 +92,11 @@ public class AssaDrawWindow : Window
         toolbarPanel.Children.Add(new Separator { Width = 2, Margin = new Thickness(5, 2) });
 
         // Drawing tools
-        var selectButton = CreateToolButton("fa-solid fa-arrow-pointer", Se.Language.Assa.DrawSelectTool, vm.SelectToolCommand);
-        var lineButton = CreateToolButton("fa-solid fa-pen", Se.Language.Assa.DrawLineTool, vm.LineToolCommand);
-        var bezierButton = CreateToolButton("fa-solid fa-bezier-curve", Se.Language.Assa.DrawBezierTool, vm.BezierToolCommand);
-        var rectButton = CreateToolButton("fa-regular fa-square", Se.Language.Assa.DrawRectangleTool, vm.RectangleToolCommand);
-        var circleButton = CreateToolButton("fa-regular fa-circle", Se.Language.Assa.DrawCircleTool, vm.CircleToolCommand);
+        var selectButton = CreateToolButton(Glyphs.Pointer, Se.Language.Assa.DrawSelectTool, vm.SelectToolCommand);
+        var lineButton = CreateToolButton(Glyphs.Pencil, Se.Language.Assa.DrawLineTool, vm.LineToolCommand);
+        var bezierButton = CreateToolButton(Glyphs.Draw, Se.Language.Assa.DrawBezierTool, vm.BezierToolCommand);
+        var rectButton = CreateToolButton(Glyphs.Square, Se.Language.Assa.DrawRectangleTool, vm.RectangleToolCommand);
+        var circleButton = CreateToolButton(Glyphs.Circle, Se.Language.Assa.DrawCircleTool, vm.CircleToolCommand);
 
         toolbarPanel.Children.Add(selectButton);
         toolbarPanel.Children.Add(lineButton);
@@ -107,9 +107,9 @@ public class AssaDrawWindow : Window
         toolbarPanel.Children.Add(new Separator { Width = 2, Margin = new Thickness(5, 2) });
 
         // Shape actions
-        var closeShapeButton = CreateToolButton("fa-solid fa-check", Se.Language.Assa.DrawCloseShape, vm.CloseShapeCommand);
-        var deleteShapeButton = CreateToolButton("fa-solid fa-trash", Se.Language.Assa.DrawDeleteShape, vm.DeleteShapeCommand);
-        var clearAllButton = CreateToolButton("fa-solid fa-eraser", Se.Language.Assa.DrawClearAll, vm.ClearAllCommand);
+        var closeShapeButton = CreateToolButton(Glyphs.Check, Se.Language.Assa.DrawCloseShape, vm.CloseShapeCommand);
+        var deleteShapeButton = CreateToolButton(Glyphs.Trash, Se.Language.Assa.DrawDeleteShape, vm.DeleteShapeCommand);
+        var clearAllButton = CreateToolButton(Glyphs.Eraser, Se.Language.Assa.DrawClearAll, vm.ClearAllCommand);
 
         toolbarPanel.Children.Add(closeShapeButton);
         toolbarPanel.Children.Add(deleteShapeButton);
@@ -118,11 +118,11 @@ public class AssaDrawWindow : Window
         toolbarPanel.Children.Add(new Separator { Width = 2, Margin = new Thickness(5, 2) });
 
         // View actions
-        var zoomInButton = CreateToolButton("fa-solid fa-magnifying-glass-plus", Se.Language.Assa.DrawZoomIn, vm.ZoomInCommand);
-        var zoomOutButton = CreateToolButton("fa-solid fa-magnifying-glass-minus", Se.Language.Assa.DrawZoomOut, vm.ZoomOutCommand);
-        var resetViewButton = CreateToolButton("fa-solid fa-expand", Se.Language.Assa.DrawResetView, vm.ResetViewCommand);
-        var toggleGridButton = CreateToolButton("fa-solid fa-border-all", Se.Language.Assa.DrawToggleGrid, vm.ToggleGridCommand);
-        var toggleVideoBackgroundButton = CreateToolButton("fa-solid fa-image", Se.Language.Assa.DrawToggleVideoBackground, vm.ToggleVideoBackgroundCommand);
+        var zoomInButton = CreateToolButton(Glyphs.ZoomIn, Se.Language.Assa.DrawZoomIn, vm.ZoomInCommand);
+        var zoomOutButton = CreateToolButton(Glyphs.ZoomOut, Se.Language.Assa.DrawZoomOut, vm.ZoomOutCommand);
+        var resetViewButton = CreateToolButton(Glyphs.Fit, Se.Language.Assa.DrawResetView, vm.ResetViewCommand);
+        var toggleGridButton = CreateToolButton(Glyphs.Grid, Se.Language.Assa.DrawToggleGrid, vm.ToggleGridCommand);
+        var toggleVideoBackgroundButton = CreateToolButton(Glyphs.Image, Se.Language.Assa.DrawToggleVideoBackground, vm.ToggleVideoBackgroundCommand);
         toggleVideoBackgroundButton[!Button.IsEnabledProperty] = new Binding(nameof(vm.HasVideoFrame));
 
         toolbarPanel.Children.Add(zoomInButton);
@@ -181,14 +181,8 @@ public class AssaDrawWindow : Window
 
     private static Button CreateToolButton(string icon, string tooltip, System.Windows.Input.ICommand command)
     {
-        var button = new Button
-        {
-            Content = new Optris.Icons.Avalonia.Icon { Value = icon },
-            Width = 32,
-            Height = 32,
-            Command = command,
-            Padding = new Thickness(4),
-        };
+        var button = new Button { Content = Glyphs.Make(icon), Command = command };
+        Features.Main.Layout.ChromeStyles.AsTool(button);
         ToolTip.SetTip(button, tooltip);
         return button;
     }

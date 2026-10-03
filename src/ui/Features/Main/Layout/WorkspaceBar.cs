@@ -7,7 +7,6 @@ using CommunityToolkit.Mvvm.Input;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.UiLogic.Layout;
-using Optris.Icons.Avalonia;
 using MenuItem = Avalonia.Controls.MenuItem;
 
 namespace Nikse.SubtitleEdit.Features.Main.Layout;
@@ -74,25 +73,8 @@ internal static class WorkspaceBar
             _panel.Children.Add(tab);
         }
 
-        var add = new Border
-        {
-            Classes = { "se-hbtn" },
-            Width = 22,
-            Height = 22,
-            Margin = new Thickness(2, 0, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center,
-            Cursor = new Cursor(StandardCursorType.Hand),
-            Child = new Icon { Value = IconNames.Plus, FontSize = 14, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center },
-        };
-        FlyoutBase.SetAttachedFlyout(add, MakeNewMenu(vm));
-        add.PointerReleased += (_, e) =>
-        {
-            if (e.InitialPressMouseButton == MouseButton.Left)
-            {
-                FlyoutBase.ShowAttachedFlyout(add);
-            }
-        };
-        ToolTip.SetTip(add, l.NewWorkspace);
+        var add = AreaView.MakeIconButton(Glyphs.Plus, l.NewWorkspace, MakeNewMenu(vm), null);
+        add.Margin = new Thickness(2, 0, 0, 0);
         _panel.Children.Add(add);
     }
 

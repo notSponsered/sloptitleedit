@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Core.Common;
 using Nikse.SubtitleEdit.Features.Main;
 using Nikse.SubtitleEdit.Logic;
@@ -324,8 +325,8 @@ public class AudioVisualizer : Control
     private Pen _paintShotChangeThickPen = new Pen(Brushes.AntiqueWhite, 2);
     private Pen _paintShotChangeThinPen = new Pen(Brushes.AntiqueWhite, 1);
 
-    private readonly Pen _paintGridLines = new Pen(Brushes.DarkGray, 0.2);
-    private readonly IBrush _mouseOverBrush = new SolidColorBrush(Color.FromArgb(50, 255, 255, 0));
+    private readonly Pen _paintGridLines = new Pen(ChromeStyles.Shared(ChromeStyles.Role.Muted), 0.2); // theme colors: shared brushes recolor with the theme
+    private readonly IBrush _mouseOverBrush = ChromeStyles.Shared(ChromeStyles.Role.Text, 0.08);
 
     // Cached drawing resources for fancy waveform
     private readonly Dictionary<int, Pen> _fancyWaveformPenCache = new(20);
@@ -342,7 +343,7 @@ public class AudioVisualizer : Control
     private Typeface _typeface = new Typeface(UiUtil.GetDefaultFontName(), FontStyle.Normal, Se.Settings.Waveform.WaveformTextFontBold ? FontWeight.Bold : FontWeight.Normal);
     private readonly Pen _paintShotChangeParagraphStartPen = new Pen(new SolidColorBrush(Color.FromArgb(175, 0, 100, 0)), 2, dashStyle: DashStyle.Dash);
     private readonly Pen _paintShotChangeParagraphEndPen = new Pen(new SolidColorBrush(Color.FromArgb(175, 110, 10, 10)), 2, dashStyle: DashStyle.Dash);
-    private readonly Pen _centerLinePen = new Pen(Brushes.DarkGray, 0.5);
+    private readonly Pen _centerLinePen = new Pen(ChromeStyles.Shared(ChromeStyles.Role.Muted), 0.5);
     private readonly HashSet<int> _paragraphStartPositions = new();
     private readonly HashSet<int> _paragraphEndPositions = new();
     private double _fontSize = Se.Settings.Waveform.WaveformTextFontSize;
@@ -350,16 +351,13 @@ public class AudioVisualizer : Control
     private static readonly Cursor _cursorHand = new Cursor(StandardCursorType.Hand);
     private static readonly Cursor _cursorSizeWestEast = new Cursor(StandardCursorType.SizeWestEast);
     private static readonly Cursor _cursorCross = new Cursor(StandardCursorType.Cross);
-    private static readonly Pen _paintPenRazor = new Pen(Brushes.OrangeRed, 1.5);
+    private static readonly Pen _paintPenRazor = new Pen(ChromeStyles.Shared(ChromeStyles.Role.Accent), 1.5);
 
     private readonly List<SubtitleLineViewModel> _displayableParagraphs = new();
 
     // Lane of each displayed line when lines overlap (TimelineLanes), refreshed every render; drawing and hit testing use it.
     private readonly Dictionary<SubtitleLineViewModel, (int Lane, int Lanes)> _lanes = new();
 
-    // Subtitle clip colors on the waveform (blue = default, then violet, magenta, orange, teal, yellow), Audacity 4's palette like the panel icons.
-    private static readonly Color[] LaneColors =
-        [Color.Parse("#66a3ff"), Color.Parse("#9996fc"), Color.Parse("#da8ccc"), Color.Parse("#ff9e65"), Color.Parse("#34b494"), Color.Parse("#e8c050")];
     private readonly IsSelectedHelper _isSelectedHelper = new();
     private bool _isCtrlDown;
     private bool _isMetaDown;
@@ -401,6 +399,7 @@ public class AudioVisualizer : Control
     }
 
     private InteractionMode _interactionMode = InteractionMode.None;
+    private bool _pointerDown; // a mouse button is held on the waveform (see UpdateLanes)
 
     public readonly double ResizeMargin = 5.0; // Margin for resizing paragraphs
     public bool IsScrolling => (Environment.TickCount64 - _audioVisualizerLastScroll) < 100;
@@ -442,6 +441,7 @@ public class AudioVisualizer : Control
         IsHitTestVisible = true;
         ClipToBounds = true;
         MenuFlyout = new MenuFlyout();
+        ChromeStyles.WhileAttached(this, UpdateTheme); // theme colors follow theme changes
 
         AffectsRender<AudioVisualizer>(
             WavePeaksProperty,
@@ -456,6 +456,7 @@ public class AudioVisualizer : Control
         PointerExited += OnPointerExited;
         PointerPressed += OnPointerPressed;
         PointerReleased += OnPointerReleased;
+        PointerCaptureLost += (_, _) => _pointerDown = false; // e.g. focus moved away mid-press: no release comes
         PointerWheelChanged += OnPointerWheelChanged;
         Tapped += OnTapped;
         DoubleTapped += (sender, e) =>
@@ -715,6 +716,7 @@ public class AudioVisualizer : Control
 
     private void OnPointerReleased(object? sender, PointerReleasedEventArgs e)
     {
+        _pointerDown = false;
         _isCtrlDown = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         _isShiftDown = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         _isAltDown = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
@@ -873,6 +875,7 @@ public class AudioVisualizer : Control
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        _pointerDown = true;
         _isCtrlDown = e.KeyModifiers.HasFlag(KeyModifiers.Control);
         _isShiftDown = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         _isAltDown = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
@@ -1656,11 +1659,11 @@ public class AudioVisualizer : Control
             DrawAllGridLines(context, ref renderCtx);
             DrawWaveForm(context, ref renderCtx);
             DrawSpectrogram(context, ref renderCtx);
-            DrawTimeLine(context, ref renderCtx);
             DrawParagraphs(context, ref renderCtx);
+            DrawTimeLine(context, ref renderCtx); // after the subtitles: their fills don't tint the time labels
+            DrawNewParagraph(context, ref renderCtx); // before the marks it would otherwise tint
             DrawShotChanges(context, ref renderCtx);
             DrawCurrentVideoPosition(context, ref renderCtx);
-            DrawNewParagraph(context, ref renderCtx);
 
             if (RazorMode && !double.IsNaN(_razorX))
             {
@@ -1881,7 +1884,7 @@ public class AudioVisualizer : Control
         return new TimeCode(seconds * 1000.0).ToShortStringHHMMSSFF();
     }
 
-    private readonly Pen _paintTimeLine = new Pen(Brushes.Gray, 1);
+    private readonly Pen _paintTimeLine = new Pen(ChromeStyles.Shared(ChromeStyles.Role.Muted), 1);
 
     private static string GetDisplayTime(double seconds)
     {
@@ -2434,9 +2437,11 @@ public class AudioVisualizer : Control
 
     private void UpdateLanes(List<SubtitleLineViewModel> paragraphs)
     {
-        if (_interactionMode != InteractionMode.None)
+        // Lanes hold still while a line is dragged or resized and settle when the mouse is released. The button's
+        // state decides, not _interactionMode: a click without a drag leaves that set after the release.
+        if (_pointerDown && _interactionMode != InteractionMode.None)
         {
-            return; // lanes hold still while a line is dragged or resized; they settle when the mouse is released
+            return;
         }
 
         _lanes.Clear();
@@ -2456,7 +2461,7 @@ public class AudioVisualizer : Control
 
     /// <summary>
     /// Clip color: every line gets the default (first) color, like the bottom lane of a stack. Lines higher in a
-    /// stack, and lines on a higher ASS layer, step through <see cref="LaneColors"/>. With subtitle colors off
+    /// stack, and lines on a higher ASS layer, step through <see cref="ChromeStyles.LaneColors"/>. With subtitle colors off
     /// (waveform settings → Colors) only stacked lines are colored.
     /// </summary>
     private Color? SubtitleColor(SubtitleLineViewModel paragraph, bool stacked)
@@ -2467,7 +2472,8 @@ public class AudioVisualizer : Control
         }
 
         var fromBottom = _lanes.TryGetValue(paragraph, out var l) && l.Lanes > 1 ? l.Lanes - 1 - l.Lane : 0;
-        return LaneColors[(Math.Abs(paragraph.Layer) + fromBottom) % LaneColors.Length];
+        var lanes = ChromeStyles.LaneColors;
+        return lanes[(Math.Abs(paragraph.Layer) + fromBottom) % lanes.Length];
     }
 
     /// <summary>Top and height of the line's lane: the full height unless it overlaps other lines.</summary>
@@ -2533,12 +2539,14 @@ public class AudioVisualizer : Control
         {
             var arr = text.SplitToLines();
             var showText = Se.Settings.Waveform.WaveformShowText; // waveform settings menu; the footer below still shows
+            var textBottom = top + (stacked ? 3 : 0); // where the text ends; the footer only draws below it
             if (showText && Se.Settings.Waveform.WaveformUnwrapText)
             {
                 text = string.Join("  ", arr);
                 var formattedText = new FormattedText(text, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,
                     _typeface, _fontSize, _paintText);
                 context.DrawText(formattedText, new Point(currentRegionLeft + 3, textY));
+                textBottom = textY + formattedText.Height;
             }
             else if (showText)
             {
@@ -2550,12 +2558,11 @@ public class AudioVisualizer : Control
                     context.DrawText(formattedText, new Point(currentRegionLeft + 3, textY + addY));
                     addY += formattedText.Height;
                 }
+
+                textBottom = textY + addY;
             }
 
-            if (height >= 60) // a thin lane only has room for the text
-            {
-                DrawParagraphFooter(context, paragraph, currentRegionLeft, currentRegionWidth, bottom, ref renderCtx);
-            }
+            DrawParagraphFooter(context, paragraph, currentRegionLeft, currentRegionWidth, bottom, textBottom, ref renderCtx);
         }
     }
 
@@ -2569,7 +2576,7 @@ public class AudioVisualizer : Control
     //   51 < n <= 99                                                   → "#NUMBER  DURATION"
     //   n > 99                                                         → add CPS line above
     private void DrawParagraphFooter(DrawingContext context, SubtitleLineViewModel paragraph,
-        double currentRegionLeft, double currentRegionWidth, double bottom, ref RenderContext renderCtx)
+        double currentRegionLeft, double currentRegionWidth, double bottom, double textBottom, ref RenderContext renderCtx)
     {
         var showNumber = Se.Settings.Waveform.WaveformShowNumber;
         var showDuration = Se.Settings.Waveform.WaveformShowDuration;
@@ -2625,8 +2632,22 @@ public class AudioVisualizer : Control
             return;
         }
 
-        // Layout from the bottom up so the optional CPS line stacks above the base line.
-        var bottomY = bottom - 14;
+        // Layout from the bottom up so the optional CPS line stacks above the base line; above the time ruler
+        // when the line reaches it, and only where it doesn't run into the subtitle text (a thin lane shows just the text).
+        var rulerHeight = GetCachedTimeLineText("0").Height + 4;
+        var bottomY = bottom > renderCtx.Height - rulerHeight ? renderCtx.Height - rulerHeight : bottom - 3;
+        var lineHeight = new FormattedText("0", CultureInfo.CurrentCulture, FlowDirection.LeftToRight, _typeface, _fontSize, _paintText).Height;
+        var rows = (baseLine != null ? 1 : 0) + (cpsLine != null ? 1 : 0);
+        if (bottomY - rows * lineHeight < textBottom)
+        {
+            cpsLine = null; // drop the CPS row first, then the whole footer
+            rows = baseLine != null ? 1 : 0;
+            if (rows == 0 || bottomY - lineHeight < textBottom)
+            {
+                return;
+            }
+        }
+
         var x = currentRegionLeft + padding;
 
         if (baseLine != null)
@@ -3372,6 +3393,8 @@ public class AudioVisualizer : Control
         _fancyWaveformPenCache.Clear();
         _fancyWaveformGlowPenCache.Clear();
         _fancyWaveformGradientCache.Clear();
+        _fancyBatches.Clear(); // each pooled batch holds its pen; keeping them kept the old colors
+        _fancyBatchKeysInUse.Clear();
         _timeLineTextCache.Clear();
 
         _typeface = new Typeface(UiUtil.GetDefaultFontName(), FontStyle.Normal, Se.Settings.Waveform.WaveformTextFontBold ? FontWeight.Bold : FontWeight.Normal);

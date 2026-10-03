@@ -5,7 +5,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 
 namespace Nikse.SubtitleEdit.Features.Tools.BeautifyTimeCodes;
 
@@ -138,10 +137,10 @@ public class BeautifyTimeCodesWindow : Window
     {
         var l = Se.Language.Tools.BeautifyTimeCodes;
 
-        var buttonPrev = UiUtil.MakeButton(vm.PreviousChangeCommand, IconNames.ArrowUpThin, l.PreviousChange);
+        var buttonPrev = UiUtil.MakeButton(vm.PreviousChangeCommand, Glyphs.ArrowUp, l.PreviousChange);
         buttonPrev.Bind(Button.IsEnabledProperty, new Binding(nameof(vm.CanGoPrevious)) { Source = vm });
 
-        var buttonNext = UiUtil.MakeButton(vm.NextChangeCommand, IconNames.ArrowDownThin, l.NextChange);
+        var buttonNext = UiUtil.MakeButton(vm.NextChangeCommand, Glyphs.ArrowDown, l.NextChange);
         buttonNext.Bind(Button.IsEnabledProperty, new Binding(nameof(vm.CanGoNext)) { Source = vm });
 
         var labelPosition = new TextBlock

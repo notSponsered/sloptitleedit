@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
@@ -135,7 +136,8 @@ public static class AreaHost
         if (!built.Contains(PanelIds.Video))
         {
             // Zero-size but "visible" keeps the player running for audio + waveform (old layout 6 trick).
-            hidden.Add(new Border { Width = 0, Height = 0, ZIndex = -1000, Child = InitVideoPlayer.MakeLayoutVideoPlayer(_vm) });
+            // Clipped and out of the tab order: its controls row would otherwise draw outside the 0×0 box and take focus.
+            hidden.Add(new Border { Width = 0, Height = 0, ZIndex = -1000, ClipToBounds = true, [KeyboardNavigation.TabNavigationProperty] = KeyboardNavigationMode.None, Child = InitVideoPlayer.MakeLayoutVideoPlayer(_vm) });
         }
 
         if (!built.Contains(PanelIds.Waveform))

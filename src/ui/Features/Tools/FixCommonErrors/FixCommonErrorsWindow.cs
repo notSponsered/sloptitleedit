@@ -134,11 +134,11 @@ public class FixCommonErrorsWindow : Window
         buttonPanelRules.Bind(IsVisibleProperty, new Binding(nameof(vm.Step1IsVisible)));
 
         var buttonToApplyFixes = UiUtil.MakeButton(Se.Language.Tools.FixCommonErrors.GoToApplyFixes, vm.ToApplyFixesCommand)
-            .WithIconRight("fa-solid fa-arrow-right")
+            .WithIconRight(Glyphs.ArrowRight)
             .BindIsVisible(vm, nameof(vm.Step1IsVisible));
 
         var buttonBackToFixList = UiUtil.MakeButton(Se.Language.Tools.FixCommonErrors.BackToFixList, vm.BackToFixListCommand)
-            .WithIconLeft("fa-solid fa-arrow-left")
+            .WithIconLeft(Glyphs.ArrowLeft)
             .BindIsVisible(vm, nameof(vm.Step2IsVisible));
 
         var buttonDone = UiUtil.MakeButton(Se.Language.General.Done, vm.OkCommand)

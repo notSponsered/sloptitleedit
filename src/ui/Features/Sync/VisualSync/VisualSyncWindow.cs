@@ -46,7 +46,6 @@ public class VisualSyncWindow : Window
             DrawGridLines = Se.Settings.Waveform.DrawGridLines,
             InvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel,
         };
-        vm.AudioVisualizerLeft.UpdateTheme();
         vm.AudioVisualizerLeft.OnVideoPositionChanged += vm.AudioVisualizerLeftPositionChanged;
         vm.AudioVisualizerLeft.OnPrimarySingleClicked += vm.AudioVisualizerLeft_OnPrimarySingleClicked;
 
@@ -58,7 +57,6 @@ public class VisualSyncWindow : Window
             DrawGridLines = Se.Settings.Waveform.DrawGridLines,
             InvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel,
         };
-        vm.AudioVisualizerRight.UpdateTheme();
         vm.AudioVisualizerRight.OnVideoPositionChanged += vm.AudioVisualizerRightPositionChanged;
         vm.AudioVisualizerRight.OnPrimarySingleClicked += vm.AudioVisualizerRight_OnPrimarySingleClicked;
 
@@ -73,9 +71,9 @@ public class VisualSyncWindow : Window
             Orientation = Orientation.Horizontal,
             Children =
             {
-                UiUtil.MakeButton(vm.LeftOneSecondBackCommand, IconNames.ArrowLeftThick, Se.Language.General.OneSecondBack),
+                UiUtil.MakeButton(vm.LeftOneSecondBackCommand, Glyphs.ArrowLeft, Se.Language.General.OneSecondBack),
                 UiUtil.MakeButton(Se.Language.Sync.PlayTwoSecondsAndBack, vm.PlayTwoSecondsAndBackLeftCommand),
-                UiUtil.MakeButton(vm.LeftOneSecondForwardCommand, IconNames.ArrowRightThick, Se.Language.General.OneSecondForward),
+                UiUtil.MakeButton(vm.LeftOneSecondForwardCommand, Glyphs.ArrowRight, Se.Language.General.OneSecondForward),
                 UiUtil.MakeButton(Se.Language.Sync.GoToSubPos, vm.GoToLeftSubtitleCommand),
                 UiUtil.MakeButton(Se.Language.Sync.FindText, vm.FindTextLeftCommand),
             }
@@ -92,9 +90,9 @@ public class VisualSyncWindow : Window
             Orientation = Orientation.Horizontal,
             Children =
             {
-                UiUtil.MakeButton(vm.RightOneSecondBackCommand, IconNames.ArrowLeftThick, Se.Language.General.OneSecondBack),
+                UiUtil.MakeButton(vm.RightOneSecondBackCommand, Glyphs.ArrowLeft, Se.Language.General.OneSecondBack),
                 UiUtil.MakeButton(Se.Language.Sync.PlayTwoSecondsAndBack, vm.PlayTwoSecondsAndBackRightCommand),
-                UiUtil.MakeButton(vm.RightOneSecondForwardCommand, IconNames.ArrowRightThick, Se.Language.General.OneSecondForward),
+                UiUtil.MakeButton(vm.RightOneSecondForwardCommand, Glyphs.ArrowRight, Se.Language.General.OneSecondForward),
                 UiUtil.MakeButton(Se.Language.Sync.GoToSubPos, vm.GoToRightSubtitleCommand),
                 UiUtil.MakeButton(Se.Language.Sync.FindText, vm.FindTextRightCommand),
             }

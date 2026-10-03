@@ -32,7 +32,7 @@ public static class ViewChangeFrameRate
 
         //var buttonFromFrameRate = UiUtil.MakeButtonBrowse(vm.BrowseFromFrameRateCommand);
 
-        //var buttonSwitch = UiUtil.MakeButton(vm.SwitchFrameRatesCommand, IconNames.MdiSwapVertical);
+        //var buttonSwitch = UiUtil.MakeButton(vm.SwitchFrameRatesCommand, Glyphs.SwapVertical);
 
         var labelToFrameRate = new Label
         {

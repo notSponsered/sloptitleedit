@@ -9,7 +9,6 @@ using CommunityToolkit.Mvvm.Input;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.Config.Language.Tools;
-using Optris.Icons.Avalonia;
 using System.Globalization;
 
 namespace Nikse.SubtitleEdit.Features.Tools.BeautifyTimeCodes.Profile;
@@ -551,7 +550,7 @@ public class BeautifyTimeCodesProfileWindow : Window
             Opacity = 0.7,
             [ToolTip.TipProperty] = tip,
         };
-        Attached.SetIcon(icon, IconNames.Information);
+        icon.Content = Glyphs.Make(Glyphs.Information, 16);
         return icon;
     }
 

@@ -6,7 +6,6 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 
 namespace Nikse.SubtitleEdit.Features.Tools.FixCommonErrors;
 
@@ -75,7 +74,7 @@ public class FixCommonErrorsProfileWindow : Window
                             DataContext = vm,
                         };
                         deleteButton.Bind(Button.IsEnabledProperty, new Binding(nameof(vm.IsProfileDeleteEnabled)) { Mode = BindingMode.TwoWay });
-                        Attached.SetIcon(deleteButton, "fa-solid fa-trash");
+                        deleteButton.Content = Glyphs.Make(Glyphs.Trash, 16);
                         Grid.SetColumn(deleteButton, 1);
                         grid.Children.Add(deleteButton);
 

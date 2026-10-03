@@ -424,7 +424,6 @@ public partial class MainViewModel :
         IDictionaryInitializer dictionaryInitializer,
         ILanguageInitializer languageInitializer,
         IOcrInitializer ocrInitializer,
-        IThemeInitializer themeInitializer,
         IColorService colorService,
         IFontNameService fontNameService,
         ISpellCheckManager spellCheckManager,
@@ -580,7 +579,6 @@ public partial class MainViewModel :
         SetVideoOffsetText = Se.Language.Main.Menu.SetVideoOffset;
         WaveformGeneratingText = string.Empty;
 
-        themeInitializer.UpdateThemesIfNeeded().ConfigureAwait(true);
         Dispatcher.UIThread.Post(async void () =>
         {
             try
@@ -15600,14 +15598,8 @@ public partial class MainViewModel :
                         menuItem.Header = trackName;
                         menuItem.Command = PickAudioTrackCommand;
                         menuItem.CommandParameter = audioTrack;
-                        if (audioTrack.FfIndex == (_audioTrack?.FfIndex ?? -1))
-                        {
-                            menuItem.Icon = new Optris.Icons.Avalonia.Icon
-                            {
-                                Value = IconNames.CheckBold,
-                                VerticalAlignment = VerticalAlignment.Center,
-                            };
-                        }
+                        menuItem.ToggleType = MenuItemToggleType.Radio;
+                        menuItem.IsChecked = audioTrack.FfIndex == (_audioTrack?.FfIndex ?? -1);
 
                         AudioTraksMenuItem.Items.Add(menuItem);
                     }
@@ -15915,6 +15907,7 @@ public partial class MainViewModel :
                 hash = hash * 23 + (p.Extra?.GetHashCode() ?? 0);
                 hash = hash * 23 + (p.Actor?.GetHashCode() ?? 0);
                 hash = hash * 23 + p.Layer;
+                hash = hash * 23 + HashCode.Combine(p.MarginL, p.MarginR, p.MarginV);
             }
 
             return hash;
@@ -15951,6 +15944,7 @@ public partial class MainViewModel :
                 hash = hash * 23 + (p.Extra?.GetHashCode() ?? 0);
                 hash = hash * 23 + (p.Actor?.GetHashCode() ?? 0);
                 hash = hash * 23 + p.Layer;
+                hash = hash * 23 + HashCode.Combine(p.MarginL, p.MarginR, p.MarginV);
             }
 
             return hash;
@@ -17705,6 +17699,15 @@ public partial class MainViewModel :
         {
             _mpvPreviewDirty = true;
         }
+
+        // the waveform draws these (Layer orders the stacked lanes), so any change redraws it
+        if (e.PropertyName is nameof(SubtitleLineViewModel.Text)
+            or nameof(SubtitleLineViewModel.StartTime)
+            or nameof(SubtitleLineViewModel.EndTime)
+            or nameof(SubtitleLineViewModel.Layer))
+        {
+            _updateAudioVisualizer = true;
+        }
     }
 
     private void StartTimers()
@@ -17821,7 +17824,7 @@ public partial class MainViewModel :
 
                 if (isPlaying)
                 {
-                    Optris.Icons.Avalonia.Attached.SetIcon(ButtonWaveformPlay, IconNames.Pause);
+                    ButtonWaveformPlay.Content = Glyphs.Make(Glyphs.Pause);
 
                     if (_playSelectionItem != null && mediaPlayerSeconds >= _playSelectionItem.EndSeconds)
                     {
@@ -17880,7 +17883,7 @@ public partial class MainViewModel :
                 }
                 else
                 {
-                    Optris.Icons.Avalonia.Attached.SetIcon(ButtonWaveformPlay, IconNames.Play);
+                    ButtonWaveformPlay.Content = Glyphs.Make(Glyphs.Play);
                     ResetPlaySelection();
                 }
 

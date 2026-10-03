@@ -54,7 +54,7 @@ public class ColorPickerWindow : Window
                 Spacing = 6,
                 Children =
                 {
-                    new Optris.Icons.Avalonia.Icon { Value = IconNames.EyeDropper, VerticalAlignment = VerticalAlignment.Center },
+                    Glyphs.Make(Glyphs.ColorPicker, 16),
                     new TextBlock { Text = Se.Language.Tools.PickFromScreen, VerticalAlignment = VerticalAlignment.Center },
                 },
             },
@@ -130,7 +130,7 @@ public class ColorPickerWindow : Window
                 [!TextBox.TextProperty] = new Binding(property) { Mode = BindingMode.TwoWay },
             };
             AutomationProperties.SetName(box, label);
-            var copyButton = UiUtil.MakeButton(copy, "mdi-content-copy");
+            var copyButton = UiUtil.MakeButton(copy, Glyphs.Copy);
             ToolTip.SetTip(copyButton, Se.Language.General.Copy);
             AutomationProperties.SetName(copyButton, $"{Se.Language.General.Copy} {label}");
             var grid = new Grid

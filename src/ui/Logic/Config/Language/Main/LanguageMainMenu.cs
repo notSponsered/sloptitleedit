@@ -78,6 +78,7 @@ public class LanguageMainMenu
     public string AssaFadeInToVideoPosition { get; set; }
     public string AssaFadeOutFromVideoPosition { get; set; }
     public string AssaMotionTracking { get; set; }
+    public string AssaMotionShapes { get; set; }
     public string AssaStyles { get; set; }
     public string AssaProperties { get; set; }
     public string AssaAttachments { get; set; }
@@ -216,6 +217,7 @@ public class LanguageMainMenu
         AssaFadeInToVideoPosition = "_Fade in to video position";
         AssaFadeOutFromVideoPosition = "Fade _out from video position";
         AssaMotionTracking = "_Motion tracking...";
+        AssaMotionShapes = "Motion s_hapes...";
         AssaStyles = "S_tyles...";
         AssaProperties = "P_roperties...";
         AssaAttachments = "_Attachments...";

@@ -7,7 +7,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
-using Nikse.SubtitleEdit.Features.Main.Panels;
+using Nikse.SubtitleEdit.Logic;
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
@@ -138,7 +138,7 @@ internal static class ScreenEyedropper
     {
         const int size = 32;
         var scale = size / 24.0;
-        var geometry = Geometry.Parse(AssaToolbar.Glyphs.ColorPicker);
+        var geometry = Geometry.Parse(Glyphs.ColorPicker);
         Path Stroke(IBrush brush, double thickness) => new()
         {
             Data = geometry,

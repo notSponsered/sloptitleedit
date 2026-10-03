@@ -84,9 +84,19 @@ public class LanguageSettings
     public string GridCompactMode { get; set; }
     public string UiFont { get; set; }
     public string Theme { get; set; }
-    public string IconTheme { get; set; }
-    public string DarkThemeForegroundColor { get; set; }
-    public string DarkThemeBackgroundColor { get; set; }
+    public string AccentColor { get; set; }
+    public string BackgroundColor { get; set; }
+    public string TopBarColor { get; set; }
+    public string TextColor { get; set; }
+    public string DividerColor { get; set; }
+    public string ThemeColors { get; set; }
+    public string ThemeColorsHint { get; set; }
+    public string UseThemeColor { get; set; }
+    public string SyntaxColors { get; set; }
+    public string SyntaxTagColor { get; set; }
+    public string SyntaxValueColor { get; set; }
+    public string SyntaxAttributeColor { get; set; }
+    public string PanelColors { get; set; }
     public string ShowGridLines { get; set; }
     public string ResetSettings { get; set; }
     public string ResetSettingsDetail { get; set; }
@@ -295,7 +305,6 @@ public class LanguageSettings
     public string AllSettings { get; set; }
     public string UiScale { get; set; }
     public string WaveformToolbarItems { get; set; }
-    public string MatchIconColorToDarkTheme { get; set; }
     public string SubtitlePreviewProperties { get; set; }
     public string PixelWidthInfo { get; set; }
     public string SpellCheckEngineHunSpelll { get; set; }
@@ -387,9 +396,19 @@ public class LanguageSettings
         GridCompactMode = "Use compact mode for grids";
         UiFont = "UI font";
         Theme = "Theme";
-        IconTheme = "Icon theme";
-        DarkThemeForegroundColor = "Dark theme foreground color";
-        DarkThemeBackgroundColor = "Dark theme background color";
+        AccentColor = "Accent color";
+        BackgroundColor = "Background color";
+        TopBarColor = "Top bar color";
+        TextColor = "Text color";
+        DividerColor = "Divider color";
+        ThemeColors = "Theme colors";
+        ThemeColorsHint = "Changes show right away. Each color follows the theme until you pick your own.";
+        UseThemeColor = "Use the theme's color";
+        SyntaxColors = "Syntax colors";
+        SyntaxTagColor = "Tag names";
+        SyntaxValueColor = "Tag values";
+        SyntaxAttributeColor = "HTML attributes";
+        PanelColors = "Panel icon colors";
         ShowGridLines = "Show grid lines";
         ResetSettings = "Reset settings?";
         ResetSettingsDetail = "This will reset all settings to their default values.\n\nContinue?";
@@ -583,7 +602,7 @@ public class LanguageSettings
         GridFocusTextboxAfterInsertNew = "Grid: focus text box after insert new subtitle";
         TextToSpeechPromptMergeContinuationLines = "Text to speech: prompt to merge continuation lines";
         UseFocusedButtonBackgroundColor = "Use focused button background color";
-        FocusedButtonBackgroundColor = "Focused button background color";
+        FocusedButtonBackgroundColor = "Focused button";
         ForceCrLfOnSave = "Force CR+LF on save (text subtitle files)";
         ShowWaveformToolbarPlayNext = "Toolbar: show play next button";
         ShowWaveformToolbarPlaySelection = "Toolbar: show play selection button";
@@ -597,7 +616,6 @@ public class LanguageSettings
         AllSettings = "All settings";
         UiScale = "UI scale (%)";
         WaveformToolbarItems = "Waveform toolbar items";
-        MatchIconColorToDarkTheme = "Match icon color to dark theme foreground color";
         SubtitlePreviewProperties = "Subtitle preview properties";
         PixelWidthInfo = "Green lines = max-width limit   |   Red area = text exceeds limit";
         SpellCheckEngineHunSpelll = "Hunspell";

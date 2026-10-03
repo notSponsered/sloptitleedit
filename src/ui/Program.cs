@@ -11,9 +11,6 @@ using Nikse.SubtitleEdit.Features.Main;
 using Nikse.SubtitleEdit.Features.Tools.BatchConvert;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
-using Optris.Icons.Avalonia.FontAwesome;
-using Optris.Icons.Avalonia.MaterialDesign;
 using System;
 using System.Linq;
 using System.Text;
@@ -47,11 +44,6 @@ namespace Nikse.SubtitleEdit
                     ShutdownMode = ShutdownMode.OnLastWindowClose
                 };
 
-                // Register icon providers
-                IconProvider.Current
-                    .Register<FontAwesomeIconProvider>()
-                    .Register<MaterialDesignIconProvider>();
-
                 // Load settings
                 Se.LoadSettings();
 
@@ -65,8 +57,9 @@ namespace Nikse.SubtitleEdit
                     // resolves to the embedded font when no system font is available; healthy systems
                     // still pick up their own fonts for explicit family names.
                     .WithInterFont()
-                    // UI font: Instrument Sans (embedded, OFL, Assets/Fonts). Inter stays registered as the Linux fallback above.
-                    .With(new FontManagerOptions { DefaultFamilyName = "avares://SubtitleEdit/Assets/Fonts#Instrument Sans" })
+                    // UI font: Arial (Options → Appearance → font name picks any other). Linux keeps the system
+                    // default, where Arial is often missing.
+                    .With(new FontManagerOptions { DefaultFamilyName = OperatingSystem.IsLinux() ? null : "Arial" })
                     .With(new X11PlatformOptions
                     {
                         RenderingMode = new[] { X11RenderingMode.Glx, X11RenderingMode.Egl }
@@ -131,11 +124,7 @@ namespace Nikse.SubtitleEdit
         private static void ConfigureApplication(AppBuilder b, ClassicDesktopStyleApplicationLifetime lifetime)
         {
             // Setup Fluent theme
-            UiTheme.FluentTheme = new FluentTheme();
-            UiTheme.FluentTheme.Palettes.Add(ThemeVariant.Dark, new ColorPaletteResources()
-            {
-                RegionColor = UiUtil.GetDarkThemeBackgroundColor(),
-            });
+            UiTheme.FluentTheme = new FluentTheme(); // its palette comes from the color theme (UiTheme.SetCurrentTheme)
 
             if (b.Instance != null)
             {

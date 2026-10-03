@@ -17,19 +17,16 @@ public class TextWithSubtitleSyntaxHighlightingConverter : IValueConverter
     private ISpellCheckManager? _spellCheckManager;
 
     // Pastel color scheme for HTML and ASS/SSA syntax highlighting
-    private static readonly Color ElementColor = Color.FromRgb(183, 89, 155);    // Soft purple - HTML element tags / ASS tag names
-    private static readonly Color AttributeColor = Color.FromRgb(86, 156, 214);  // Soft blue - HTML attribute names
     private static readonly Color CommentColor = Color.FromRgb(106, 153, 85);    // Soft green - HTML comments
     private static readonly Color CharsColor = Color.FromRgb(128, 128, 128);     // Gray - delimiters and special chars
-    private static readonly Color ValuesColor = Color.FromRgb(206, 145, 120);    // Soft orange/peach - attribute values / ASS tag values
     private static readonly Color StyleColor = Color.FromRgb(156, 220, 254);     // Light cyan - CSS property values
 
     // Reuse brushes instead of creating new ones each time
-    private static readonly SolidColorBrush ElementBrush = new(ElementColor);
-    private static readonly SolidColorBrush AttributeBrush = new(AttributeColor);
+    private static SolidColorBrush ElementBrush => Features.Main.Layout.ChromeStyles.Shared(Features.Main.Layout.ChromeStyles.Role.SyntaxTag); // theme colors, recolor live
+    private static SolidColorBrush AttributeBrush => Features.Main.Layout.ChromeStyles.Shared(Features.Main.Layout.ChromeStyles.Role.SyntaxAttribute);
     private static readonly SolidColorBrush CommentBrush = new(CommentColor);
     private static readonly SolidColorBrush CharsBrush = new(CharsColor);
-    private static readonly SolidColorBrush ValuesBrush = new(ValuesColor);
+    private static SolidColorBrush ValuesBrush => Features.Main.Layout.ChromeStyles.Shared(Features.Main.Layout.ChromeStyles.Role.SyntaxValue);
     private static readonly SolidColorBrush StyleBrush = new(StyleColor);
 
     // Named HTML colors mapping

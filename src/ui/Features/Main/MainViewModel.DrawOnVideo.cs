@@ -179,11 +179,11 @@ public partial class MainViewModel
         void SetColor(Avalonia.Media.Color color)
         {
             state.Color = color;
-            Panels.AssaToolbar.SetGlyphFill(colorButton!, color);
+            Glyphs.SetFill(colorButton!, color);
             canvas.SetColor(color);
         }
 
-        colorButton = Panels.AssaToolbar.ContextButton(Panels.AssaToolbar.Glyphs.Swatch, l.DrawOnVideoColor, async () =>
+        colorButton = Panels.AssaToolbar.ContextButton(Glyphs.Swatch, l.DrawOnVideoColor, async () =>
         {
             if (Window == null)
             {
@@ -202,7 +202,7 @@ public partial class MainViewModel
 
             canvas.Focus();
         });
-        Panels.AssaToolbar.SetGlyphFill(colorButton, state.Color);
+        Glyphs.SetFill(colorButton, state.Color);
 
         var nameBox = new TextBox
         {
@@ -253,13 +253,13 @@ public partial class MainViewModel
 
         return
         [
-            Panels.AssaToolbar.ContextButton(Panels.AssaToolbar.Glyphs.Undo, l.DrawOnVideoUndo, canvas.UndoPoint),
-            Panels.AssaToolbar.ContextToggle(Panels.AssaToolbar.Glyphs.Grid, l.DrawOnVideoGrid, false, on => canvas.ShowGrid = on),
-            Panels.AssaToolbar.ContextButton(Panels.AssaToolbar.Glyphs.Fit, l.DrawOnVideoFit, canvas.FitView),
+            Panels.AssaToolbar.ContextButton(Glyphs.Undo, l.DrawOnVideoUndo, canvas.UndoPoint),
+            Panels.AssaToolbar.ContextToggle(Glyphs.Grid, l.DrawOnVideoGrid, false, on => canvas.ShowGrid = on),
+            Panels.AssaToolbar.ContextButton(Glyphs.Fit, l.DrawOnVideoFit, canvas.FitView),
             colorButton,
             nameBox,
-            Panels.AssaToolbar.ContextButton(Panels.AssaToolbar.Glyphs.Done, l.DrawOnVideoDone, canvas.RaiseDone),
-            Panels.AssaToolbar.ContextButton(Panels.AssaToolbar.Glyphs.Cancel, l.DrawOnVideoCancel, canvas.RaiseCancel),
+            Panels.AssaToolbar.ContextButton(Glyphs.Done, l.DrawOnVideoDone, canvas.RaiseDone),
+            Panels.AssaToolbar.ContextButton(Glyphs.Cancel, l.DrawOnVideoCancel, canvas.RaiseCancel),
         ];
     }
 

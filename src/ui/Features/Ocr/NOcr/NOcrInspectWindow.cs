@@ -233,11 +233,8 @@ public class NOcrInspectWindow : Window
         var comboBoxLinesToAutoDraw = UiUtil.MakeComboBox(vm.NoOfLinesToAutoDrawList, vm, nameof(vm.SelectedNoOfLinesToAutoDraw))
             .WithBindEnabled(nameof(vm.IsEditControlsEnabled));
 
-        var iconInfo = new Optris.Icons.Avalonia.Icon
-        {
-            Value = IconNames.Information,
-            Margin = new Thickness(5, 0, 0, 0),
-        };
+        var iconInfo = Glyphs.Make(Glyphs.Information, 16);
+        iconInfo.Margin = new Thickness(5, 0, 0, 0);
         iconInfo.PointerPressed += (sender, args) =>
         {
             _ = vm.ShowDrawingTips();
@@ -294,8 +291,8 @@ public class NOcrInspectWindow : Window
             Margin = new Thickness(0, 0, 0, 5),
             Children =
             {
-                UiUtil.MakeButton(vm.ZoomOutCommand, IconNames.Minus).WithFontSize(20).WithBindEnabled(nameof(vm.IsEditControlsEnabled)),
-                UiUtil.MakeButton(vm.ZoomInCommand, IconNames.Plus).WithFontSize(20).WithBindEnabled(nameof(vm.IsEditControlsEnabled)),
+                UiUtil.MakeButton(vm.ZoomOutCommand, Glyphs.Minus).WithFontSize(20).WithBindEnabled(nameof(vm.IsEditControlsEnabled)),
+                UiUtil.MakeButton(vm.ZoomInCommand, Glyphs.Plus).WithFontSize(20).WithBindEnabled(nameof(vm.IsEditControlsEnabled)),
                 UiUtil.MakeLabel(string.Empty).WithMarginLeft(10).WithBindText(vm, nameof(vm.ZoomFactorInfo)),
                 UiUtil.MakeLabel(Se.Language.Ocr.DrawMode).WithMarginLeft(10),
                 panelDrawMode,

@@ -15,6 +15,7 @@ using Nikse.SubtitleEdit.Core.Enums;
 using Nikse.SubtitleEdit.Core.SubtitleFormats;
 using Nikse.SubtitleEdit.Features.Assa;
 using Nikse.SubtitleEdit.Features.Main;
+using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Features.Options.Settings.SyntaxColorTooWideSettings;
 using Nikse.SubtitleEdit.Features.Tools.BeautifyTimeCodes.Profile;
 using Nikse.SubtitleEdit.Features.Options.Settings.WaveformThemes;
@@ -272,9 +273,6 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _waveformRightClickSelectsSubtitle;
     [ObservableProperty] private ObservableCollection<string> _themes;
     [ObservableProperty] private string _selectedTheme;
-    [ObservableProperty] private ObservableCollection<string> _iconThemes;
-    [ObservableProperty] private string _selectedIconTheme;
-    [ObservableProperty] private bool _matchIconColorToDarkTheme;
     [ObservableProperty] private int _layoutScale;
     [ObservableProperty] private ObservableCollection<string> _fontNames;
     [ObservableProperty] private string _selectedFontName;
@@ -295,10 +293,7 @@ public partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _showHorizontalLineAboveToolbar;
     [ObservableProperty] private ObservableCollection<GridLinesVisibilityDisplay> _gridLinesVisibilities;
     [ObservableProperty] private GridLinesVisibilityDisplay _selectedGridLinesVisibility;
-    [ObservableProperty] private Color _darkModeForegroundColor;
-    [ObservableProperty] private Color _darkModeBackgroundColor;
     [ObservableProperty] private bool _useFocusedButtonBackgroundColor;
-    [ObservableProperty] private Color _focusedButtonBackgroundColor;
     [ObservableProperty] private Color _bookmarkColor;
     [ObservableProperty] private bool _isEditCustomContinuationStyleVisible;
     [ObservableProperty] private bool _isMpvChosen;
@@ -371,13 +366,10 @@ public partial class SettingsViewModel : ObservableObject
         MpvPreviewSelectedFontAlignment = MpvPreviewFontAlignments[7];
         LibVlcStatus = string.Empty;
 
-        Themes = [Se.Language.General.System, Se.Language.General.Light, Se.Language.General.Dark, Se.Language.General.Classic, "Pastel", "Blender"];
+        Themes = new ObservableCollection<string>(new[] { ThemePreset.System }.Concat(ThemePreset.All.Select(t => t.Name)));
         SelectedTheme = Themes[0];
+        MakeThemeColorSettings();
 
-        var iconFolders = Directory.GetDirectories(Se.ThemesFolder).Select(p => Path.GetFileName(p)).ToList();
-        iconFolders.Insert(0, Se.Language.General.Auto);
-        IconThemes = new ObservableCollection<string>(iconFolders);
-        SelectedIconTheme = IconThemes[0];
 
         FontNames = new ObservableCollection<string>(FontHelper.GetSystemFonts());
         FontNames.Insert(0, "Default");
@@ -691,9 +683,11 @@ public partial class SettingsViewModel : ObservableObject
         OpenAiCompatibleSttAutoTranscribeOnAudioSelection = Se.Settings.Tools.OpenAiCompatibleSttAutoTranscribeOnAudioSelection;
         FixCommonErrorsSkipStep1 = Se.Settings.Tools.FixCommonErrors.SkipStep1;
 
-        SelectedTheme = MapThemeToTranslation(appearance.Theme);
-        SelectedIconTheme = IconThemes.FirstOrDefault(p => p == appearance.IconTheme) ?? IconThemes.First();
-        MatchIconColorToDarkTheme = appearance.MatchIconColorToDarkTheme;
+        _themeLive = false;
+        SelectedTheme = Themes.Contains(appearance.Theme) ? appearance.Theme : ThemePreset.System;
+        PanelTints = appearance.PanelTints;
+        _themeSnapshot = ThemeSnapshot.Take();
+        _themeLive = true;
         LayoutScale = (int)Math.Round(appearance.LayoutScale * 100.0, MidpointRounding.AwayFromZero);
         SelectedFontName = FontNames.FirstOrDefault(p => p == appearance.FontName) ?? FontNames.First();
         ShowToolbarNew = appearance.ToolbarShowFileNew;
@@ -735,10 +729,7 @@ public partial class SettingsViewModel : ObservableObject
         ShowAssaLayer = appearance.ShowLayer;
         ShowHorizontalLineAboveToolbar = appearance.ShowHorizontalLineAboveToolbar;
         SelectedGridLinesVisibility = GridLinesVisibilities.FirstOrDefault(p => p.Type.ToString() == appearance.GridLinesAppearance) ?? GridLinesVisibilities[0];
-        DarkModeBackgroundColor = appearance.DarkModeBackgroundColor.FromHexToColor();
-        DarkModeForegroundColor = appearance.DarkModeForegroundColor.FromHexToColor();
         UseFocusedButtonBackgroundColor = appearance.UseFocusedButtonBackgroundColor;
-        FocusedButtonBackgroundColor = appearance.FocusedButtonBackgroundColor.FromHexToColor();
         BookmarkColor = appearance.BookmarkColor.FromHexToColor();
         ShowUpDownStartTime = appearance.ShowUpDownStartTime;
         ShowUpDownEndTime = appearance.ShowUpDownEndTime;
@@ -1090,70 +1081,106 @@ public partial class SettingsViewModel : ObservableObject
         return Se.Language.General.None;
     }
 
-    private static string MapThemeFromTranslation(string translation)
+    // ---- color theme: every change previews live; Cancel puts the colors back (ThemeSnapshot) ----
+
+    public ThemeColorSetting[] ThemeColors { get; private set; } = [];
+    public ThemeColorSetting[] SyntaxColors { get; private set; } = [];
+    public ThemeColorSetting[] PanelColors { get; private set; } = [];
+    [ObservableProperty] private bool _panelTints;
+    private bool _themeLive;
+    private ThemeSnapshot? _themeSnapshot;
+
+    private void MakeThemeColorSettings()
     {
-        if (translation == Se.Language.General.System)
+        var l = Se.Language.Options.Settings;
+        var a = Se.Settings.Appearance;
+        ThemeColorSetting Own(string name, Func<string> get, Action<string> set, Func<ChromeStyles.Palette, Color> inUse) =>
+            new(name, get, set, () => inUse(ChromeStyles.Current));
+
+        ThemeColors =
+        [
+            Own(l.AccentColor, () => a.AccentColor, v => a.AccentColor = v, p => p.Accent),
+            Own(l.BackgroundColor, () => a.BackgroundColor, v => a.BackgroundColor = v, p => p.Body),
+            Own(l.TopBarColor, () => a.BarColor, v => a.BarColor = v, p => p.Bar),
+            Own(l.TextColor, () => a.TextColor, v => a.TextColor = v, p => p.Text),
+            Own(l.DividerColor, () => a.DividerColor, v => a.DividerColor = v, p => p.Ground),
+            Own(l.FocusedButtonBackgroundColor, UiUtil.OwnFocusedButtonColor, v => a.FocusedButtonBackgroundColor = v, p => Color.FromArgb(0x59, p.Accent.R, p.Accent.G, p.Accent.B)),
+        ];
+        SyntaxColors =
+        [
+            Own(l.SyntaxTagColor, () => a.SyntaxTagColor, v => a.SyntaxTagColor = v, p => p.SyntaxTag),
+            Own(l.SyntaxValueColor, () => a.SyntaxValueColor, v => a.SyntaxValueColor = v, p => p.SyntaxValue),
+            Own(l.SyntaxAttributeColor, () => a.SyntaxAttributeColor, v => a.SyntaxAttributeColor = v, p => p.SyntaxAttribute),
+        ];
+        PanelColors = ChromeStyles.DefaultPanelTints.Keys
+            .Select(id => new ThemeColorSetting(PanelRegistry.Title(id),
+                () => a.PanelTintColors.GetValueOrDefault(id, string.Empty),
+                v =>
+                {
+                    if (string.IsNullOrEmpty(v))
+                    {
+                        a.PanelTintColors.Remove(id);
+                    }
+                    else
+                    {
+                        a.PanelTintColors[id] = v;
+                    }
+                },
+                () => ChromeStyles.DefaultPanelTints[id].FromHexToColor()))
+            .ToArray();
+        ChromeStyles.Applied += RefreshThemeColors;
+    }
+
+    /// <summary>After any color change: pickers that follow the theme show its colors now.</summary>
+    private void RefreshThemeColors()
+    {
+        foreach (var setting in ThemeColors.Concat(SyntaxColors).Concat(PanelColors))
         {
-            return UiTheme.ThemeNameSystem;
-        }
-        else if (translation == Se.Language.General.Light)
-        {
-            return UiTheme.ThemeNameLight;
-        }
-        else if (translation == Se.Language.General.Dark)
-        {
-            return UiTheme.ThemeNameDark;
-        }
-        else if (translation == Se.Language.General.Classic)
-        {
-            return UiTheme.ThemeNameClassic;
-        }
-        else if (translation == "Pastel")
-        {
-            return UiTheme.ThemeNamePastel;
-        }
-        else if (translation == UiTheme.ThemeNameBlender)
-        {
-            return UiTheme.ThemeNameBlender;
-        }
-        else
-        {
-            return UiTheme.ThemeNameSystem;
+            setting.Refresh();
         }
     }
 
-    private string MapThemeToTranslation(string theme)
+    partial void OnSelectedThemeChanged(string value)
     {
-        if (theme == UiTheme.ThemeNameSystem)
+        if (_themeLive && value != null)
         {
-            return Se.Language.General.System;
-        }
-        else if (theme == UiTheme.ThemeNameLight)
-        {
-            return Se.Language.General.Light;
-        }
-        else if (theme == UiTheme.ThemeNameDark)
-        {
-            return Se.Language.General.Dark;
-        }
-        else if (theme == UiTheme.ThemeNameClassic)
-        {
-            return Se.Language.General.Classic;
-        }
-        else if (theme == UiTheme.ThemeNamePastel)
-        {
-            return "Pastel";
-        }
-        else if (theme == UiTheme.ThemeNameBlender)
-        {
-            return UiTheme.ThemeNameBlender;
-        }
-        else
-        {
-            return Se.Language.General.System;
+            Se.Settings.Appearance.Theme = value;
+            UiTheme.SetCurrentTheme();
         }
     }
 
+    partial void OnPanelTintsChanged(bool value)
+    {
+        if (_themeLive)
+        {
+            Se.Settings.Appearance.PanelTints = value;
+            UiTheme.ApplyColors();
+        }
+    }
+
+    /// <summary>The color settings as they were, to undo a preview on Cancel.</summary>
+    private sealed record ThemeSnapshot(string Theme, string Accent, string Background, string Bar, string Text, string Divider,
+        string SyntaxTag, string SyntaxAttribute, string SyntaxValue, bool PanelTints, string PanelTintColors, string FocusedButton)
+    {
+        public static ThemeSnapshot Take()
+        {
+            var a = Se.Settings.Appearance;
+            return new(a.Theme, a.AccentColor, a.BackgroundColor, a.BarColor, a.TextColor, a.DividerColor,
+                a.SyntaxTagColor, a.SyntaxAttributeColor, a.SyntaxValueColor, a.PanelTints,
+                string.Join(";", a.PanelTintColors.OrderBy(p => p.Key).Select(p => p.Key + "=" + p.Value)), a.FocusedButtonBackgroundColor);
+        }
+
+        public void Restore()
+        {
+            var a = Se.Settings.Appearance;
+            (a.Theme, a.AccentColor, a.BackgroundColor, a.BarColor, a.TextColor, a.DividerColor) = (Theme, Accent, Background, Bar, Text, Divider);
+            (a.SyntaxTagColor, a.SyntaxAttributeColor, a.SyntaxValueColor, a.PanelTints) = (SyntaxTag, SyntaxAttribute, SyntaxValue, PanelTints);
+            a.FocusedButtonBackgroundColor = FocusedButton;
+            a.PanelTintColors = PanelTintColors.Split(';', StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Split('='))
+                .ToDictionary(p => p[0], p => p[1]);
+        }
+    }
     private static string MapGridFormattingToText(int subtitleGridFormattingType)
     {
         if (subtitleGridFormattingType == (int)SubtitleGridFormattingTypes.ShowFormatting)
@@ -1380,9 +1407,9 @@ public partial class SettingsViewModel : ObservableObject
         Se.Settings.Tools.WriteToolsLog = WriteToolsLog;
         Se.Settings.Tools.OpenAiCompatibleSttAutoTranscribeOnAudioSelection = OpenAiCompatibleSttAutoTranscribeOnAudioSelection;
 
-        appearance.Theme = MapThemeFromTranslation(SelectedTheme);
-        appearance.IconTheme = SelectedIconTheme;
-        appearance.MatchIconColorToDarkTheme = MatchIconColorToDarkTheme;
+        appearance.Theme = SelectedTheme;
+        appearance.PanelTints = PanelTints;
+        _themeSnapshot = ThemeSnapshot.Take(); // the colors are already in the settings (live preview); now they stay
         appearance.LayoutScale = LayoutScale / 100.0;
         appearance.FontName = SelectedFontName == FontNames.First()
             ? new Label().FontFamily.Name
@@ -1422,10 +1449,7 @@ public partial class SettingsViewModel : ObservableObject
         appearance.TextBoxShowButtonColor = TextBoxButtonShowColor;
         appearance.TextBoxShowButtonRemoveFormatting = TextBoxButtonShowRemoveFormatting;
         appearance.ShowHints = ShowButtonHints;
-        appearance.DarkModeBackgroundColor = DarkModeBackgroundColor.FromColorToHex();
-        appearance.DarkModeForegroundColor = DarkModeForegroundColor.FromColorToHex();
         appearance.UseFocusedButtonBackgroundColor = UseFocusedButtonBackgroundColor;
-        appearance.FocusedButtonBackgroundColor = FocusedButtonBackgroundColor.FromColorToHex();
         appearance.BookmarkColor = BookmarkColor.FromColorToHex();
         appearance.ShowUpDownStartTime = ShowUpDownStartTime;
         appearance.ShowUpDownEndTime = ShowUpDownEndTime;
@@ -2545,5 +2569,11 @@ public partial class SettingsViewModel : ObservableObject
     internal void OnClosing(object? sender, WindowClosingEventArgs e)
     {
         UiUtil.SaveWindowPosition(Window);
+        ChromeStyles.Applied -= RefreshThemeColors;
+        if (!OkPressed && _themeSnapshot != null && !_themeSnapshot.Equals(ThemeSnapshot.Take()))
+        {
+            _themeSnapshot.Restore(); // Cancel: undo the color preview
+            UiTheme.SetCurrentTheme();
+        }
     }
 }

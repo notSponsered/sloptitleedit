@@ -10,11 +10,11 @@ using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
+using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Features.Shared.ColorPicker;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.Platform.Windows;
 using Nikse.SubtitleEdit.Logic.ValueConverters;
-using Optris.Icons.Avalonia;
 using SkiaSharp;
 using System;
 using System.Collections.Generic;
@@ -130,45 +130,11 @@ public static class UiUtil
         return systemFontNames.First();
     }
 
-    public static IBrush GetTextColor(double opacity = 1.0)
-    {
-        var app = Application.Current;
-        if (app == null)
-        {
-            return new SolidColorBrush(Colors.Black, opacity);
-        }
+    /// <summary>The theme's text color (a shared brush that recolors with the theme).</summary>
+    public static IBrush GetTextColor(double opacity = 1.0) => ChromeStyles.Shared(ChromeStyles.Role.Text, opacity);
 
-        var theme = app.ActualThemeVariant;
-        if (theme == ThemeVariant.Dark)
-        {
-            return new SolidColorBrush(Colors.White, opacity);
-        }
-
-        return new SolidColorBrush(Colors.Black, opacity);
-    }
-
-    public static IBrush GetBorderBrush()
-    {
-        var app = Application.Current;
-        if (app == null)
-        {
-            return new SolidColorBrush(Colors.Black);
-        }
-
-        if (Se.Settings.Appearance.Theme == UiTheme.ThemeNameBlender)
-        {
-            return new SolidColorBrush(Color.Parse("#4a4a4a")); // Blender's subtle widget outlines
-        }
-
-        var theme = app.ActualThemeVariant;
-        // Subtle outlines (Audacity 4 / Muse style); 50% read as hard lines on every box and grid cell.
-        if (theme == ThemeVariant.Dark)
-        {
-            return new SolidColorBrush(Colors.White, 0.19);
-        }
-
-        return new SolidColorBrush(Colors.Black, 0.18);
-    }
+    /// <summary>The theme's quiet outline: grid lines, borders, separators (recolors with the theme).</summary>
+    public static IBrush GetBorderBrush() => ChromeStyles.Shared(ChromeStyles.Role.Outline);
 
     public static Color GetBorderColor()
     {
@@ -253,12 +219,26 @@ public static class UiUtil
         if (Se.Settings.Appearance.UseFocusedButtonBackgroundColor)
         {
             var focusStyle = new Style(x => x.OfType<Button>().Class(":focus"));
-            focusStyle.Setters.Add(new Setter(Button.BackgroundProperty, new SolidColorBrush(Se.Settings.Appearance.FocusedButtonBackgroundColor.FromHexToColor())));
+            focusStyle.Setters.Add(new Setter(Button.BackgroundProperty, FocusedButtonBrush()));
             //focusStyle.Setters.Add(new Setter(Button.ForegroundProperty, Brushes.White));
             button.Styles.Add(focusStyle);
         }
 
         return button;
+    }
+
+    /// <summary>The focused button's fill: the user's own color, else a tint of the theme accent (recolors with the theme).</summary>
+    private static IBrush FocusedButtonBrush()
+    {
+        var own = OwnFocusedButtonColor();
+        return string.IsNullOrEmpty(own) ? ChromeStyles.Shared(ChromeStyles.Role.Accent, 0.35) : new SolidColorBrush(own.FromHexToColor());
+    }
+
+    /// <summary>The user's own focused-button color, "" when none (the old fixed blue default counts as none).</summary>
+    internal static string OwnFocusedButtonColor()
+    {
+        var own = Se.Settings.Appearance.FocusedButtonBackgroundColor;
+        return own == new Color(99, 30, 144, 255).FromColorToHex() ? string.Empty : own;
     }
 
     // Parses a single `_` access-key marker out of a button label and returns the visible text plus
@@ -327,68 +307,67 @@ public static class UiUtil
         return MakeButton(Se.Language.General.Cancel, command);
     }
 
-    public static Button MakeButton(IRelayCommand? command, string iconName)
-    {
-        var button = new Button
-        {
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Command = command,
-        };
+    public static Button MakeButton(IRelayCommand? command, string iconName) => MakeIconButton(command, iconName, 16);
 
-        Attached.SetIcon(button, iconName);
-
-        return button;
-    }
-
-    public static Button MakeButton(IRelayCommand? command, string iconName, int fontSize)
-    {
-        var button = new Button
-        {
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Command = command,
-            FontSize = fontSize,
-        };
-
-        Attached.SetIcon(button, iconName);
-
-        return button;
-    }
+    public static Button MakeButton(IRelayCommand? command, string iconName, int fontSize) => MakeIconButton(command, iconName, fontSize + 2);
 
     public static Button MakeButton(IRelayCommand? command, string iconName, string hint)
     {
-        var button = new Button
-        {
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Command = command,
-            [ToolTip.TipProperty] = hint,
-        };
-
-        Attached.SetIcon(button, iconName);
-
+        var button = MakeIconButton(command, iconName, 16);
+        ToolTip.SetTip(button, hint);
         return button;
     }
 
+    /// <summary>An icon-only button (icon = a <see cref="Glyphs"/> constant) in the regular button look.</summary>
+    private static Button MakeIconButton(IRelayCommand? command, string iconName, double size) => new()
+    {
+        HorizontalAlignment = HorizontalAlignment.Left,
+        VerticalAlignment = VerticalAlignment.Center,
+        HorizontalContentAlignment = HorizontalAlignment.Center,
+        VerticalContentAlignment = VerticalAlignment.Center,
+        Command = command,
+        Content = Glyphs.Make(iconName, size),
+    };
+
+    /// <summary>
+    /// A row that scrolls sideways when it doesn't fit, instead of drawing past its area (toolbars, tab strips).
+    /// The scroll bar stays hidden (the theme's bar would float over the buttons); the mouse wheel scrolls.
+    /// </summary>
+    public static ScrollViewer MakeSideScroller(Control content)
+    {
+        var scroller = new Avalonia.Controls.ScrollViewer
+        {
+            Content = content,
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+        };
+        WheelScrollsAlong(scroller);
+        return scroller;
+    }
+
+    /// <summary>The mouse wheel scrolls along whichever direction <paramref name="scroller"/> overflows in.</summary>
+    public static void WheelScrollsAlong(ScrollViewer scroller)
+    {
+        scroller.AddHandler(InputElement.PointerWheelChangedEvent, (_, e) =>
+        {
+            var overflowX = scroller.Extent.Width - scroller.Viewport.Width;
+            var overflowY = scroller.Extent.Height - scroller.Viewport.Height;
+            if (overflowX <= 0 && overflowY <= 0)
+            {
+                return;
+            }
+
+            var delta = (Math.Abs(e.Delta.Y) > Math.Abs(e.Delta.X) ? e.Delta.Y : e.Delta.X) * 40;
+            scroller.Offset = overflowX > 0
+                ? scroller.Offset.WithX(Math.Clamp(scroller.Offset.X - delta, 0, overflowX))
+                : scroller.Offset.WithY(Math.Clamp(scroller.Offset.Y - delta, 0, overflowY));
+            e.Handled = true;
+        }, RoutingStrategies.Tunnel);
+    }
 
     public static Button MakeButtonBrowse(IRelayCommand? command, string? propertyIsVisiblePath = null)
     {
-        var button = new Button
-        {
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            HorizontalContentAlignment = HorizontalAlignment.Center,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            Command = command,
-        };
-
+        var button = MakeIconButton(command, Glyphs.DotsHorizontal, 16);
         if (propertyIsVisiblePath != null)
         {
             button.Bind(Button.IsVisibleProperty, new Binding
@@ -396,8 +375,6 @@ public static class UiUtil
                 Path = propertyIsVisiblePath,
             });
         }
-
-        Attached.SetIcon(button, IconNames.DotsHorizontal);
 
         return button;
     }
@@ -711,10 +688,7 @@ public static class UiUtil
         return link;
     }
 
-    public static SolidColorBrush MakeLinkForeground()
-    {
-        return new SolidColorBrush(Color.FromArgb(255, 30, 144, 255));
-    }
+    public static SolidColorBrush MakeLinkForeground() => ChromeStyles.Shared(ChromeStyles.Role.Accent);
 
     public static TextBlock MakeLink(string text, IRelayCommand command, object viewModel, string propertyTextPath)
     {
@@ -925,8 +899,7 @@ public static class UiUtil
     public static Button WithIconRight(this Button control, string iconName)
     {
         var label = new TextBlock() { Text = control.Content?.ToString(), Padding = new Thickness(0, 0, 4, 0) };
-        var image = new ContentControl();
-        Attached.SetIcon(image, iconName);
+        var image = Glyphs.Make(iconName, 16);
         var stackPanelApplyFixes = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -941,8 +914,7 @@ public static class UiUtil
     public static Button WithIconLeft(this Button control, string iconName)
     {
         var label = new TextBlock() { Text = control.Content?.ToString(), Padding = new Thickness(4, 0, 0, 0) };
-        var image = new ContentControl();
-        Attached.SetIcon(image, iconName);
+        var image = Glyphs.Make(iconName, 16);
         var stackPanelApplyFixes = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -967,8 +939,7 @@ public static class UiUtil
         var label = new TextBlock { Padding = new Thickness(4, 0, 0, 0) };
         label.Bind(TextBlock.TextProperty, new Binding { Path = textPropertyPath });
 
-        var image = new ContentControl();
-        Attached.SetIcon(image, iconName);
+        var image = Glyphs.Make(iconName, 16);
 
         control.Content = new StackPanel
         {
@@ -2469,11 +2440,6 @@ public static class UiUtil
         }
 
         return DataGridGridLinesVisibility.None;
-    }
-
-    internal static Color GetDarkThemeBackgroundColor()
-    {
-        return Se.Settings.Appearance.DarkModeBackgroundColor.FromHexToColor();
     }
 
     internal static void ReplaceControl(Control old, Control replacement)

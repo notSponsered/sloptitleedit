@@ -8,7 +8,6 @@ using Avalonia.VisualTree;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.UiLogic.Project;
-using Optris.Icons.Avalonia;
 using MenuItem = Avalonia.Controls.MenuItem;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -32,19 +31,17 @@ internal static class ProjectPanel
         var p = Se.Language.Project;
 
         // ── header: series + summary, Edit project, more ─────────────────────────
-        var title = new TextBlock { FontSize = 15, FontWeight = FontWeight.SemiBold, TextTrimming = TextTrimming.CharacterEllipsis };
+        var title = new TextBlock { Classes = { "se-title" }, TextTrimming = TextTrimming.CharacterEllipsis };
         var summary = new TextBlock { Classes = { "se-caption" } };
         var edit = new Button { Content = Clean(p.EditProject), Command = vm.ProjectEditCommand, VerticalAlignment = VerticalAlignment.Center };
         var more = new Button
         {
-            Classes = { "se-tool" },
-            Content = new Icon { Value = "mdi-dots-horizontal", FontSize = 18 },
-            Padding = new Thickness(6),
+            Content = Glyphs.Make(Glyphs.DotsHorizontal),
             Margin = new Thickness(4, 0, 0, 0),
-            VerticalAlignment = VerticalAlignment.Center,
             [ToolTip.TipProperty] = p.MoreActions,
             Flyout = MakeMoreMenu(vm),
         };
+        Layout.ChromeStyles.AsTool(more);
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), Margin = new Thickness(12, 10, 8, 10) };
         header.Add(new StackPanel { Children = { title, summary } }, 0, 0);
         header.Add(edit, 0, 1);
@@ -53,6 +50,7 @@ internal static class ProjectPanel
 
         // ── episode index ────────────────────────────────────────────────────────
         var list = new ListBox { Classes = { "se-list" }, SelectionMode = SelectionMode.Single };
+        Grid.SetIsSharedSizeScope(list, true); // one gutter width for every row, wide enough for "101–112"
         list.DataTemplates.Add(new FuncDataTemplate<SeasonRow>((row, _) =>
         {
             var g = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(12, 14, 12, 4) };
@@ -87,7 +85,7 @@ internal static class ProjectPanel
             VerticalAlignment = VerticalAlignment.Center,
             Children =
             {
-                new TextBlock { Text = Se.Language.Workspace.NoProjectOpen, FontSize = 15, FontWeight = FontWeight.SemiBold },
+                new TextBlock { Text = Se.Language.Workspace.NoProjectOpen, Classes = { "se-title" } },
                 new TextBlock { Text = p.ProjectIntro, TextWrapping = TextWrapping.Wrap, Opacity = 0.75 },
                 new WrapPanel
                 {
@@ -102,7 +100,9 @@ internal static class ProjectPanel
             },
         };
 
-        var root = new Grid { Children = { open, closed } };
+        // scrolls in a short area instead of cutting off the buttons
+        var closedScroller = new ScrollViewer { Content = closed };
+        var root = new Grid { Children = { open, closedScroller } };
 
         // ── keep in step with the main window ────────────────────────────────────
         string? shownSignature = null;
@@ -119,7 +119,7 @@ internal static class ProjectPanel
         {
             var project = vm.Project;
             open.IsVisible = project != null;
-            closed.IsVisible = project == null;
+            closedScroller.IsVisible = project == null;
             if (project == null)
             {
                 shownSignature = null;
@@ -240,7 +240,11 @@ internal static class ProjectPanel
             text.Children.Add(missing);
         }
 
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("3,64,*"), Background = Brushes.Transparent };
+        var row = new Grid
+        {
+            ColumnDefinitions = { new ColumnDefinition(3, GridUnitType.Pixel), new ColumnDefinition(GridLength.Auto) { SharedSizeGroup = "number", MinWidth = 64 }, new ColumnDefinition(1, GridUnitType.Star) },
+            Background = Brushes.Transparent,
+        };
         row.Add(new Border { Classes = { "se-marker" } }, 0, 0);
         row.Add(new TextBlock
         {
@@ -248,7 +252,7 @@ internal static class ProjectPanel
             Classes = { "se-strong" },
             FontSize = 15,
             FontWeight = FontWeight.SemiBold,
-            Margin = new Thickness(9, 7, 0, 7),
+            Margin = new Thickness(9, 7, 10, 7),
             VerticalAlignment = VerticalAlignment.Top,
         }, 0, 1);
         row.Add(text, 0, 2);

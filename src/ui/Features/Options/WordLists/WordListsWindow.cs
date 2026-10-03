@@ -109,8 +109,8 @@ public class WordListsWindow : Window
 
         var textBox = UiUtil.MakeTextBox(110, vm, nameof(vm.NewName));
         textBox.KeyDown += (s, e) => vm.NameTextBoxKeyDown(e);
-        var buttonAdd = UiUtil.MakeButton(vm.AddNameCommand, IconNames.Plus, Se.Language.General.New);
-        var buttonRemove = UiUtil.MakeButton(vm.RemoveNameCommand, IconNames.Trash, Se.Language.General.Remove);
+        var buttonAdd = UiUtil.MakeButton(vm.AddNameCommand, Glyphs.Plus, Se.Language.General.New);
+        var buttonRemove = UiUtil.MakeButton(vm.RemoveNameCommand, Glyphs.Trash, Se.Language.General.Remove);
         var panelButtons = UiUtil.MakeButtonBar(textBox, buttonAdd, buttonRemove).WithAlignmentLeft().WithSpacing(4);
 
         var grid = new Grid
@@ -184,8 +184,8 @@ public class WordListsWindow : Window
 
         var textBox = UiUtil.MakeTextBox(110, vm, nameof(vm.NewUserWord));
         textBox.KeyDown += (s, e) => vm.UserWordTextBoxKeyDown(e);
-        var buttonAdd = UiUtil.MakeButton(vm.AddWordCommand, IconNames.Plus, Se.Language.General.New);
-        var buttonRemove = UiUtil.MakeButton(vm.RemoveWordCommand, IconNames.Trash, Se.Language.General.Remove);
+        var buttonAdd = UiUtil.MakeButton(vm.AddWordCommand, Glyphs.Plus, Se.Language.General.New);
+        var buttonRemove = UiUtil.MakeButton(vm.RemoveWordCommand, Glyphs.Trash, Se.Language.General.Remove);
         var panelButtons = UiUtil.MakeButtonBar(textBox, buttonAdd, buttonRemove).WithAlignmentLeft().WithSpacing(4);
 
         var grid = new Grid
@@ -246,8 +246,8 @@ public class WordListsWindow : Window
         var textBoxFind = UiUtil.MakeTextBox(110, vm, nameof(vm.NewOcrFixFind));
         var textBoxReplace = UiUtil.MakeTextBox(110, vm, nameof(vm.NewOcrFixReplace));
         textBoxReplace.KeyDown += (s, e) => vm.OcrFixTextBoxKeyDown(e);
-        var buttonAdd = UiUtil.MakeButton(vm.AddOcrFixCommand, IconNames.Plus, Se.Language.General.New);
-        var buttonRemove = UiUtil.MakeButton(vm.RemoveOcrFixCommand, IconNames.Trash, Se.Language.General.Remove);
+        var buttonAdd = UiUtil.MakeButton(vm.AddOcrFixCommand, Glyphs.Plus, Se.Language.General.New);
+        var buttonRemove = UiUtil.MakeButton(vm.RemoveOcrFixCommand, Glyphs.Trash, Se.Language.General.Remove);
         var panelButtons = UiUtil.MakeButtonBar(textBoxFind, textBoxReplace, buttonAdd, buttonRemove).WithAlignmentLeft().WithSpacing(4);
 
         var grid = new Grid

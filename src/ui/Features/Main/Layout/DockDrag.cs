@@ -6,7 +6,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Nikse.SubtitleEdit.Logic;
-using Optris.Icons.Avalonia;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -45,7 +44,7 @@ internal static class DockDrag
     private static OverlayWindow? _zone;
     private static OverlayWindow? _ghost;
     private static TextBlock? _ghostText;
-    private static Icon? _ghostIcon;
+    private static ContentControl? _ghostIcon;
 
     /// <param name="moveWindow">Set when the whole floating window should move with the pointer (its header was grabbed).</param>
     public static void Begin(Control owner, PointerPressedEventArgs e, IReadOnlyList<string> panels, string? active, Action? click, AreaWindow? moveWindow)
@@ -264,7 +263,7 @@ internal static class DockDrag
     {
         if (_ghost == null)
         {
-            _ghostIcon = new Icon { FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
+            _ghostIcon = new ContentControl { VerticalAlignment = VerticalAlignment.Center };
             _ghostText = new TextBlock { FontSize = 12, VerticalAlignment = VerticalAlignment.Center };
             _ghost = new OverlayWindow(new Border
             {
@@ -288,7 +287,7 @@ internal static class DockDrag
         _ghostText!.Foreground = new SolidColorBrush(p.Text);
         _ghostIcon!.Foreground = new SolidColorBrush(p.Text);
         _ghostText.Text = string.Join(", ", s.Panels.Select(PanelRegistry.Title));
-        _ghostIcon.Value = PanelRegistry.Get(s.Active ?? s.Panels[0])?.Icon ?? IconNames.DotsVertical;
+        _ghostIcon.Content = ChromeStyles.PanelIcon(s.Active ?? s.Panels[0], 14);
         _ghost.Position = new PixelPoint(screen.X + (int)(14 * s.Scaling), screen.Y + (int)(16 * s.Scaling));
         if (!_ghost.IsVisible)
         {

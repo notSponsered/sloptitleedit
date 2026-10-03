@@ -11,7 +11,6 @@ using Nikse.SubtitleEdit.Features.Video.TextToSpeech.Voices;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.ValueConverters;
-using Optris.Icons.Avalonia;
 
 namespace Nikse.SubtitleEdit.Features.Video.TextToSpeech.ActorVoices;
 
@@ -81,13 +80,8 @@ public class ActorVoiceMappingWindow : Window
 
     private static Control BuildHeader(ActorVoiceMappingViewModel vm)
     {
-        var icon = new Icon
-        {
-            Value = IconNames.PoliceBadge,
-            FontSize = 28,
-            Foreground = UiUtil.GetTextColor(0.8d),
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        var icon = Glyphs.Make(Glyphs.Shield, 30);
+        icon.Opacity = 0.8;
 
         var title = new TextBlock
         {
@@ -290,7 +284,7 @@ public class ActorVoiceMappingWindow : Window
                         // Per-row "..." button → opens ActorVoiceRowSettingsWindow for voice
                         // instruction + OmniVoice keyword picker. Disabled for engines that have
                         // no advanced settings so the user doesn't open an empty dialog.
-                        var settingsBtn = UiUtil.MakeButton(vm.ShowRowSettingsCommand, IconNames.Settings,
+                        var settingsBtn = UiUtil.MakeButton(vm.ShowRowSettingsCommand, Glyphs.Settings,
                             Se.Language.Video.TextToSpeech.ActorVoicesRowSettingsTitle);
                         settingsBtn.CommandParameter = row;
                         settingsBtn.Margin = new Thickness(4, 2);
@@ -299,7 +293,7 @@ public class ActorVoiceMappingWindow : Window
                             Mode = BindingMode.OneWay,
                         });
 
-                        var testBtn = UiUtil.MakeButton(vm.TestRowCommand, "fa-solid fa-play", Se.Language.Video.TextToSpeech.TestVoice);
+                        var testBtn = UiUtil.MakeButton(vm.TestRowCommand, Glyphs.Play, Se.Language.Video.TextToSpeech.TestVoice);
                         testBtn.CommandParameter = row;
                         testBtn.Margin = new Thickness(4, 2);
                         testBtn.Bind(InputElement.IsEnabledProperty, new Binding(nameof(ActorVoiceRow.SelectedVoice))

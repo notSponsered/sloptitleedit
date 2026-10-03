@@ -6,7 +6,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 
 namespace Nikse.SubtitleEdit.Features.Options.Plugins;
 
@@ -124,13 +123,7 @@ public class GetPluginsWindow : Window
             // whole 32x32 area is clickable.
             var cancelButton = new Button
             {
-                Content = new Icon
-                {
-                    Value = IconNames.Close,
-                    FontSize = 18,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                },
+                Content = Glyphs.Make(Glyphs.Close),
                 Width = 32,
                 Height = 32,
                 Padding = new Thickness(0),

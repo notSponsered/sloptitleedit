@@ -9,9 +9,9 @@ using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.Input;
+using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 using System;
 using System.Collections.Generic;
 
@@ -71,25 +71,25 @@ public class SettingsPage : UserControl
             Margin = new Thickness(10, 10, 40, 10),
             Children =
             {
-                MakeMenuItem(Se.Language.General.Rules, vm.ScrollToSectionCommand, IconNames.PoliceBadge),
-                MakeMenuItem(Se.Language.General.General, vm.ScrollToSectionCommand, IconNames.Cogs),
-                MakeMenuItem(Se.Language.General.SubtitleFormats, vm.ScrollToSectionCommand, IconNames.ClosedCaption),
-                MakeMenuItem(Se.Language.Options.Settings.SyntaxColoring, vm.ScrollToSectionCommand, IconNames.Palette),
-                MakeMenuItem(Se.Language.General.VideoPlayer, vm.ScrollToSectionCommand, IconNames.PlayBox),
-                MakeMenuItem(Se.Language.Options.Settings.WaveformSpectrogram, vm.ScrollToSectionCommand, IconNames.Waveform),
-                MakeMenuItem(Se.Language.General.Tools, vm.ScrollToSectionCommand, IconNames.Tools),
-                MakeMenuItem(Se.Language.General.Appearance, vm.ScrollToSectionCommand, IconNames.EyeSettings),
-                MakeMenuItem(Se.Language.General.Toolbar, vm.ScrollToSectionCommand, IconNames.DotsHorizontal),
-                MakeMenuItem(Se.Language.Options.Settings.Network, vm.ScrollToSectionCommand, IconNames.Network),
+                MakeMenuItem(Se.Language.General.Rules, vm.ScrollToSectionCommand, Glyphs.Shield),
+                MakeMenuItem(Se.Language.General.General, vm.ScrollToSectionCommand, Glyphs.Settings),
+                MakeMenuItem(Se.Language.General.SubtitleFormats, vm.ScrollToSectionCommand, Glyphs.ClosedCaption),
+                MakeMenuItem(Se.Language.Options.Settings.SyntaxColoring, vm.ScrollToSectionCommand, Glyphs.Palette),
+                MakeMenuItem(Se.Language.General.VideoPlayer, vm.ScrollToSectionCommand, Glyphs.Video),
+                MakeMenuItem(Se.Language.Options.Settings.WaveformSpectrogram, vm.ScrollToSectionCommand, Glyphs.Waveform),
+                MakeMenuItem(Se.Language.General.Tools, vm.ScrollToSectionCommand, Glyphs.Tools),
+                MakeMenuItem(Se.Language.General.Appearance, vm.ScrollToSectionCommand, Glyphs.Eye),
+                MakeMenuItem(Se.Language.General.Toolbar, vm.ScrollToSectionCommand, Glyphs.DotsHorizontal),
+                MakeMenuItem(Se.Language.Options.Settings.Network, vm.ScrollToSectionCommand, Glyphs.Network),
             }
         };
 
         if (OperatingSystem.IsWindows())
         {
-            menu.Children.Add(MakeMenuItem(Se.Language.Options.Settings.FileTypeAssociations, vm.ScrollToSectionCommand, IconNames.FileCog));
+            menu.Children.Add(MakeMenuItem(Se.Language.Options.Settings.FileTypeAssociations, vm.ScrollToSectionCommand, Glyphs.Settings));
         }
 
-        menu.Children.Add(MakeMenuItem(Se.Language.Options.Settings.FilesAndLogs, vm.ScrollToSectionCommand, IconNames.FileMultiple));
+        menu.Children.Add(MakeMenuItem(Se.Language.Options.Settings.FilesAndLogs, vm.ScrollToSectionCommand, Glyphs.FileMultiple));
 
         grid.Children.Add(menu);
         Grid.SetRow(menu, 1);
@@ -140,7 +140,7 @@ public class SettingsPage : UserControl
         var commandParameter = text;
         var label = new Label { Content = text, Padding = new Thickness(4, 0, 0, 0) };
         var image = new ContentControl();
-        Attached.SetIcon(image, iconName);
+        image.Content = Glyphs.Make(iconName, 16);
         var stackPanelApplyFixes = new StackPanel
         {
             Orientation = Orientation.Horizontal,
@@ -495,7 +495,7 @@ public class SettingsPage : UserControl
                         VerticalAlignment = VerticalAlignment.Center,
                         [!ToggleButton.IsCheckedProperty] = new Binding(nameof(_vm.WaveformSnapToShotChanges)) { Source = _vm, Mode = BindingMode.TwoWay }
                     },
-                    UiUtil.MakeButton(_vm.EditBeautifyTimeCodesProfileCommand, IconNames.Cogs, Se.Language.Tools.BeautifyTimeCodesProfile.Title)
+                    UiUtil.MakeButton(_vm.EditBeautifyTimeCodesProfileCommand, Glyphs.Settings, Se.Language.Tools.BeautifyTimeCodesProfile.Title)
                 )),
             MakeCheckboxSetting(Se.Language.Options.Settings.WaveformSnapToFrames, nameof(_vm.WaveformSnapToFrames)),
             MakeCheckboxSetting(Se.Language.Options.Settings.WaveformShotChangesAutoGenerate, nameof(_vm.WaveformShotChangesAutoGenerate)),
@@ -608,9 +608,7 @@ public class SettingsPage : UserControl
 
         sections.Add(new SettingsSection(Se.Language.General.Appearance,
         [
-            new SettingsItem(Se.Language.Options.Settings.Theme, () => UiUtil.MakeComboBox(_vm.Themes, _vm, nameof(_vm.SelectedTheme))),
-            new SettingsItem(Se.Language.Options.Settings.IconTheme, () => UiUtil.MakeComboBox(_vm.IconThemes, _vm, nameof(_vm.SelectedIconTheme))),
-            MakeCheckboxSetting(Se.Language.Options.Settings.MatchIconColorToDarkTheme, nameof(_vm.MatchIconColorToDarkTheme)),
+            new SettingsItem(Se.Language.Options.Settings.Theme, MakeThemePicker),
             new SettingsItem(Se.Language.Options.Settings.UiScale, () => UiUtil.MakeNumericUpDownInt(
                 (int)Math.Round(UiTheme.MinScale * 100.0, MidpointRounding.AwayFromZero) ,
                 (int)Math.Round(UiTheme.MaxScale * 100.0, MidpointRounding.AwayFromZero),
@@ -618,34 +616,23 @@ public class SettingsPage : UserControl
                 120,
                 _vm,
                 nameof(_vm.LayoutScale))),
-            new SettingsItem(Se.Language.Options.Settings.DarkThemeForegroundColor, () => new StackPanel
+            new SettingsItem(Se.Language.Options.Settings.ThemeColors, () => MakeColorRow(_vm.ThemeColors, Se.Language.Options.Settings.ThemeColorsHint)),
+            new SettingsItem(Se.Language.Options.Settings.SyntaxColors, () => MakeColorRow(_vm.SyntaxColors)),
+            new SettingsItem(Se.Language.Options.Settings.PanelColors, () =>
             {
-                Orientation = Orientation.Horizontal,
-                Children =
+                var colors = MakeColorRow(_vm.PanelColors);
+                colors[!Control.IsEnabledProperty] = new Binding(nameof(_vm.PanelTints)) { Source = _vm };
+                return new StackPanel
                 {
-                    UiUtil.MakeColorPickerButton(_vm, nameof(_vm.DarkModeForegroundColor)),
-                    UiUtil.MakeLabel(Se.Language.General.RequiresRestart).WithMarginLeft(5).WithOpacity(0.6),
-                }
-            }),
-            new SettingsItem(Se.Language.Options.Settings.DarkThemeBackgroundColor, () => new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Children =
-                {
-                    UiUtil.MakeColorPickerButton(_vm, nameof(_vm.DarkModeBackgroundColor)),
-                    UiUtil.MakeLabel(Se.Language.General.RequiresRestart).WithMarginLeft(5).WithOpacity(0.6),
-                }
+                    Spacing = 6,
+                    Children =
+                    {
+                        new CheckBox { [!ToggleButton.IsCheckedProperty] = new Binding(nameof(_vm.PanelTints)) { Source = _vm, Mode = BindingMode.TwoWay } },
+                        colors,
+                    },
+                };
             }),
             MakeCheckboxSetting(Se.Language.Options.Settings.UseFocusedButtonBackgroundColor, nameof(_vm.UseFocusedButtonBackgroundColor)),
-            new SettingsItem(Se.Language.Options.Settings.FocusedButtonBackgroundColor, () => new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Children =
-                {
-                    UiUtil.MakeColorPickerButton(_vm, nameof(_vm.FocusedButtonBackgroundColor)),
-                    UiUtil.MakeLabel(Se.Language.General.RequiresRestart).WithMarginLeft(5).WithOpacity(0.6),
-                }
-            }),
             new SettingsItem(Se.Language.Options.Settings.UiFont, () => UiUtil.MakeComboBox(_vm.FontNames, _vm, nameof(_vm.SelectedFontName))),
             new SettingsItem(Se.Language.Options.Settings.SubtitleTextBoxAndGridFontName,
                 () => UiUtil.MakeComboBox(_vm.FontNames, _vm, nameof(_vm.SubtitleTextBoxAndGridFontName))),
@@ -1109,6 +1096,77 @@ public class SettingsPage : UserControl
         });
 
         return item;
+    }
+
+    /// <summary>The theme list, each with a strip of its background, accent and text colors.</summary>
+    private Control MakeThemePicker()
+    {
+        Border Chip(string hex) => new()
+        {
+            Width = 14,
+            Height = 14,
+            CornerRadius = new CornerRadius(3),
+            BorderThickness = new Thickness(1),
+            BorderBrush = UiUtil.GetBorderBrush(),
+            Background = new SolidColorBrush(Color.Parse(hex)),
+        };
+
+        return new ComboBox
+        {
+            MinWidth = 220,
+            ItemsSource = _vm.Themes,
+            [!SelectingItemsControl.SelectedItemProperty] = new Binding(nameof(_vm.SelectedTheme)) { Source = _vm, Mode = BindingMode.TwoWay },
+            ItemTemplate = new FuncDataTemplate<string>((name, _) =>
+            {
+                var t = ThemePreset.Find(name ?? ThemePreset.System);
+                var accent = string.IsNullOrEmpty(t.Accent) ? ChromeStyles.Current.Accent.ToString() : t.Accent;
+                return new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    Spacing = 3,
+                    Children =
+                    {
+                        Chip(t.Background),
+                        Chip(accent),
+                        Chip(t.Text),
+                        new TextBlock { Text = ThemePreset.Display(name ?? string.Empty), Margin = new Thickness(5, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center },
+                    },
+                };
+            }),
+        };
+    }
+
+    /// <summary>Color pickers in a row, each captioned, with a reset to the theme's color once it is the user's own.</summary>
+    private static WrapPanel MakeColorRow(IEnumerable<ThemeColorSetting> settings, string? hint = null)
+    {
+        var row = new WrapPanel { ItemSpacing = 12, LineSpacing = 6, MaxWidth = 400 }; // the settings column is about this wide; wider rows ran off it
+        foreach (var setting in settings)
+        {
+            var reset = new Button
+            {
+                Content = Glyphs.Make(Glyphs.Undo, 16),
+                Command = setting.ResetCommand,
+                [ToolTip.TipProperty] = Se.Language.Options.Settings.UseThemeColor,
+                [!Visual.IsVisibleProperty] = new Binding(nameof(setting.IsOwn)) { Source = setting },
+            };
+            ChromeStyles.AsTool(reset, 24);
+            row.Children.Add(new StackPanel
+            {
+                Spacing = 2,
+                Children =
+                {
+                    new TextBlock { Text = setting.Name, Classes = { "se-caption" } },
+                    new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2, Children = { UiUtil.MakeColorPickerButton(setting, nameof(setting.Color), showAlpha: false), reset } },
+                },
+            });
+        }
+
+        if (hint != null)
+        {
+            row.Children.Add(new TextBlock { Text = hint, Classes = { "se-caption" }, TextWrapping = TextWrapping.Wrap, MaxWidth = 400 });
+        }
+
+        return row;
     }
 
     protected override void OnLoaded(RoutedEventArgs e)

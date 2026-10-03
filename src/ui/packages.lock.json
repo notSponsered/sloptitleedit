@@ -139,33 +139,6 @@
           "Microsoft.Extensions.Options": "11.0.0-preview.2.26159.112"
         }
       },
-      "Optris.Icons.Avalonia": {
-        "type": "Direct",
-        "requested": "[12.0.6, )",
-        "resolved": "12.0.6",
-        "contentHash": "UN5g1yr0tbhDivEB4LCQT2yDr/MTCBRwfrQYYb4fE4AxJIDuTsswSDa3BNtpaYGcLL+LyREwf1Uyo6dD32wlbg==",
-        "dependencies": {
-          "Avalonia": "12.0.1"
-        }
-      },
-      "Optris.Icons.Avalonia.FontAwesome": {
-        "type": "Direct",
-        "requested": "[12.0.6, )",
-        "resolved": "12.0.6",
-        "contentHash": "vQJdckCzoecLPnTqr9zpG5KcqI0UH4sqCQH753w7E93iN2krIg16Wy6Q25QaAawnngQIwNPDvJCK3uN2x8d+4Q==",
-        "dependencies": {
-          "Optris.Icons.Avalonia": "12.0.6"
-        }
-      },
-      "Optris.Icons.Avalonia.MaterialDesign": {
-        "type": "Direct",
-        "requested": "[12.0.6, )",
-        "resolved": "12.0.6",
-        "contentHash": "xHQVR8nb/l7cBnZbZfhDoKt4ivkF2MTI5Nb+pciHGiwWA0EGdqAlshVmEu3byAfu7OCdVj0l0jFOJegisI68PQ==",
-        "dependencies": {
-          "Optris.Icons.Avalonia": "12.0.6"
-        }
-      },
       "SharpCompress": {
         "type": "Direct",
         "requested": "[0.49.1, )",

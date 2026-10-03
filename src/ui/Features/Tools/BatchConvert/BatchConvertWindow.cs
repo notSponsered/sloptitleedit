@@ -206,11 +206,11 @@ public class BatchConvertWindow : Window
         comboBoxSubtitleFormat.PointerPressed += vm.ComboBoxSubtitleFormatPointerPressed;
         comboBoxSubtitleFormat.Width = 240;
 
-        var buttonTargetFormatSettings = UiUtil.MakeButton(vm.ShowTargetFormatSettingsCommand, IconNames.Settings)
+        var buttonTargetFormatSettings = UiUtil.MakeButton(vm.ShowTargetFormatSettingsCommand, Glyphs.Settings)
             .WithMarginLeft(5)
             .WithMarginRight(5);
         buttonTargetFormatSettings.WithBindIsVisible(vm, nameof(vm.IsTargetFormatSettingsVisible));
-        var buttonSettings = UiUtil.MakeButton(vm.ShowOutputPropertiesCommand, IconNames.Settings).WithMarginLeft(15).WithMarginRight(5);
+        var buttonSettings = UiUtil.MakeButton(vm.ShowOutputPropertiesCommand, Glyphs.Settings).WithMarginLeft(15).WithMarginRight(5);
         if (Se.Settings.Appearance.ShowHints)
         {
             ToolTip.SetTip(buttonTargetFormatSettings, Se.Language.Tools.BatchConvert.TargetFormatSettings);
@@ -225,9 +225,9 @@ public class BatchConvertWindow : Window
             Margin = new Thickness(0, 0, 0, 0),
             Children =
             {
-                UiUtil.MakeButton(vm.AddFilesCommand, IconNames.Plus, Se.Language.General.Add).WithMarginLeft(10),
-                UiUtil.MakeButton(vm.RemoveSelectedFilesCommand, IconNames.Trash, Se.Language.General.Remove).WithMarginLeft(5),
-                UiUtil.MakeButton(vm.ClearAllFilesCommand, IconNames.Close, Se.Language.General.Clear).WithMarginLeft(5),
+                UiUtil.MakeButton(vm.AddFilesCommand, Glyphs.Plus, Se.Language.General.Add).WithMarginLeft(10),
+                UiUtil.MakeButton(vm.RemoveSelectedFilesCommand, Glyphs.Trash, Se.Language.General.Remove).WithMarginLeft(5),
+                UiUtil.MakeButton(vm.ClearAllFilesCommand, Glyphs.Close, Se.Language.General.Clear).WithMarginLeft(5),
                 UiUtil.MakeLabel(Se.Language.General.TargetFormat).WithMarginLeft(15),
                 comboBoxSubtitleFormat,
                 buttonTargetFormatSettings,

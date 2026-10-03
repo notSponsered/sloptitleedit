@@ -17,7 +17,6 @@ using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.Logic.Download;
 using Nikse.SubtitleEdit.Logic.Media;
-using Optris.Icons.Avalonia;
 using System.Net.Http;
 using System;
 using System.Collections.Concurrent;
@@ -2178,9 +2177,9 @@ public partial class SpeechToTextViewModel : ObservableObject
 
         if (CopyConsoleLogButton != null)
         {
-            Attached.SetIcon(CopyConsoleLogButton, IconNames.Check);
+            CopyConsoleLogButton.Content = Glyphs.Make(Glyphs.Check, 16);
             await Task.Delay(1500);
-            Attached.SetIcon(CopyConsoleLogButton, IconNames.Copy);
+            CopyConsoleLogButton.Content = Glyphs.Make(Glyphs.Copy, 16);
         }
     }
 

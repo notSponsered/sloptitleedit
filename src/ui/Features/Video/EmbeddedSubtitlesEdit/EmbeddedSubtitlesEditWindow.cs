@@ -52,7 +52,7 @@ public class EmbeddedSubtitlesEditWindow : Window
         var buttonGenerate = UiUtil.MakeButton(Se.Language.General.Generate, vm.GenerateCommand)
             .WithBindEnabled(nameof(vm.CanGenerate))
             .WithBindIsVisible(nameof(vm.HasVideoFileName));
-        var buttonConfig = UiUtil.MakeButton(vm.OkCommand, IconNames.Settings)
+        var buttonConfig = UiUtil.MakeButton(vm.OkCommand, Glyphs.Settings)
             .WithMarginRight(5)
             .WithBindEnabled(nameof(vm.CanGenerate))
             .WithBindIsVisible(nameof(vm.HasVideoFileName));

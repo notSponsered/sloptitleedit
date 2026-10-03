@@ -117,9 +117,9 @@ public static class MotionApplier
             Math.Abs(Scale - other.Scale) < 0.0005 && Math.Abs(Rotation - other.Rotation) < 0.02;
     }
 
-    private static double RoundToCentiseconds(double ms) => Math.Round(ms / 10.0, MidpointRounding.AwayFromZero) * 10.0;
+    internal static double RoundToCentiseconds(double ms) => Math.Round(ms / 10.0, MidpointRounding.AwayFromZero) * 10.0;
 
-    private static double GetPlayRes(string header, string tag, int fallback)
+    internal static double GetPlayRes(string header, string tag, int fallback)
     {
         var value = AdvancedSubStationAlpha.GetTagValueFromHeader(tag, "[Script Info]", header ?? string.Empty);
         return double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var v) && v > 0 ? v : fallback;
@@ -187,39 +187,12 @@ public static class MotionApplier
         });
 
         // animations are relative to event start - shift them so each piece continues where the previous one was
-        var isWholeLine = offsetMs == 0 && pieceMs >= durationMs;
-        if (!isWholeLine)
+        if (offsetMs != 0 || pieceMs < durationMs)
         {
             s = ShiftTransforms(s, offsetMs, durationMs);
-            s = FadeRegex.Replace(s, m =>
-            {
-                var args = m.Groups[1].Value.Split(',');
-                if (args.Length != 7)
-                {
-                    return m.Value;
-                }
-
-                return $"\\fade({args[0].Trim()},{args[1].Trim()},{args[2].Trim()},{string.Join(",", args.Skip(3).Select(a => I(ParseNumber(a) - offsetMs)))})";
-            });
         }
 
-        s = FadRegex.Replace(s, m =>
-        {
-            var fadeIn = ParseNumber(m.Groups[1].Value);
-            var fadeOut = ParseNumber(m.Groups[2].Value);
-            var overlapsFade = offsetMs < fadeIn || offsetMs + pieceMs > durationMs - fadeOut;
-            if (!overlapsFade)
-            {
-                return string.Empty; // fully opaque part of the line
-            }
-
-            if (isWholeLine)
-            {
-                return m.Value;
-            }
-
-            return $"\\fade(255,0,255,{I(-offsetMs)},{I(fadeIn - offsetMs)},{I(durationMs - fadeOut - offsetMs)},{I(durationMs - offsetMs)})";
-        });
+        s = ShiftFades(s, offsetMs, pieceMs, durationMs);
 
         // scale + rotation from the track: every explicit tag is adjusted, and the style's value is set up front for
         // what the leading block doesn't set itself (e.g. a line with only \fscx, or a tag that only comes mid-line)
@@ -247,6 +220,47 @@ public static class MotionApplier
 
         s = s.Replace("{}", string.Empty);
         return AssaTags.InsertIntoFirstBlock(s, $"\\pos({F(state.X)},{F(state.Y)})");
+    }
+
+    /// <summary>
+    /// For a piece starting <paramref name="offsetMs"/> into a line of <paramref name="durationMs"/>: \fade times are shifted
+    /// and \fad(a,b) becomes the equivalent \fade (dropped on pieces fully inside the opaque part), so a fade stays
+    /// continuous across the pieces. A piece that is the whole line keeps \fad as is.
+    /// </summary>
+    internal static string ShiftFades(string s, double offsetMs, double pieceMs, double durationMs)
+    {
+        var isWholeLine = offsetMs == 0 && pieceMs >= durationMs;
+        if (!isWholeLine)
+        {
+            s = FadeRegex.Replace(s, m =>
+            {
+                var args = m.Groups[1].Value.Split(',');
+                if (args.Length != 7)
+                {
+                    return m.Value;
+                }
+
+                return $"\\fade({args[0].Trim()},{args[1].Trim()},{args[2].Trim()},{string.Join(",", args.Skip(3).Select(a => I(ParseNumber(a) - offsetMs)))})";
+            });
+        }
+
+        return FadRegex.Replace(s, m =>
+        {
+            var fadeIn = ParseNumber(m.Groups[1].Value);
+            var fadeOut = ParseNumber(m.Groups[2].Value);
+            var overlapsFade = offsetMs < fadeIn || offsetMs + pieceMs > durationMs - fadeOut;
+            if (!overlapsFade)
+            {
+                return string.Empty; // fully opaque part of the line
+            }
+
+            if (isWholeLine)
+            {
+                return m.Value;
+            }
+
+            return $"\\fade(255,0,255,{I(-offsetMs)},{I(fadeIn - offsetMs)},{I(durationMs - fadeOut - offsetMs)},{I(durationMs - offsetMs)})";
+        });
     }
 
     /// <summary>
@@ -376,10 +390,10 @@ public static class MotionApplier
         return sb.ToString().TrimEnd();
     }
 
-    private static double ParseNumber(string s) =>
+    internal static double ParseNumber(string s) =>
         double.TryParse(s.Trim(), NumberStyles.Float, CultureInfo.InvariantCulture, out var v) ? v : 0;
 
-    private static string F(double v) => (Math.Round(v, 2) + 0.0).ToString("0.##", CultureInfo.InvariantCulture); // + 0.0 turns -0 into 0
+    internal static string F(double v) => (Math.Round(v, 2) + 0.0).ToString("0.##", CultureInfo.InvariantCulture); // + 0.0 turns -0 into 0
 
-    private static string I(double v) => ((long)Math.Round(v)).ToString(CultureInfo.InvariantCulture);
+    internal static string I(double v) => ((long)Math.Round(v)).ToString(CultureInfo.InvariantCulture);
 }

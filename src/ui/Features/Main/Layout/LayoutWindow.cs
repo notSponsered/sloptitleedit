@@ -15,6 +15,9 @@ namespace Nikse.SubtitleEdit.Features.Main.Layout;
 
 public class LayoutWindow : Window
 {
+    // the picked layout: an accent tint (no zoom, so it never covers its neighbours)
+    private static readonly IBrush Highlight = ChromeStyles.Shared(ChromeStyles.Role.Accent, 0.35);
+
     private readonly LayoutViewModel _vm;
     private List<Border> _borders = new List<Border>();
     private int _focusedLayout = -1;
@@ -72,22 +75,18 @@ public class LayoutWindow : Window
             {
                 Margin = new Thickness(10),
                 Child = grid,
-                RenderTransformOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
-                RenderTransform = new ScaleTransform(1, 1)
             };
 
             var layoutNumber = i;
 
             border.PointerEntered += (_, __) =>
             {
-                border.RenderTransform = new ScaleTransform(1.1, 1.1);
-                border.Background = Brushes.DarkSlateGray;
+                border.Background = Highlight;
                 _focusedLayout = layoutNumber;
             };
 
             border.PointerExited += (_, __) =>
             {
-                border.RenderTransform = new ScaleTransform(1.0, 1.0);
                 border.Background = Brushes.Transparent;
                 _focusedLayout = -1;
             };
@@ -136,16 +135,14 @@ public class LayoutWindow : Window
                 ResetOldLayout();
 
                 _focusedLayout--;
-                _borders[_focusedLayout].RenderTransform = new ScaleTransform(1.1, 1.1);
-                _borders[_focusedLayout].Background = Brushes.DarkSeaGreen;
+                _borders[_focusedLayout].Background = Highlight;
             }
             else
             {
                 ResetOldLayout();
 
                 _focusedLayout = 11;
-                _borders[_focusedLayout].RenderTransform = new ScaleTransform(1.1, 1.1);
-                _borders[_focusedLayout].Background = Brushes.DarkSeaGreen;
+                _borders[_focusedLayout].Background = Highlight;
             }
             return;
         }
@@ -157,15 +154,13 @@ public class LayoutWindow : Window
             {
                 ResetOldLayout();
                 _focusedLayout++;
-                _borders[_focusedLayout].RenderTransform = new ScaleTransform(1.1, 1.1);
-                _borders[_focusedLayout].Background = Brushes.DarkSeaGreen;
+                _borders[_focusedLayout].Background = Highlight;
             }
             else
             {
                 ResetOldLayout();
                 _focusedLayout = 0;
-                _borders[_focusedLayout].RenderTransform = new ScaleTransform(1.1, 1.1);
-                _borders[_focusedLayout].Background = Brushes.DarkSeaGreen;
+                _borders[_focusedLayout].Background = Highlight;
             }
             return;
         }
@@ -187,12 +182,10 @@ public class LayoutWindow : Window
             var fl = _focusedLayout;
             if (fl >= 0)
             {
-                _borders[fl].RenderTransform = new ScaleTransform(1.0, 1.0);
                 _borders[fl].Background = Brushes.Transparent;
             }
 
-            _borders[layoutNumber - 1].RenderTransform = new ScaleTransform(1.1, 1.1);
-            _borders[layoutNumber - 1].Background = Brushes.DarkSeaGreen;
+            _borders[layoutNumber - 1].Background = Highlight;
             await Task.Delay(500);
 
             _vm.SelectedLayout = layoutNumber;
@@ -205,7 +198,6 @@ public class LayoutWindow : Window
     {
         for (var i = 0; i < _borders.Count; i++)
         {
-            _borders[i].RenderTransform = new ScaleTransform(1.0, 1.0);
             _borders[i].Background = Brushes.Transparent;
         }
     }

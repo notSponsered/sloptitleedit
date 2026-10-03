@@ -365,7 +365,8 @@ public sealed class UndoRedoManager : IUndoRedoManager
                 Math.Abs(o.StartTime.TotalMilliseconds - n.StartTime.TotalMilliseconds) > 0.5 ||
                 Math.Abs(o.EndTime.TotalMilliseconds - n.EndTime.TotalMilliseconds) > 0.5;
             var bookmarkChanged = o.Bookmark != n.Bookmark;
-            var styleChanged = o.Style != n.Style || o.Extra != n.Extra || o.Actor != n.Actor || o.Layer != n.Layer;
+            var styleChanged = o.Style != n.Style || o.Extra != n.Extra || o.Actor != n.Actor || o.Layer != n.Layer ||
+                               o.MarginL != n.MarginL || o.MarginR != n.MarginR || o.MarginV != n.MarginV;
 
             if (!textChanged && !timingChanged && !bookmarkChanged && !styleChanged)
             {

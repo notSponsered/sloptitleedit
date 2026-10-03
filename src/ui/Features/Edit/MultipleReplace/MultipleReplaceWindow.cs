@@ -11,7 +11,6 @@ using Nikse.SubtitleEdit.Core.Common;
 using Nikse.SubtitleEdit.Features.Files.Compare;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 
 namespace Nikse.SubtitleEdit.Features.Edit.MultipleReplace;
 
@@ -32,13 +31,13 @@ public class MultipleReplaceWindow : Window
         var rulesView = MakeRulesView(vm);
         var fixesView = MakeFixesView(vm);
 
-        var buttonCollapseAll = UiUtil.MakeButton(vm.CollapseAllCommand, IconNames.Minus);
+        var buttonCollapseAll = UiUtil.MakeButton(vm.CollapseAllCommand, Glyphs.Minus);
         if (Se.Settings.Appearance.ShowHints)
         {
             ToolTip.SetTip(buttonCollapseAll, Se.Language.General.Collapse);
         }
 
-        var buttonExpandAll = UiUtil.MakeButton(vm.ExpandAllCommand, IconNames.Plus);
+        var buttonExpandAll = UiUtil.MakeButton(vm.ExpandAllCommand, Glyphs.Plus);
         if (Se.Settings.Appearance.ShowHints)
         {
             ToolTip.SetTip(buttonExpandAll, Se.Language.General.Expand);
@@ -156,7 +155,7 @@ public class MultipleReplaceWindow : Window
                     DataContext = vm,
                 };
                 buttonCategoryActions.Bind(Button.IsVisibleProperty, new Binding(nameof(vm.IsMultipleReplaceDotDotDotButtonsVisible)));
-                Attached.SetIcon(buttonCategoryActions, IconNames.DotsVertical);
+                buttonCategoryActions.Content = Glyphs.Make(Glyphs.DotsVertical, 16);
 
                 var panelCategory = new DockPanel
                 {
@@ -201,7 +200,7 @@ public class MultipleReplaceWindow : Window
             labelFind.Padding = new Thickness(0);
 
             var labelSeparator = UiUtil.MakeLabel(string.Empty);
-            Attached.SetIcon(labelSeparator, IconNames.ArrowRightThick);
+            labelSeparator.Content = Glyphs.Make(Glyphs.ArrowRight, 16);
             labelSeparator.VerticalAlignment = VerticalAlignment.Center;
             labelSeparator.VerticalContentAlignment = VerticalAlignment.Center;
             labelSeparator.Margin = new Thickness(2, 0, 2, 0);
@@ -214,7 +213,7 @@ public class MultipleReplaceWindow : Window
             labelReplaceWith.Padding = new Thickness(0);
 
             var labelIcon = new Label();
-            Attached.SetIcon(labelIcon, node.IconName);
+            labelIcon.Content = Glyphs.Make(node.IconName, 16);
             labelIcon.VerticalAlignment = VerticalAlignment.Center;
             labelIcon.VerticalContentAlignment = VerticalAlignment.Center;
             labelIcon.Margin = new Thickness(5, 0, 2, 0);
@@ -233,7 +232,7 @@ public class MultipleReplaceWindow : Window
                 DataContext = vm,
             };
             buttonActions.Bind(Button.IsVisibleProperty, new Binding(nameof(vm.IsMultipleReplaceDotDotDotButtonsVisible)));
-            Attached.SetIcon(buttonActions, IconNames.DotsVertical);
+            buttonActions.Content = Glyphs.Make(Glyphs.DotsVertical, 16);
 
             var labelDescription = UiUtil.MakeLabel().WithBindText(node, nameof(RuleTreeNode.Description));
             labelDescription.Opacity = 0.6;
@@ -477,7 +476,7 @@ public class MultipleReplaceWindow : Window
                 var iconLabel = new Label { Padding = new Thickness(0, 0, 2, 0), VerticalAlignment = VerticalAlignment.Center };
                 if (hit.RuleTreeNode != null)
                 {
-                    Attached.SetIcon(iconLabel, hit.RuleTreeNode.IconName);
+                    iconLabel.Content = Glyphs.Make(hit.RuleTreeNode.IconName, 16);
                 }
 
                 var findBlock = new TextBlock

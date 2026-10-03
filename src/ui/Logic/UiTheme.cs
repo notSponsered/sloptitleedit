@@ -7,241 +7,129 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
 using Avalonia.VisualTree;
-using AvaloniaEdit;
-using AvaloniaEdit.Editing;
+using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Logic.Config;
 using System;
 
 namespace Nikse.SubtitleEdit.Logic;
 
+/// <summary>
+/// Applies the color theme (<see cref="ThemePreset"/> + the user's own colors) to the whole app: Fluent's palette
+/// for the standard controls, then <see cref="ChromeStyles"/> for everything else. Also the UI scale.
+/// </summary>
 public static class UiTheme
 {
-    private static IStyle? _lighterDarkStyle;
     private static IStyle? _layoutScaleMenuStyle;
-    private static ResourceDictionary? _resourceOverrides;
-    private static object? _themeChangeSubscription;
+    private static bool _followsSystem;
 
-    public const string ThemeNameSystem = "System";
-    public const string ThemeNameLight = "Light";
-    public const string ThemeNameDark = "Dark";
-    public const string ThemeNameClassic = "Classic";
-    public const string ThemeNamePastel = "Pastel";
-    public const string ThemeNameBlender = "Blender";
+    public const string ThemeNameSystem = ThemePreset.System;
 
     public static FluentTheme? FluentTheme { get; set; }
 
-    public static string ThemeName
-    {
-        get
-        {
-            var themeSetting = Se.Settings.Appearance.Theme;
-            if (themeSetting == ThemeNameSystem)
-            {
-                if (Application.Current!.ActualThemeVariant == ThemeVariant.Dark)
-                {
-                    return ThemeNameDark;
-                }
+    /// <summary>The theme in use ("System" resolved to Dark or Light).</summary>
+    public static string ThemeName => ThemePreset.Current.Name;
 
-                return ThemeNameLight;
-            }
-
-            return themeSetting;
-        }
-    }
-
-    public static bool IsDarkThemeEnabled()
-    {
-        return ThemeName is ThemeNameDark or ThemeNameBlender;
-    }
+    public static bool IsDarkThemeEnabled() => ChromeStyles.Current.Dark;
 
     public static void SetCurrentTheme()
     {
-        var themeSetting = Se.Settings.Appearance.Theme;
-
-        // Unsubscribe from any previous theme change event
-        if (_themeChangeSubscription != null)
+        var app = Application.Current;
+        if (app == null)
         {
-            Application.Current!.ActualThemeVariantChanged -= OnActualThemeVariantChanged;
-            _themeChangeSubscription = null;
+            return;
         }
 
-        RemoveLighterDark();
+        // "System" follows the OS's dark/light switch while running
+        if (_followsSystem)
+        {
+            app.ActualThemeVariantChanged -= OnActualThemeVariantChanged;
+        }
 
-        if (themeSetting == ThemeNameSystem)
+        _followsSystem = Se.Settings.Appearance.Theme == ThemeNameSystem;
+        if (_followsSystem)
         {
-            // Let Avalonia track system theme automatically
-            Application.Current!.RequestedThemeVariant = ThemeVariant.Default;
-            if (ThemeName == ThemeNameDark)
-            {
-                ApplyLighterDark();
-            }
+            app.RequestedThemeVariant = ThemeVariant.Default;
+        }
 
-            // Subscribe to theme changes
-            Application.Current.ActualThemeVariantChanged += OnActualThemeVariantChanged;
-            _themeChangeSubscription = new object(); // Mark as subscribed
-        }
-        else if (themeSetting == ThemeNameDark)
+        ApplyColors();
+        if (_followsSystem)
         {
-            Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
-            ApplyLighterDark();
-        }
-        else if (themeSetting == ThemeNameClassic)
-        {
-            Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
-            ApplyWindowsClassicGray();
-        }
-        else if (themeSetting == ThemeNamePastel)
-        {
-            Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
-            ApplyPastel();
-        }
-        else if (themeSetting == ThemeNameBlender)
-        {
-            Application.Current!.RequestedThemeVariant = ThemeVariant.Dark;
-            ApplyBlender();
-        }
-        else
-        {
-            Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
+            app.ActualThemeVariantChanged += OnActualThemeVariantChanged;
         }
 
         ApplyMenuScaleStyle(Se.Settings.Appearance.LayoutScale);
         ApplyLayoutScaleToAllWindows();
-        Features.Main.Layout.ChromeStyles.Apply(); // last, so chrome colors win over the theme styles above
     }
 
-    private static void OnActualThemeVariantChanged(object? sender, EventArgs e)
-    {
-        if (Se.Settings.Appearance.Theme == ThemeNameSystem && Application.Current != null)
-        {
-            RemoveLighterDark();
-            if (Application.Current.ActualThemeVariant == ThemeVariant.Dark)
-            {
-                ApplyLighterDark();
-            }
-
-            Features.Main.Layout.ChromeStyles.Apply();
-        }
-    }
-
-    private static ColorPaletteResources? _savedDarkPalette;
-    private static ResourceDictionary? _blenderResources;
-    private static IStyle? _blenderStyle;
+    private static void OnActualThemeVariantChanged(object? sender, EventArgs e) => ApplyColors();
 
     /// <summary>
-    /// Blender's flat dark look (Blender 4 default theme colors) for the whole app: swaps Fluent's dark
-    /// palette (text, buttons, fields, menus, accent) and adds a few explicit overrides.
+    /// The palette into Fluent (text, fields, lists, menus, the accent) and the chrome styles. Re-run on any color
+    /// change; brushes from <see cref="ChromeStyles.Shared"/> and the waveform recolor with it.
     /// </summary>
-    private static void ApplyBlender()
+    public static void ApplyColors()
     {
-        if (Application.Current == null || FluentTheme == null)
+        var app = Application.Current;
+        if (app == null)
         {
             return;
         }
 
-        static Color C(string hex) => Color.Parse(hex);
-
-        if (_savedDarkPalette == null && FluentTheme.Palettes.TryGetValue(ThemeVariant.Dark, out var original))
+        ChromeStyles.Apply(); // first: builds the palette
+        var p = ChromeStyles.Current;
+        var variant = p.Dark ? ThemeVariant.Dark : ThemeVariant.Light;
+        if (FluentTheme != null)
         {
-            _savedDarkPalette = original;
+            FluentTheme.Palettes[variant] = MakeFluentPalette(p);
         }
 
-        FluentTheme.Palettes[ThemeVariant.Dark] = new ColorPaletteResources
+        if (!_followsSystem)
         {
-            Accent = C("#4772b3"),
-            RegionColor = C("#303030"),
-            ErrorText = C("#e06c6c"),
-            BaseHigh = C("#e6e6e6"),
-            BaseMediumHigh = C("#c8c8c8"),
-            BaseMedium = C("#a0a0a0"),
-            BaseMediumLow = C("#6e6e6e"),
-            BaseLow = C("#545454"),
-            AltHigh = C("#1d1d1d"),
-            AltMediumHigh = C("#1d1d1d"),
-            AltMedium = C("#222222"),
-            AltMediumLow = C("#1d1d1d"),
-            AltLow = C("#262626"),
-            ChromeAltLow = C("#e6e6e6"),
-            ChromeBlackHigh = C("#000000"),
-            ChromeBlackLow = C("#33000000"),
-            ChromeBlackMedium = C("#99000000"),
-            ChromeBlackMediumLow = C("#66000000"),
-            ChromeDisabledHigh = C("#2e2e2e"),
-            ChromeDisabledLow = C("#7a7a7a"),
-            ChromeGray = C("#6e6e6e"),
-            ChromeHigh = C("#4d4d4d"),
-            ChromeLow = C("#161616"),
-            ChromeMedium = C("#1d1d1d"),
-            ChromeMediumLow = C("#1e1e1e"),
-            ChromeWhite = C("#ffffff"),
-            ListLow = C("#26ffffff"),
-            ListMedium = C("#40ffffff"),
-        };
-
-        var text = new SolidColorBrush(C("#e6e6e6"));
-        _blenderResources = new ResourceDictionary
-        {
-            ["ControlCornerRadius"] = new CornerRadius(4),
-            ["OverlayCornerRadius"] = new CornerRadius(6),
-            ["ButtonBackground"] = new SolidColorBrush(C("#545454")),
-            ["ButtonBackgroundPointerOver"] = new SolidColorBrush(C("#656565")),
-            ["ButtonBackgroundPressed"] = new SolidColorBrush(C("#4772b3")),
-            ["ButtonForeground"] = text,
-            ["ButtonForegroundPointerOver"] = new SolidColorBrush(Colors.White),
-            ["ButtonForegroundPressed"] = new SolidColorBrush(Colors.White),
-            ["TextControlForeground"] = text,
-            ["TextControlForegroundPointerOver"] = text,
-            ["TextControlForegroundFocused"] = text,
-            ["TextControlBorderBrush"] = new SolidColorBrush(C("#3d3d3d")),
-            ["TextControlBorderBrushPointerOver"] = new SolidColorBrush(C("#4d4d4d")),
-            ["MenuFlyoutPresenterBackground"] = new SolidColorBrush(C("#181818")),
-            ["MenuFlyoutPresenterBorderBrush"] = new SolidColorBrush(C("#2b2b2b")),
-            ["MenuFlyoutItemBackgroundPointerOver"] = new SolidColorBrush(C("#4772b3")),
-            ["MenuFlyoutItemForegroundPointerOver"] = new SolidColorBrush(Colors.White),
-            ["ToolTipBackground"] = new SolidColorBrush(C("#181818")),
-            ["ToolTipBorderBrush"] = new SolidColorBrush(C("#2b2b2b")),
-            ["ToolTipForeground"] = text,
-        };
-        Application.Current.Resources.MergedDictionaries.Add(_blenderResources);
-
-        _blenderStyle = new Styles
-        {
-            new Style(x => x.OfType<DataGridColumnHeader>())
-            {
-                Setters =
-                {
-                    new Setter(DataGridColumnHeader.BackgroundProperty, new SolidColorBrush(C("#303030"))),
-                    new Setter(DataGridColumnHeader.ForegroundProperty, new SolidColorBrush(C("#c3c3c3"))),
-                },
-            },
-        };
-        Application.Current.Styles.Add(_blenderStyle);
+            app.RequestedThemeVariant = variant;
+        }
     }
 
-    private static void RemoveBlender()
+    private static ColorPaletteResources MakeFluentPalette(ChromeStyles.Palette p)
     {
-        if (Application.Current == null)
+        Color Mix(Color a, Color b, double t)
         {
-            return;
+            byte F(byte x, byte y) => (byte)Math.Round(x + (y - x) * t);
+            return Color.FromRgb(F(a.R, b.R), F(a.G, b.G), F(a.B, b.B));
         }
 
-        if (_savedDarkPalette != null && FluentTheme != null)
-        {
-            FluentTheme.Palettes[ThemeVariant.Dark] = _savedDarkPalette;
-            _savedDarkPalette = null;
-        }
+        Color Alpha(Color c, byte a) => Color.FromArgb(a, c.R, c.G, c.B);
 
-        if (_blenderResources != null)
+        return new ColorPaletteResources
         {
-            Application.Current.Resources.MergedDictionaries.Remove(_blenderResources);
-            _blenderResources = null;
-        }
-
-        if (_blenderStyle != null)
-        {
-            Application.Current.Styles.Remove(_blenderStyle);
-            _blenderStyle = null;
-        }
+            Accent = p.Accent,
+            RegionColor = p.Body,
+            ErrorText = Color.Parse(p.Dark ? "#e06c6c" : "#c42b1c"),
+            BaseHigh = p.Text,
+            BaseMediumHigh = Mix(p.Text, p.Body, 0.2),
+            BaseMedium = Mix(p.Text, p.Body, 0.35),
+            BaseMediumLow = Mix(p.Text, p.Body, 0.55),
+            BaseLow = Mix(p.Text, p.Body, 0.75),
+            AltHigh = p.Field,
+            AltMediumHigh = p.Field,
+            AltMedium = p.Field,
+            AltMediumLow = p.Field,
+            AltLow = Mix(p.Field, p.Body, 0.5),
+            ChromeAltLow = p.Text,
+            ChromeBlackHigh = Colors.Black,
+            ChromeBlackLow = Alpha(Colors.Black, 0x33),
+            ChromeBlackMedium = Alpha(Colors.Black, 0x99),
+            ChromeBlackMediumLow = Alpha(Colors.Black, 0x66),
+            ChromeDisabledHigh = Mix(p.Body, p.Text, 0.12),
+            ChromeDisabledLow = Mix(p.Text, p.Body, 0.5),
+            ChromeGray = Mix(p.Text, p.Body, 0.55),
+            ChromeHigh = p.Outline,
+            ChromeLow = p.Ground,
+            ChromeMedium = p.Bar,
+            ChromeMediumLow = Mix(p.Bar, p.Body, 0.5),
+            ChromeWhite = Colors.White,
+            ListLow = Alpha(p.Text, 0x15),
+            ListMedium = Alpha(p.Text, 0x26),
+        };
     }
 
     public const double ScaleStep = 0.1;
@@ -448,509 +336,5 @@ public static class UiTheme
             var factor = Se.Settings.Appearance.LayoutScale;
             ScaleMenuFlyoutItems(flyout, factor);
         }
-    }
-
-    public static void UpdateRegionColor()
-    {
-        if (FluentTheme == null)
-        {
-            return;
-        }
-
-        if (FluentTheme.Palettes.TryGetValue(ThemeVariant.Dark, out var palette))
-        {
-            palette.RegionColor = GetDarkThemeBackgroundColor();
-        }
-    }
-
-    private static void ApplyLighterDark()
-    {
-        if (Application.Current == null)
-        {
-            return;
-        }
-
-        UpdateRegionColor();
-
-        var foreColor = GetDarkThemeForegroundColor();
-        var bgColor = GetDarkThemeBackgroundColor();
-        var bgColorLighter = UiUtil.LightenColor(bgColor, 5);
-        var bgColorHeader = UiUtil.LightenColor(bgColor, 15);
-        var foregroundBrush = new SolidColorBrush(foreColor);
-
-        // Override Fluent theme resources for text controls to prevent white foreground on focus/hover
-        _resourceOverrides = new ResourceDictionary
-        {
-            ["TextControlForeground"] = foregroundBrush,
-            ["TextControlForegroundPointerOver"] = foregroundBrush,
-            ["TextControlForegroundFocused"] = foregroundBrush,
-            ["TextControlForegroundDisabled"] = foregroundBrush,
-        };
-        Application.Current.Resources.MergedDictionaries.Add(_resourceOverrides);
-
-        _lighterDarkStyle = new Styles
-        {
-            // TextBox
-            new Style(x => x.OfType<TextBox>())
-            {
-                Setters =
-                {
-                    new Setter(TextBox.BackgroundProperty, new SolidColorBrush(bgColor)),
-                    new Setter(TextBox.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-            new Style(x => x.OfType<TextBox>().Class(":focus").Template().OfType<Border>().Name("PART_BorderElement"))
-            {
-                Setters =
-                {
-                    new Setter(Border.BackgroundProperty, new SolidColorBrush(bgColor)) // focused color
-                }
-            },
-            new Style(x =>
-                x.OfType<TextBox>().Class(":pointerover").Template().OfType<Border>().Name("PART_BorderElement"))
-            {
-                Setters =
-                {
-                    new Setter(Border.BackgroundProperty, new SolidColorBrush(bgColorLighter)) // mouse over color
-                }
-            },
-
-            // Button
-            new Style(x => x.OfType<Button>())
-            {
-                Setters =
-                {
-                    new Setter(Button.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // NumericUpDown
-            new Style(x => x.OfType<NumericUpDown>())
-            {
-                Setters =
-                {
-                    new Setter(NumericUpDown.BackgroundProperty, new SolidColorBrush(bgColor)),
-                    new Setter(NumericUpDown.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // ComboBox
-            new Style(x => x.OfType<ComboBox>())
-            {
-                Setters =
-                {
-                    new Setter(ComboBox.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // RadioButton
-            new Style(x => x.OfType<RadioButton>())
-            {
-                Setters =
-                {
-                    new Setter(RadioButton.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // CheckBox
-            new Style(x => x.OfType<CheckBox>())
-            {
-                Setters =
-                {
-                    new Setter(CheckBox.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // ListBox
-            new Style(x => x.OfType<ListBox>())
-            {
-                Setters =
-                {
-                    new Setter(ListBox.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // DataGrid
-            new Style(x => x.OfType<DataGrid>())
-            {
-                Setters =
-                {
-                    new Setter(DataGrid.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // Label
-            new Style(x => x.OfType<Label>())
-            {
-                Setters =
-                {
-                    new Setter(Label.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // TextBlock
-            new Style(x => x.OfType<TextBlock>())
-            {
-                Setters =
-                {
-                    new Setter(TextBlock.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // TextArea
-            new Style(x => x.OfType<TextArea>())
-            {
-                Setters =
-                {
-                    new Setter(TextArea.ForegroundProperty, new SolidColorBrush(foreColor)),
-                    new Setter(TextArea.CaretBrushProperty, new SolidColorBrush(foreColor)),
-                }
-            },
-            
-            // TextArea when focused
-            new Style(x => x.OfType<TextArea>().Class(":focus"))
-            {
-                Setters =
-                {
-                    new Setter(TextArea.ForegroundProperty, new SolidColorBrush(foreColor)),
-                }
-            },
-            
-            // TextArea when pointer is over
-            new Style(x => x.OfType<TextArea>().Class(":pointerover"))
-            {
-                Setters =
-                {
-                    new Setter(TextArea.ForegroundProperty, new SolidColorBrush(foreColor)),
-                }
-            },
-            
-            // TextArea when both focused and pointer over (combined state)
-            new Style(x => x.OfType<TextArea>().Class(":focus").Class(":pointerover"))
-            {
-                Setters =
-                {
-                    new Setter(TextArea.ForegroundProperty, new SolidColorBrush(foreColor)),
-                }
-            },
-
-            // MenuItem
-            new Style(x => x.OfType<Avalonia.Controls.MenuItem>())
-            {
-                Setters =
-                {
-                    new Setter(Avalonia.Controls.MenuItem.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // Icon
-            new Style(x => x.OfType<Optris.Icons.Avalonia.Icon>())
-            {
-                Setters =
-                {
-                    new Setter(Optris.Icons.Avalonia.Icon.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // Menu / ContextMenu
-            new Style(x => x.OfType<ContextMenu>())
-            {
-                Setters =
-                {
-                    new Setter(TemplatedControl.BackgroundProperty, new SolidColorBrush(bgColor)),
-                    new Setter(TemplatedControl.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // Flyout
-            new Style(x => x.OfType<FlyoutPresenter>())
-            {
-                Setters =
-                {
-                    new Setter(TemplatedControl.BackgroundProperty, new SolidColorBrush(bgColor)),
-                    new Setter(TemplatedControl.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // DataGrid header
-            new Style(x => x.OfType<DataGridColumnHeader>())
-            {
-                Setters =
-                {
-                    new Setter(DataGridColumnHeader.BackgroundProperty, new SolidColorBrush(bgColorHeader)),
-                    new Setter(DataGridColumnHeader.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-
-            // ButtonSpinner
-            new Style(x => x.OfType<ButtonSpinner>())
-            {
-                Setters =
-                {
-                    new Setter(ButtonSpinner.BackgroundProperty, new SolidColorBrush(bgColor)),
-                    new Setter(ButtonSpinner.ForegroundProperty, new SolidColorBrush(foreColor))
-                }
-            },
-        };
-
-        Application.Current.Styles.Add(_lighterDarkStyle);
-    }
-
-    private static void RemoveLighterDark()
-    {
-        RemoveBlender();
-
-        if (_resourceOverrides != null)
-        {
-            Application.Current!.Resources.MergedDictionaries.Remove(_resourceOverrides);
-            _resourceOverrides = null;
-        }
-
-        if (_lighterDarkStyle != null)
-        {
-            Application.Current!.Styles.Remove(_lighterDarkStyle);
-            _lighterDarkStyle = null;
-        }
-    }
-
-    private static void ApplyWindowsClassicGray()
-    {
-        if (Application.Current == null)
-        {
-            return;
-        }
-
-        // Windows Classic colors inspired by old WinForms
-        var bgColor = Color.FromRgb(236, 233, 216); // Classic Windows control gray
-        var buttonColor = Color.FromRgb(212, 208, 200); // Classic button gray
-        var borderColor = Color.FromRgb(172, 168, 153); // Classic border
-        var headerColor = Color.FromRgb(192, 192, 192); // Classic silver header
-        var inputColor = Color.FromRgb(255, 255, 250); // Slightly off-white (ivory) for input controls
-
-        _lighterDarkStyle = new Styles
-        {
-            // Window background
-            new Style(x => x.OfType<Window>())
-            {
-                Setters =
-                {
-                    new Setter(Window.BackgroundProperty, new SolidColorBrush(bgColor))
-                }
-            },
-
-            // TextBox - slightly off-white for all input controls
-            new Style(x => x.OfType<TextBox>())
-            {
-                Setters =
-                {
-                    new Setter(TextBox.BackgroundProperty, new SolidColorBrush(inputColor)),
-                    new Setter(TextBox.BorderBrushProperty, new SolidColorBrush(borderColor)),
-                    new Setter(TextBox.BorderThicknessProperty, new Thickness(1))
-                }
-            },
-
-            // Button
-            new Style(x => x.OfType<Button>())
-            {
-                Setters =
-                {
-                    new Setter(Button.BackgroundProperty, new SolidColorBrush(buttonColor)),
-                    new Setter(Button.BorderBrushProperty, new SolidColorBrush(borderColor)),
-                    new Setter(Button.BorderThicknessProperty, new Thickness(1))
-                }
-            },
-
-            // NumericUpDown - slightly off-white for consistency
-            new Style(x => x.OfType<NumericUpDown>())
-            {
-                Setters =
-                {
-                    new Setter(NumericUpDown.BackgroundProperty, new SolidColorBrush(inputColor)),
-                    new Setter(NumericUpDown.BorderBrushProperty, new SolidColorBrush(borderColor))
-                }
-            },
-
-            // ComboBox - slightly off-white for consistency
-            new Style(x => x.OfType<ComboBox>())
-            {
-                Setters =
-                {
-                    new Setter(ComboBox.BackgroundProperty, new SolidColorBrush(inputColor)),
-                    new Setter(ComboBox.BorderBrushProperty, new SolidColorBrush(borderColor))
-                }
-            },
-
-            // DataGrid header
-            new Style(x => x.OfType<DataGridColumnHeader>())
-            {
-                Setters =
-                {
-                    new Setter(DataGridColumnHeader.BackgroundProperty, new SolidColorBrush(headerColor))
-                }
-            },
-
-            // ButtonSpinner - slightly off-white for consistency (used by TimeCodeUpDown and SecondsUpDown)
-            new Style(x => x.OfType<ButtonSpinner>())
-            {
-                Setters =
-                {
-                    new Setter(ButtonSpinner.BackgroundProperty, new SolidColorBrush(inputColor)),
-                    new Setter(ButtonSpinner.BorderBrushProperty, new SolidColorBrush(borderColor))
-                }
-            },
-
-            // SecondsUpDown - set default off-white background (will be overridden by duration color bindings when needed)
-            new Style(x => x.OfType<Nikse.SubtitleEdit.Controls.SecondsUpDown>())
-            {
-                Setters =
-                {
-                    new Setter(Nikse.SubtitleEdit.Controls.SecondsUpDown.BackgroundProperty, new SolidColorBrush(inputColor))
-                }
-            },
-
-            // TimeCodeUpDown - slightly off-white by default
-            new Style(x => x.OfType<Nikse.SubtitleEdit.Controls.TimeCodeUpDown>())
-            {
-                Setters =
-                {
-                    new Setter(Nikse.SubtitleEdit.Controls.TimeCodeUpDown.BackgroundProperty, new SolidColorBrush(inputColor))
-                }
-            },
-
-            // AvaloniaEdit TextEditor - slightly off-white for consistency
-            new Style(x => x.OfType<TextEditor>())
-            {
-                Setters =
-                {
-                    new Setter(TextEditor.BackgroundProperty, new SolidColorBrush(inputColor))
-                }
-            },
-        };
-
-        Application.Current.Styles.Add(_lighterDarkStyle);
-    }
-
-    private static void ApplyPastel()
-    {
-        if (Application.Current == null)
-        {
-            return;
-        }
-
-        // Soft pastel colors with a lavender background
-        var bgColor = Color.FromRgb(240, 235, 255); // Soft lavender
-        var lightPink = Color.FromRgb(255, 228, 225); // Misty rose
-        var lightBlue = Color.FromRgb(230, 245, 255); // Light azure
-        var lightGreen = Color.FromRgb(240, 255, 240); // Honeydew
-        var lightPurple = Color.FromRgb(245, 240, 255); // Lavender
-        var borderColor = Color.FromRgb(200, 180, 200); // Soft lavender border
-
-        _lighterDarkStyle = new Styles
-        {
-            // Window background with soft lavender
-            new Style(x => x.OfType<Window>())
-            {
-                Setters =
-                {
-                    new Setter(Window.BackgroundProperty, new SolidColorBrush(bgColor))
-                }
-            },
-
-            // TextBox with soft colors
-            new Style(x => x.OfType<TextBox>())
-            {
-                Setters =
-                {
-                    new Setter(TextBox.BackgroundProperty, new SolidColorBrush(lightBlue)),
-                    new Setter(TextBox.BorderBrushProperty, new SolidColorBrush(borderColor)),
-                    new Setter(TextBox.BorderThicknessProperty, new Thickness(1))
-                }
-            },
-
-            // Button with pastel colors
-            new Style(x => x.OfType<Button>())
-            {
-                Setters =
-                {
-                    new Setter(Button.BackgroundProperty, new SolidColorBrush(lightPink)),
-                    new Setter(Button.BorderBrushProperty, new SolidColorBrush(borderColor))
-                }
-            },
-
-            // NumericUpDown
-            new Style(x => x.OfType<NumericUpDown>())
-            {
-                Setters =
-                {
-                    new Setter(NumericUpDown.BackgroundProperty, new SolidColorBrush(lightGreen))
-                }
-            },
-
-            // ComboBox
-            new Style(x => x.OfType<ComboBox>())
-            {
-                Setters =
-                {
-                    new Setter(ComboBox.BackgroundProperty, new SolidColorBrush(lightGreen))
-                }
-            },
-
-            // DataGrid header with pastel purple
-            new Style(x => x.OfType<DataGridColumnHeader>())
-            {
-                Setters =
-                {
-                    new Setter(DataGridColumnHeader.BackgroundProperty, new SolidColorBrush(lightPurple))
-                }
-            },
-
-            // ButtonSpinner (used by TimeCodeUpDown) with soft pink
-            new Style(x => x.OfType<ButtonSpinner>())
-            {
-                Setters =
-                {
-                    new Setter(ButtonSpinner.BackgroundProperty, new SolidColorBrush(lightPink))
-                }
-            },
-
-            // SecondsUpDown - soft pink by default (external bindings will override when needed)
-            new Style(x => x.OfType<Nikse.SubtitleEdit.Controls.SecondsUpDown>())
-            {
-                Setters =
-                {
-                    new Setter(Nikse.SubtitleEdit.Controls.SecondsUpDown.BackgroundProperty, new SolidColorBrush(lightPink))
-                }
-            },
-
-            // TimeCodeUpDown - soft pink by default
-            new Style(x => x.OfType<Nikse.SubtitleEdit.Controls.TimeCodeUpDown>())
-            {
-                Setters =
-                {
-                    new Setter(Nikse.SubtitleEdit.Controls.TimeCodeUpDown.BackgroundProperty, new SolidColorBrush(lightPink))
-                }
-            },
-
-            // AvaloniaEdit TextEditor with soft blue
-            new Style(x => x.OfType<TextEditor>())
-            {
-                Setters =
-                {
-                    new Setter(TextEditor.BackgroundProperty, new SolidColorBrush(lightBlue))
-                }
-            },
-        };
-
-        Application.Current.Styles.Add(_lighterDarkStyle);
-    }
-
-    public static Color GetDarkThemeBackgroundColor()
-    {
-        return Se.Settings.Appearance.DarkModeBackgroundColor.FromHexToColor();
-    }
-
-    public static Color GetDarkThemeForegroundColor()
-    {
-        return Se.Settings.Appearance.DarkModeForegroundColor.FromHexToColor();
     }
 }

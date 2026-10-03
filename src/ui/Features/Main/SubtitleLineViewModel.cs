@@ -8,6 +8,7 @@ using SkiaSharp;
 using SkiaSharp.HarfBuzz;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 
@@ -44,6 +45,16 @@ public partial class SubtitleLineViewModel : ObservableObject
 
     [ObservableProperty]
     private int _layer;
+
+    // ASS per-line margins (the Dialogue fields after the style and actor); 0 = use the style's margin
+    [ObservableProperty]
+    private int _marginL;
+
+    [ObservableProperty]
+    private int _marginR;
+
+    [ObservableProperty]
+    private int _marginV;
 
     [ObservableProperty]
     private double _gap;
@@ -98,6 +109,9 @@ public partial class SubtitleLineViewModel : ObservableObject
         Style = p.Style;
         Actor = p.Actor;
         Layer = p.Layer;
+        MarginL = p.MarginL;
+        MarginR = p.MarginR;
+        MarginV = p.MarginV;
         Number = p.Number;
         Extra = p.Extra;
         Bookmark = p.Bookmark;
@@ -126,6 +140,7 @@ public partial class SubtitleLineViewModel : ObservableObject
         UpdateDuration();
         Id = Guid.TryParse(paragraph.Id, out var guid) ? guid : Guid.NewGuid();
         Paragraph = paragraph;
+        ReadMargins(paragraph);
 
         if (subtitleFormat is AdvancedSubStationAlpha or SubStationAlpha)
         {
@@ -187,17 +202,32 @@ public partial class SubtitleLineViewModel : ObservableObject
     // turned Comment: lines into Dialogue: and dropped per-line margins/effects.
     private void CopyAssEventFields(Paragraph p)
     {
+        // margins are edited in the Text panel; an unchanged value keeps the file's own spelling ("0000" stays "0000")
+        p.MarginL = Spell(MarginL, Paragraph?.MarginL);
+        p.MarginR = Spell(MarginR, Paragraph?.MarginR);
+        p.MarginV = Spell(MarginV, Paragraph?.MarginV);
         if (Paragraph == null)
         {
             return;
         }
 
         p.IsComment = Paragraph.IsComment;
-        p.MarginL = Paragraph.MarginL;
-        p.MarginR = Paragraph.MarginR;
-        p.MarginV = Paragraph.MarginV;
         p.Effect = Paragraph.Effect;
+
+        static string Spell(int value, string? original) => ParseMargin(original) == value && !string.IsNullOrEmpty(original)
+            ? original
+            : value.ToString(CultureInfo.InvariantCulture);
     }
+
+    private void ReadMargins(Paragraph p)
+    {
+        MarginL = ParseMargin(p.MarginL);
+        MarginR = ParseMargin(p.MarginR);
+        MarginV = ParseMargin(p.MarginV);
+    }
+
+    private static int ParseMargin(string? text) =>
+        int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value) ? value : 0;
 
     public int PixelWidth
     {
@@ -552,6 +582,7 @@ public partial class SubtitleLineViewModel : ObservableObject
         Style = p.Style;
         Layer = p.Layer;
         Extra = p.Extra;
+        ReadMargins(p);
         if (subtitleFormat is AdvancedSubStationAlpha or SubStationAlpha)
         {
             Style = p.Extra;
@@ -574,6 +605,9 @@ public partial class SubtitleLineViewModel : ObservableObject
         Actor = src.Actor;
         Style = src.Style;
         Layer = src.Layer;
+        MarginL = src.MarginL;
+        MarginR = src.MarginR;
+        MarginV = src.MarginV;
         Extra = src.Extra;
         _skipUpdate = true;
         StartTime = src.StartTime;

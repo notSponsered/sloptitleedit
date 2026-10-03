@@ -92,7 +92,7 @@ internal static class ScriptInfoPanel
         Grid.SetColumn(more, 1);
         grid.Children.Add(more);
 
-        var content = new ScrollViewer { Content = grid };
+        var content = new ScrollViewer { Content = grid, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto }; // narrow side columns scroll instead of cutting off the fields
         var placeholder = PanelUtil.AssaOnlyPlaceholder();
         var root = new Grid { Children = { content, placeholder } };
 

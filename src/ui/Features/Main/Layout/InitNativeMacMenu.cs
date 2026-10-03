@@ -337,6 +337,7 @@ public static class InitNativeMacMenu
             Item(Clean(l.AssaFadeInToVideoPosition), v => v.AssaFadeInToVideoPositionCommand),
             Item(Clean(l.AssaFadeOutFromVideoPosition), v => v.AssaFadeOutFromVideoPositionCommand),
             Item(Clean(l.AssaMotionTracking), v => v.ShowAssaMotionTrackingCommand),
+            Item(Clean(l.AssaMotionShapes), v => v.ShowAssaMotionShapesCommand),
             Item(Clean(l.AssaProperties), v => v.ShowAssaPropertiesCommand),
             Item(Clean(l.AssaAttachments), v => v.ShowAssaAttachmentsCommand),
             Item(Clean(l.AssaStyles), v => v.ShowAssaStylesCommand),

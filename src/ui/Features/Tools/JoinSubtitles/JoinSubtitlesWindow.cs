@@ -152,9 +152,9 @@ public class JoinSubtitlesWindow : Window
         menuItemDelete.Bind(MenuItem.IsVisibleProperty, new Binding(nameof(vm.IsDeleteVisible)) { Source = vm });
         flyout.Items.Add(menuItemDelete);
 
-        var buttonAdd = UiUtil.MakeButton(vm.AddCommand, IconNames.Plus, Se.Language.General.New);
-        var buttonRemove = UiUtil.MakeButton(vm.RemoveCommand, IconNames.Trash, Se.Language.General.Remove);
-        var buttonClear = UiUtil.MakeButton(vm.ClearCommand, IconNames.Close, Se.Language.General.Clear);
+        var buttonAdd = UiUtil.MakeButton(vm.AddCommand, Glyphs.Plus, Se.Language.General.New);
+        var buttonRemove = UiUtil.MakeButton(vm.RemoveCommand, Glyphs.Trash, Se.Language.General.Remove);
+        var buttonClear = UiUtil.MakeButton(vm.ClearCommand, Glyphs.Close, Se.Language.General.Clear);
         var panelButtons = UiUtil.MakeButtonBar(buttonAdd, buttonRemove, buttonClear).WithAlignmentLeft();
 
         // hack to make drag and drop work on the DataGrid - also on empty rows

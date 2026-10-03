@@ -43,7 +43,6 @@ public class SetSyncPointWindow : Window
             DrawGridLines = Se.Settings.Waveform.DrawGridLines,
             InvertMouseWheel = Se.Settings.Waveform.InvertMouseWheel,
         };
-        vm.AudioVisualizer.UpdateTheme();
         vm.AudioVisualizer.OnVideoPositionChanged += vm.AudioVisualizerLeftPositionChanged;
         vm.AudioVisualizer.OnPrimarySingleClicked += vm.AudioVisualizerOnPrimarySingleClicked;
 
@@ -58,9 +57,9 @@ public class SetSyncPointWindow : Window
             Orientation = Orientation.Horizontal,
             Children =
             {
-                UiUtil.MakeButton(vm.LeftOneSecondBackCommand, IconNames.ArrowLeftThick, Se.Language.General.OneSecondBack),
+                UiUtil.MakeButton(vm.LeftOneSecondBackCommand, Glyphs.ArrowLeft, Se.Language.General.OneSecondBack),
                 UiUtil.MakeButton(Se.Language.Sync.PlayTwoSecondsAndBack, vm.PlayTwoSecondsAndBackLeftCommand),
-                UiUtil.MakeButton(vm.LeftOneSecondForwardCommand, IconNames.ArrowRightThick, Se.Language.General.OneSecondForward),
+                UiUtil.MakeButton(vm.LeftOneSecondForwardCommand, Glyphs.ArrowRight, Se.Language.General.OneSecondForward),
                 UiUtil.MakeButton(Se.Language.Sync.GoToSubPos, vm.GoToLeftSubtitleCommand),
                 UiUtil.MakeButton(Se.Language.Sync.FindText, vm.FindTextLeftCommand),
             }

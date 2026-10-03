@@ -396,6 +396,7 @@ public static class ShortcutsMain
         { nameof(MainViewModel.AssaFadeInToVideoPositionCommand), Se.Language.Assa.FadeInToHere },
         { nameof(MainViewModel.AssaFadeOutFromVideoPositionCommand), Se.Language.Assa.FadeOutFromHere },
         { nameof(MainViewModel.ShowAssaMotionTrackingCommand), Se.Language.Assa.MotionTracking },
+        { nameof(MainViewModel.ShowAssaMotionShapesCommand), Se.Language.Assa.MotionShapes },
         { nameof(MainViewModel.ProjectNextEpisodeCommand), Se.Language.Project.NextEpisode },
         { nameof(MainViewModel.ProjectPreviousEpisodeCommand), Se.Language.Project.PreviousEpisode },
         { nameof(MainViewModel.ProjectEditCommand), Se.Language.Project.EditProject.Replace("_", string.Empty) },
@@ -744,6 +745,7 @@ public static class ShortcutsMain
         AddShortcut(shortcuts, vm.AssaFadeInToVideoPositionCommand, nameof(vm.AssaFadeInToVideoPositionCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.AssaFadeOutFromVideoPositionCommand, nameof(vm.AssaFadeOutFromVideoPositionCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ShowAssaMotionTrackingCommand, nameof(vm.ShowAssaMotionTrackingCommand), ShortcutCategory.General);
+        AddShortcut(shortcuts, vm.ShowAssaMotionShapesCommand, nameof(vm.ShowAssaMotionShapesCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ProjectNextEpisodeCommand, nameof(vm.ProjectNextEpisodeCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ProjectPreviousEpisodeCommand, nameof(vm.ProjectPreviousEpisodeCommand), ShortcutCategory.General);
         AddShortcut(shortcuts, vm.ProjectEditCommand, nameof(vm.ProjectEditCommand), ShortcutCategory.General);

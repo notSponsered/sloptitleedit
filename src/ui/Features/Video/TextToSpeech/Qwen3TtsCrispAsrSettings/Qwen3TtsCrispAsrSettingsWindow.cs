@@ -112,7 +112,7 @@ public class Qwen3TtsCrispAsrSettingsWindow : Window
         grid.Add(MakeLabel("Engine"), 0, 0);
         var enginePanel = MakeStatusPanel(nameof(vm.EngineBrush), nameof(vm.EngineLabel));
         var engineButton = UiUtil.MakeButton(string.Empty, vm.RedownloadEngineCommand)
-            .WithIconLeft(IconNames.Download)
+            .WithIconLeft(Glyphs.Download)
             .WithMarginLeft(12);
         engineButton.Bind(ContentControl.ContentProperty, new Binding(nameof(vm.EngineDownloadButtonText)));
         enginePanel.Children.Add(engineButton);
@@ -185,8 +185,8 @@ public class Qwen3TtsCrispAsrSettingsWindow : Window
 
     private static Grid BuildActions(Qwen3TtsCrispAsrSettingsViewModel vm)
     {
-        var openModelsFolder = UiUtil.MakeButton(Se.Language.General.OpenContainingFolder, vm.OpenModelsFolderCommand).WithIconLeft(IconNames.FolderOpen);
-        var openVoicesFolder = UiUtil.MakeButton("Voices folder", vm.OpenVoicesFolderCommand).WithIconLeft(IconNames.FolderOpen);
+        var openModelsFolder = UiUtil.MakeButton(Se.Language.General.OpenContainingFolder, vm.OpenModelsFolderCommand).WithIconLeft(Glyphs.FolderOpen);
+        var openVoicesFolder = UiUtil.MakeButton("Voices folder", vm.OpenVoicesFolderCommand).WithIconLeft(Glyphs.FolderOpen);
         var close = UiUtil.MakeButton(Se.Language.General.Close, vm.OkCommand);
 
         var leftPanel = new StackPanel

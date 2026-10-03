@@ -86,7 +86,10 @@ public class LanguageMain
     public string YoutubeDlNotInstalledDownloadNow { get; set; }
     public string YoutubeDlOutdatedDownloadNow { get; set; }
     public string InsertUnicodeSymbol { get; set; }
-    public string ShowPadding { get; set; }
+    public string Margins { get; set; }
+    public string MarginLeftHint { get; set; }
+    public string MarginRightHint { get; set; }
+    public string MarginVerticalHint { get; set; }
     public string TrimmedXLines { get; set; }
     public string OpenOriginalDifferentNumberOfSubtitlesXY { get; set; }
     public string ImportXMatchingOriginalLines { get; set; }
@@ -197,7 +200,10 @@ public class LanguageMain
         YoutubeDlNotInstalledDownloadNow = "\"yt-dlp\" is not installed and is required for playing online videos.\n\nDownload now?";
         YoutubeDlOutdatedDownloadNow = "\"yt-dlp\" is outdated and may not work with online videos.\n\nDownload the current version now?";
         InsertUnicodeSymbol = "Insert Unicode symbol";
-        ShowPadding = "Show padding";
+        Margins = "Margins (L, R, V)";
+        MarginLeftHint = "Left margin in pixels (0 = the style's margin)";
+        MarginRightHint = "Right margin in pixels (0 = the style's margin)";
+        MarginVerticalHint = "Vertical margin in pixels (0 = the style's margin)";
         TrimmedXLines = "Trimmed {0} subtitle lines";
         OpenOriginalDifferentNumberOfSubtitlesXY = "The original subtitle file does not have the same number of subtitles as the current subtitle file.\n\n• Original subtitles: {0}\n• Current subtitles: {1}";
         ImportXMatchingOriginalLines = "Import {0} matching original subtitles?";

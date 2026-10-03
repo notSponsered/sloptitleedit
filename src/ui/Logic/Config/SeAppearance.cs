@@ -8,8 +8,6 @@ namespace Nikse.SubtitleEdit.Logic.Config;
 public class SeAppearance
 {
     public string Theme { get; set; }
-    public string IconTheme { get; set; }
-    public bool MatchIconColorToDarkTheme { get; set; }
     public double LayoutScale { get; set; }
     public string FontName { get; set; }
     public double SubtitleGridFontSize { get; set; }
@@ -23,13 +21,21 @@ public class SeAppearance
     public bool SubtitleGridLiveSpellCheck { get; set; }
 
     public bool SubtitleTextBoxCenterText { get; set; }
-    public bool SubtitleTextBoxShowPadding { get; set; } // tint leading/trailing spaces and blank lines in the text box
     public bool SubtitleTextBoxLiveSpellCheck { get; set; }
     public bool ShowHints { get; set; }
     public bool GridCompactMode { get; set; }
     public string BookmarkColor { get; set; }
-    public string DarkModeBackgroundColor { get; set; }
-    public string DarkModeForegroundColor { get; set; }
+    // Own colors laid over the theme (ThemePreset); "" = the theme's.
+    public string AccentColor { get; set; }
+    public string BackgroundColor { get; set; }
+    public string BarColor { get; set; }
+    public string TextColor { get; set; }
+    public string DividerColor { get; set; }
+    public string SyntaxTagColor { get; set; }
+    public string SyntaxAttributeColor { get; set; }
+    public string SyntaxValueColor { get; set; }
+    public bool PanelTints { get; set; }                        // each panel's icon (and waveform lane) in its own color
+    public Dictionary<string, string> PanelTintColors { get; set; } // panel id → own tint; missing = the default
     public bool UseFocusedButtonBackgroundColor { get; set; }
     public string FocusedButtonBackgroundColor { get; set; }
     public string GridLinesAppearance { get; set; }
@@ -78,8 +84,6 @@ public class SeAppearance
         Workspaces = [];
         ShowAreaHeaders = true;
         Theme = "System";
-        IconTheme = string.Empty;
-        MatchIconColorToDarkTheme = false;
         LayoutScale = 1.0;
         FontName = "Default";
         SubtitleTextBoxAndGridFontName = "Default";
@@ -90,14 +94,21 @@ public class SeAppearance
         SubtitleTextBoxColorTags = true;
         ShowHints = true;
         SubtitleTextBoxCenterText = false;
-        SubtitleTextBoxShowPadding = true;
         SubtitleTextBoxLiveSpellCheck = false;
         SubtitleGridFormattingType = (int)SubtitleGridFormattingTypes.ShowFormatting;
         GridLinesAppearance = DataGridGridLinesVisibility.None.ToString();
-        DarkModeBackgroundColor = new Color(255, 33, 33, 33).FromColorToHex();
-        DarkModeForegroundColor = new Color(255, 220, 220, 220).FromColorToHex();
+        AccentColor = string.Empty;
+        BackgroundColor = string.Empty;
+        BarColor = string.Empty;
+        TextColor = string.Empty;
+        DividerColor = string.Empty;
+        SyntaxTagColor = string.Empty;
+        SyntaxAttributeColor = string.Empty;
+        SyntaxValueColor = string.Empty;
+        PanelTints = true;
+        PanelTintColors = [];
         UseFocusedButtonBackgroundColor = true;
-        FocusedButtonBackgroundColor = new Color(99, 30, 144, 255).FromColorToHex();
+        FocusedButtonBackgroundColor = string.Empty; // "" = a tint of the theme's accent
         BookmarkColor = Colors.Gold.FromColorToHex();
         GridCompactMode = true;
         ShowLayer = true;

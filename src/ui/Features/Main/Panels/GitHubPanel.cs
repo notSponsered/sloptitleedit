@@ -7,10 +7,10 @@ using Avalonia.Data.Converters;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Features.Project;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
-using Optris.Icons.Avalonia;
 using MenuItem = Avalonia.Controls.MenuItem;
 using System.Collections.Specialized;
 using System.Windows.Input;
@@ -75,7 +75,7 @@ internal static class GitHubPanel
         var p = Se.Language.Project;
 
         // where you are
-        var branch = new SelectableTextBlock { Classes = { "se-heading" }, FontSize = 15, [!TextBlock.TextProperty] = new Binding(nameof(gh.Branch)) };
+        var branch = new SelectableTextBlock { Classes = { "se-title" }, TextTrimming = TextTrimming.CharacterEllipsis, [!TextBlock.TextProperty] = new Binding(nameof(gh.Branch)) };
         var note = new Button
         {
             Classes = { "se-tool" },
@@ -87,9 +87,9 @@ internal static class GitHubPanel
             [!InputElement.IsHitTestVisibleProperty] = new Binding(nameof(gh.HasPr)),
             Cursor = new Cursor(StandardCursorType.Hand),
         };
-        var refresh = IconButton("mdi-refresh", p.Refresh, gh.RefreshCommand);
+        var refresh = IconButton(Glyphs.Refresh, p.Refresh, gh.RefreshCommand);
         var switchItem = new MenuItem { [!HeaderedSelectingItemsControl.HeaderProperty] = new Binding(nameof(gh.SwitchToBaseText)), Command = gh.SwitchToBaseCommand };
-        var more = IconButton("mdi-dots-horizontal", p.MoreActions, null);
+        var more = IconButton(Glyphs.DotsHorizontal, p.MoreActions, null);
         var moreMenu = new MenuFlyout
         {
             Items =
@@ -102,7 +102,11 @@ internal static class GitHubPanel
         more.Flyout = moreMenu;
 
         var where = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), Margin = new Thickness(12, 10, 8, 10) };
-        where.Add(new Icon { Value = "mdi-source-branch", FontSize = 18, Opacity = 0.6, Margin = new Thickness(0, 2, 8, 0), VerticalAlignment = VerticalAlignment.Top }, 0, 0);
+        var branchIcon = Glyphs.Make(Glyphs.Branch, 18);
+        branchIcon.Opacity = 0.6;
+        branchIcon.Margin = new Thickness(0, 2, 8, 0);
+        branchIcon.VerticalAlignment = VerticalAlignment.Top;
+        where.Add(branchIcon, 0, 0);
         where.Add(new StackPanel { Children = { branch, note } }, 0, 1);
         where.Add(refresh, 0, 2);
         where.Add(more, 0, 3);
@@ -226,7 +230,7 @@ internal static class GitHubPanel
                     {
                         Orientation = Orientation.Horizontal,
                         Spacing = 4,
-                        Children = { new TextBlock { Text = p.Merge }, new Icon { Value = "mdi-chevron-down", FontSize = 14 } },
+                        Children = { new TextBlock { Text = p.Merge }, Glyphs.Make(Glyphs.ChevronDown, 14) },
                     },
                     Flyout = mergeMenu,
                     Margin = new Thickness(0, 0, 6, 6),
@@ -309,7 +313,7 @@ internal static class GitHubPanel
             HorizontalAlignment = HorizontalAlignment.Left,
             Children =
             {
-                new TextBlock { FontSize = 15, FontWeight = FontWeight.SemiBold, [!TextBlock.TextProperty] = new Binding(nameof(gh.SetupTitle)) },
+                new TextBlock { Classes = { "se-title" }, [!TextBlock.TextProperty] = new Binding(nameof(gh.SetupTitle)) },
                 new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.75, [!TextBlock.TextProperty] = new Binding(nameof(gh.SetupBody)) },
                 commands,
                 new Button { Content = Se.Language.Project.CheckAgain, Command = gh.RefreshCommand, Classes = { "accent" }, Margin = new Thickness(0, 6, 0, 0) },
@@ -331,7 +335,7 @@ internal static class GitHubPanel
             HorizontalAlignment = HorizontalAlignment.Left,
             Children =
             {
-                new TextBlock { Text = p.NotRepoTitle, FontSize = 15, FontWeight = FontWeight.SemiBold },
+                new TextBlock { Text = p.NotRepoTitle, Classes = { "se-title" } },
                 new TextBlock { TextWrapping = TextWrapping.Wrap, Opacity = 0.75, [!TextBlock.TextProperty] = new Binding(nameof(gh.NotRepoBody)) },
                 Field(p.CloneRepository, nameof(gh.CloneRepo), watermark: "owner/name", margin: new Thickness(0, 6, 0, 0)),
                 new StackPanel
@@ -355,7 +359,7 @@ internal static class GitHubPanel
         HorizontalAlignment = HorizontalAlignment.Left,
         Children =
         {
-            new TextBlock { Text = title, FontSize = 15, FontWeight = FontWeight.SemiBold },
+            new TextBlock { Text = title, Classes = { "se-title" } },
             new TextBlock { Text = body, TextWrapping = TextWrapping.Wrap, Opacity = 0.75 },
         },
     };
@@ -374,7 +378,7 @@ internal static class GitHubPanel
     /// <summary>A quiet "› Title" toggle that shows/hides <paramref name="body"/> (lighter than Fluent's Expander box).</summary>
     private static StackPanel Disclosure(string title, Control body)
     {
-        var chevron = new Icon { Value = "mdi-chevron-right", FontSize = 16, Opacity = 0.7 };
+        var chevron = new ContentControl { Content = Glyphs.Make(Glyphs.ChevronRight, 16), Opacity = 0.7 };
         var toggle = new Button
         {
             Classes = { "se-tool" },
@@ -392,7 +396,7 @@ internal static class GitHubPanel
         toggle.Click += (_, _) =>
         {
             body.IsVisible = !body.IsVisible;
-            chevron.Value = body.IsVisible ? "mdi-chevron-down" : "mdi-chevron-right";
+            Glyphs.Set(chevron, body.IsVisible ? Glyphs.ChevronDown : Glyphs.ChevronRight);
         };
         return new StackPanel { Children = { toggle, body } };
     }
@@ -435,16 +439,19 @@ internal static class GitHubPanel
         return control;
     }
 
-    private static Button IconButton(string icon, string tip, ICommand? command) => new()
+    private static Button IconButton(string icon, string tip, ICommand? command)
     {
-        Classes = { "se-tool" },
-        Content = new Icon { Value = icon, FontSize = 18 },
-        Padding = new Thickness(6),
-        Margin = new Thickness(2, 0, 0, 0),
-        VerticalAlignment = VerticalAlignment.Top,
-        Command = command,
-        [ToolTip.TipProperty] = tip,
-    };
+        var button = new Button
+        {
+            Content = Glyphs.Make(icon),
+            Margin = new Thickness(2, 0, 0, 0),
+            Command = command,
+            [ToolTip.TipProperty] = tip,
+        };
+        ChromeStyles.AsTool(button);
+        button.VerticalAlignment = VerticalAlignment.Top;
+        return button;
+    }
 
     private static Button Small(string text, ICommand command) => new() { Content = text, Command = command, Margin = new Thickness(0, 0, 6, 6) };
 }

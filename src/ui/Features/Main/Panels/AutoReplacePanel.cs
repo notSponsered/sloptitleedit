@@ -59,11 +59,10 @@ internal static class AutoReplacePanel
 
                 foreach (var rule in category.Rules)
                 {
-                    var ruleBox = new CheckBox { Content = $"{rule.Find}  →  {rule.ReplaceWith}", IsChecked = rule.Active, Margin = new Thickness(20, 0, 0, 0) };
-                    if (!string.IsNullOrEmpty(rule.Description))
-                    {
-                        ToolTip.SetTip(ruleBox, rule.Description);
-                    }
+                    var ruleText = $"{rule.Find}  →  {rule.ReplaceWith}";
+                    var ruleBox = new CheckBox { Content = new TextBlock { Text = ruleText, TextTrimming = TextTrimming.CharacterEllipsis }, IsChecked = rule.Active, Margin = new Thickness(20, 0, 0, 0) };
+                    // long rules are cut off; the tooltip has them in full
+                    ToolTip.SetTip(ruleBox, string.IsNullOrEmpty(rule.Description) ? ruleText : ruleText + "\n" + rule.Description);
 
                     ruleBox.IsCheckedChanged += (_, _) =>
                     {

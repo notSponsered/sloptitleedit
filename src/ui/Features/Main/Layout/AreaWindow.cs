@@ -22,7 +22,7 @@ namespace Nikse.SubtitleEdit.Features.Main.Layout;
 internal sealed class AreaWindow : Window
 {
     private const int MouseMovementMinPixels = 20;
-    private const double GripSize = 6;
+    private const double GripSize = 4; // as wide as the frame around the content (ChromeStyles se-host-float), so grips never cover it
 
     public FloatingArea Area { get; }
     public Border Host { get; }
@@ -143,7 +143,7 @@ internal sealed class AreaWindow : Window
         var corner = GripSize * 2;
         Grip(WindowEdge.West, HorizontalAlignment.Left, VerticalAlignment.Stretch, StandardCursorType.LeftSide, GripSize, n);
         Grip(WindowEdge.East, HorizontalAlignment.Right, VerticalAlignment.Stretch, StandardCursorType.RightSide, GripSize, n);
-        Grip(WindowEdge.North, HorizontalAlignment.Stretch, VerticalAlignment.Top, StandardCursorType.TopSide, n, GripSize / 2);
+        Grip(WindowEdge.North, HorizontalAlignment.Stretch, VerticalAlignment.Top, StandardCursorType.TopSide, n, GripSize);
         Grip(WindowEdge.South, HorizontalAlignment.Stretch, VerticalAlignment.Bottom, StandardCursorType.BottomSide, n, GripSize);
         Grip(WindowEdge.NorthWest, HorizontalAlignment.Left, VerticalAlignment.Top, StandardCursorType.TopLeftCorner, corner, GripSize);
         Grip(WindowEdge.NorthEast, HorizontalAlignment.Right, VerticalAlignment.Top, StandardCursorType.TopRightCorner, corner, GripSize);

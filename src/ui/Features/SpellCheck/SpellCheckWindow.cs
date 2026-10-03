@@ -27,7 +27,7 @@ public class SpellCheckWindow : Window
             [!Label.ContentProperty] = new Binding(nameof(SpellCheckViewModel.LineText)) { Mode = BindingMode.OneWay }
         };
 
-        var buttonEditWholeText = UiUtil.MakeButton(vm.EditWholeTextCommand, IconNames.Pencil);
+        var buttonEditWholeText = UiUtil.MakeButton(vm.EditWholeTextCommand, Glyphs.Pencil);
         buttonEditWholeText.HorizontalAlignment = HorizontalAlignment.Right;
         buttonEditWholeText.VerticalAlignment = VerticalAlignment.Top;
         buttonEditWholeText.Margin = new Thickness(0, 3, 0, 5);

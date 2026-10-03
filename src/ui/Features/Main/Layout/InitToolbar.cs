@@ -7,14 +7,12 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Nikse.SubtitleEdit.Core.SubtitleFormats;
 using Nikse.SubtitleEdit.Logic;
 using Nikse.SubtitleEdit.Logic.Config;
 using Nikse.SubtitleEdit.UiLogic.Project;
-using SkiaSharp;
-using System.IO;
 using System.Linq;
+using System.Windows.Input;
 
 namespace Nikse.SubtitleEdit.Features.Main.Layout;
 
@@ -22,399 +20,109 @@ public static class InitToolbar
 {
     public static Border Make(MainViewModel vm)
     {
-        var toolbar = CreateToolbar(vm);
-
         return new Border
         {
-            Child = toolbar,
+            Child = UiUtil.MakeSideScroller(CreateToolbar(vm)), // scrolls instead of running under the window edge
         };
     }
 
-    private static string _imagePath = string.Empty;
+    /// <param name="Show">The user's toolbar setting for this button (Options → Toolbar).</param>
+    /// <param name="VisiblePath">Only for this subtitle format (a view-model bool), e.g. ASSA tools.</param>
+    private sealed record Item(bool Show, string Glyph, string Hint, ICommand Command, string CommandName, string? VisiblePath = null);
 
-    private static Grid CreateToolbar(MainViewModel vm)
+    private static StackPanel CreateToolbar(MainViewModel vm)
     {
-        _imagePath = Path.Combine(Se.ThemesFolder, UiTheme.ThemeName);
-        if (!Directory.Exists(_imagePath))
-        {
-            _imagePath = Path.Combine(Se.ThemesFolder, "Dark");
-        }
+        var a = Se.Settings.Appearance;
+        var h = Se.Language.Main.Toolbar;
+        var assa = nameof(vm.IsFormatAssa);
+        var ssa = nameof(vm.IsFormatSsa);
 
-        if (!string.IsNullOrEmpty(Se.Settings.Appearance.IconTheme) && Se.Settings.Appearance.IconTheme != Se.Language.General.Auto)
-        {
-            var path = Path.Combine(Se.ThemesFolder, Se.Settings.Appearance.IconTheme);
-            if (Directory.Exists(path))
-            {
-                _imagePath = path;
-            }
-        }
+        // groups, with a separator between groups that show anything
+        Item[][] groups =
+        [
+            [
+                new(a.ToolbarShowFileNew, Glyphs.New, h.NewHint, vm.CommandFileNewCommand, nameof(vm.CommandFileNewCommand)),
+                new(a.ToolbarShowFileOpen, Glyphs.FolderOpen, h.OpenHint, vm.CommandFileOpenCommand, nameof(vm.CommandFileOpenCommand)),
+                new(a.ToolbarShowVideoFileOpen, Glyphs.Video, h.OpenVideoHint, vm.CommandVideoOpenCommand, nameof(vm.CommandVideoOpenCommand)),
+                new(a.ToolbarShowSave, Glyphs.Save, h.SaveHint, vm.CommandFileSaveCommand, nameof(vm.CommandFileSaveCommand)),
+                new(a.ToolbarShowSaveAs, Glyphs.SaveAs, h.SaveAsHint, vm.CommandFileSaveAsCommand, nameof(vm.CommandFileSaveAsCommand)),
+            ],
+            [
+                new(a.ToolbarShowFind, Glyphs.Find, h.FindHint, vm.ShowFindCommand, nameof(vm.ShowFindCommand)),
+                new(a.ToolbarShowReplace, Glyphs.FindReplace, h.ReplaceHint, vm.ShowReplaceCommand, nameof(vm.ShowReplaceCommand)),
+            ],
+            [
+                new(a.ToolbarShowSpellCheck, Glyphs.Spellcheck, h.SpellCheckHint, vm.ShowSpellCheckCommand, nameof(vm.ShowSpellCheckCommand)),
+                new(a.ToolbarShowFixCommonErrors, Glyphs.Shield, h.FixCommonErrorsHint, vm.ShowToolsFixCommonErrorsCommand, nameof(vm.ShowToolsFixCommonErrorsCommand)),
+                new(a.ToolbarShowRemoveTextForHi, Glyphs.ClosedCaption, h.RemoveTextForHiHint, vm.ShowToolsRemoveTextForHearingImpairedCommand, nameof(vm.ShowToolsRemoveTextForHearingImpairedCommand)),
+                new(a.ToolbarShowVisualSync, Glyphs.Sync, h.VisualSyncHint, vm.ShowVisualSyncCommand, nameof(vm.ShowVisualSyncCommand)),
+                new(a.ToolbarShowBeautifyTimeCodes, Glyphs.Effects, h.BeautifyTimeCodesHint, vm.ShowBeautifyTimeCodesCommand, nameof(vm.ShowBeautifyTimeCodesCommand)),
+                new(a.ToolbarShowBurnIn, Glyphs.BurnIn, h.BurnInHint, vm.ShowVideoBurnInCommand, nameof(vm.ShowVideoBurnInCommand)),
+                new(a.ToolbarShowSettings, Glyphs.Settings, h.SettingsHint, vm.CommandShowSettingsCommand, nameof(vm.CommandShowSettingsCommand)),
+                new(a.ToolbarShowLayout, Glyphs.Layout, h.LayoutHint, vm.CommandShowLayoutCommand, nameof(vm.CommandShowLayoutCommand)),
+            ],
+            [
+                new(a.ToolbarShowHelp, Glyphs.Help, h.HelpHint, vm.ShowHelpCommand, nameof(vm.ShowHelpCommand)),
+            ],
+            [
+                new(true, Glyphs.Styles, h.AssaStylesHint, vm.ShowAssaStylesCommand, nameof(vm.ShowAssaStylesCommand), assa),
+                new(true, Glyphs.ScriptInfo, h.AssaPropertiesHint, vm.ShowAssaPropertiesCommand, nameof(vm.ShowAssaPropertiesCommand), assa),
+                new(true, Glyphs.Attachments, h.AssaAttachmentsHint, vm.ShowAssaAttachmentsCommand, nameof(vm.ShowAssaAttachmentsCommand), assa),
+                new(true, Glyphs.Draw, h.AssaDrawHint, vm.ShowAssaDrawCommand, nameof(vm.ShowAssaDrawCommand), assa),
+                new(true, Glyphs.Styles, h.AssaStylesHint, vm.ShowSsaStylesCommand, nameof(vm.ShowSsaStylesCommand), ssa),
+                new(true, Glyphs.ScriptInfo, h.AssaPropertiesHint, vm.ShowSsaPropertiesCommand, nameof(vm.ShowSsaPropertiesCommand), ssa),
+                new(true, Glyphs.Attachments, h.AssaAttachmentsHint, vm.ShowSsaAttachmentsCommand, nameof(vm.ShowSsaAttachmentsCommand), ssa),
+            ],
+        ];
 
-        var stackPanelLeft = new StackPanel
+        var panel = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 1,
             Margin = new Thickness(2),
-            VerticalAlignment = VerticalAlignment.Top,
+            DataContext = vm,
         };
-
-        var appearance = Se.Settings.Appearance;
-        var isLastSeparator = true;
-        var languageHints = Se.Language.Main.Toolbar;
         var shortcuts = ShortcutsMain.GetUsedShortcuts(vm);
-
-        if (appearance.ToolbarShowFileNew)
+        foreach (var group in groups)
         {
-            var shortcut = shortcuts.FirstOrDefault(s => s.Name == nameof(vm.CommandFileNewCommand));
-            stackPanelLeft.Children.Add(new Button
+            var shown = group.Where(i => i.Show).ToList();
+            if (shown.Count == 0)
             {
-                Content = MakeImage("New"),
-                Command = vm.CommandFileNewCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.NewHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.NewHint, shortcuts, nameof(vm.CommandFileNewCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowFileOpen)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("Open"),
-                Command = vm.CommandFileOpenCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.OpenHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.OpenHint, shortcuts, nameof(vm.CommandFileOpenCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowVideoFileOpen)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("OpenVideo"),
-                Command = vm.CommandVideoOpenCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.OpenVideoHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.OpenVideoHint, shortcuts, nameof(vm.CommandVideoOpenCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowSave)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("Save"),
-                Command = vm.CommandFileSaveCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.SaveHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SaveHint, shortcuts, nameof(vm.CommandFileSaveCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowSaveAs)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("SaveAs"),
-                Command = vm.CommandFileSaveAsCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.SaveAsHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SaveAsHint, shortcuts, nameof(vm.CommandFileSaveAsCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (!isLastSeparator)
-        {
-            stackPanelLeft.Children.Add(MakeSeparator());
-            isLastSeparator = true;
-        }
-
-        if (appearance.ToolbarShowFind)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("Find"),
-                Command = vm.ShowFindCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.FindHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.FindHint, shortcuts, nameof(vm.ShowFindCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowReplace)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("Replace"),
-                Command = vm.ShowReplaceCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.ReplaceHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.ReplaceHint, shortcuts, nameof(vm.ShowReplaceCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-
-        if (!isLastSeparator)
-        {
-            stackPanelLeft.Children.Add(MakeSeparator());
-            isLastSeparator = true;
-        }
-
-        if (appearance.ToolbarShowSpellCheck)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("SpellCheck"),
-                Command = vm.ShowSpellCheckCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.SpellCheckHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SpellCheckHint, shortcuts, nameof(vm.ShowSpellCheckCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowFixCommonErrors)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("FixCommonErrors"),
-                Command = vm.ShowToolsFixCommonErrorsCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.FixCommonErrorsHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.FixCommonErrorsHint, shortcuts, nameof(vm.ShowToolsFixCommonErrorsCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowRemoveTextForHi)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("RemoveTextForHi"),
-                Command = vm.ShowToolsRemoveTextForHearingImpairedCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.RemoveTextForHiHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.RemoveTextForHiHint, shortcuts, nameof(vm.ShowToolsRemoveTextForHearingImpairedCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowVisualSync)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("VisualSync"),
-                Command = vm.ShowVisualSyncCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.VisualSyncHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.VisualSyncHint, shortcuts, nameof(vm.ShowVisualSyncCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowBeautifyTimeCodes)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("BeautifyTimeCodes"),
-                Command = vm.ShowBeautifyTimeCodesCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.BeautifyTimeCodesHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.BeautifyTimeCodesHint, shortcuts, nameof(vm.ShowBeautifyTimeCodesCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowBurnIn)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("BurnIn"),
-                Command = vm.ShowVideoBurnInCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.BurnInHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.BurnInHint, shortcuts, nameof(vm.ShowVideoBurnInCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-
-        if (appearance.ToolbarShowSettings)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("Settings"),
-                Command = vm.CommandShowSettingsCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.SettingsHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.SettingsHint, shortcuts, nameof(vm.CommandShowSettingsCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowLayout)
-        {
-            stackPanelLeft.Children.Add(new Button
-            {
-                Content = MakeImage("Layout"),
-                Command = vm.CommandShowLayoutCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.LayoutHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.LayoutHint, shortcuts, nameof(vm.CommandShowLayoutCommand)),
-            });
-            isLastSeparator = false;
-        }
-
-        if (appearance.ToolbarShowHelp)
-        {
-            if (!isLastSeparator)
-            {
-                stackPanelLeft.Children.Add(MakeSeparator());
-                isLastSeparator = true;
+                continue;
             }
 
-            stackPanelLeft.Children.Add(new Button
+            if (panel.Children.Count > 0)
             {
-                Content = MakeImage("Help"),
-                Command = vm.ShowHelpCommand,
-                Background = Brushes.Transparent,
-                [AutomationProperties.NameProperty] = languageHints.HelpHint,
-                [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.HelpHint, shortcuts, nameof(vm.ShowHelpCommand)),
-            });
-            isLastSeparator = false;
+                // the format-only group's separator shows with its buttons
+                var separator = MakeSeparator();
+                if (shown.All(i => i.VisiblePath != null))
+                {
+                    separator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.HasFormatStyle)));
+                }
+
+                panel.Children.Add(separator);
+            }
+
+            foreach (var item in shown)
+            {
+                var button = new Button
+                {
+                    Content = Glyphs.Make(item.Glyph),
+                    Command = item.Command,
+                    [AutomationProperties.NameProperty] = item.Hint,
+                    [ToolTip.TipProperty] = UiUtil.MakeToolTip(item.Hint, shortcuts, item.CommandName),
+                };
+                if (item.VisiblePath != null)
+                {
+                    button.Bind(Visual.IsVisibleProperty, new Binding(item.VisiblePath));
+                }
+
+                ChromeStyles.AsTool(button);
+                panel.Children.Add(button);
+            }
         }
 
-        if (!isLastSeparator)
-        {
-            var assaSeparator = MakeSeparator();
-            stackPanelLeft.Children.Add(assaSeparator);
-            assaSeparator.DataContext = vm;
-            assaSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatAssa)) { Mode = BindingMode.TwoWay });
-
-            var ssaSeparator = MakeSeparator();
-            stackPanelLeft.Children.Add(ssaSeparator);
-            ssaSeparator.DataContext = vm;
-            ssaSeparator.Bind(Visual.IsVisibleProperty, new Binding(nameof(vm.IsFormatSsa)) { Mode = BindingMode.TwoWay });
-
-            isLastSeparator = true;
-        }
-
-        stackPanelLeft.Children.Add(new Button
-        {
-            Content = MakeImage("AssaStyle"),
-            Command = vm.ShowAssaStylesCommand,
-            Background = Brushes.Transparent,
-            [AutomationProperties.NameProperty] = languageHints.AssaStylesHint,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.AssaStylesHint, shortcuts, nameof(vm.ShowAssaStylesCommand)),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatAssa))
-            {
-                Source = vm,
-            },
-        });
-
-        stackPanelLeft.Children.Add(new Button
-        {
-            Content = MakeImage("AssaStyle"),
-            Command = vm.ShowSsaStylesCommand,
-            Background = Brushes.Transparent,
-            [AutomationProperties.NameProperty] = languageHints.AssaStylesHint,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.AssaStylesHint, shortcuts, nameof(vm.ShowSsaStylesCommand)),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatSsa))
-            {
-                Source = vm,
-            },
-        });
-
-        stackPanelLeft.Children.Add(new Button
-        {
-            Content = MakeImage("AssaProperties"),
-            Command = vm.ShowSsaPropertiesCommand,
-            Background = Brushes.Transparent,
-            [AutomationProperties.NameProperty] = languageHints.AssaPropertiesHint,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.AssaPropertiesHint, shortcuts, nameof(vm.ShowSsaPropertiesCommand)),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatSsa))
-            {
-                Source = vm,
-            },
-        });
-
-        stackPanelLeft.Children.Add(new Button
-        {
-            Content = MakeImage("AssaAttachments"),
-            Command = vm.ShowSsaAttachmentsCommand,
-            Background = Brushes.Transparent,
-            [AutomationProperties.NameProperty] = languageHints.AssaAttachmentsHint,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.AssaAttachmentsHint, shortcuts, nameof(vm.ShowSsaAttachmentsCommand)),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatSsa))
-            {
-                Source = vm,
-            },
-        });
-
-        stackPanelLeft.Children.Add(new Button
-        {
-            Content = MakeImage("AssaProperties"),
-            Command = vm.ShowAssaPropertiesCommand,
-            Background = Brushes.Transparent,
-            [AutomationProperties.NameProperty] = languageHints.AssaPropertiesHint,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.AssaPropertiesHint, shortcuts, nameof(vm.ShowAssaPropertiesCommand)),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatAssa))
-            {
-                Source = vm,
-            },
-        });
-
-        stackPanelLeft.Children.Add(new Button
-        {
-            Content = MakeImage("AssaAttachments"),
-            Command = vm.ShowAssaAttachmentsCommand,
-            Background = Brushes.Transparent,
-            [AutomationProperties.NameProperty] = languageHints.AssaAttachmentsHint,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.AssaAttachmentsHint, shortcuts, nameof(vm.ShowAssaAttachmentsCommand)),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatAssa))
-            {
-                Source = vm,
-            },
-        });
-
-        stackPanelLeft.Children.Add(new Button
-        {
-            Content = MakeImage("AssaDraw"),
-            Command = vm.ShowAssaDrawCommand,
-            Background = Brushes.Transparent,
-            [AutomationProperties.NameProperty] = languageHints.AssaDrawHint,
-            [ToolTip.TipProperty] = UiUtil.MakeToolTip(languageHints.AssaDrawHint, shortcuts, nameof(vm.ShowAssaDrawCommand)),
-            [!Visual.IsVisibleProperty] = new Binding(nameof(vm.IsFormatAssa))
-            {
-                Source = vm,
-            },
-        });
-
-        var grid = new Grid
-        {
-            RowDefinitions =
-            {
-                new RowDefinition { Height = new GridLength(1, GridUnitType.Auto) },
-            },
-            ColumnDefinitions =
-            {
-                new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) },
-            },
-            Width = double.NaN,
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-
-        grid.Add(stackPanelLeft, 0, 0);
-
-        return grid;
+        return panel;
     }
 
     /// <summary>
@@ -528,64 +236,6 @@ public static class InitToolbar
         }
 
         return stackPanelRight;
-    }
-
-    private static Image MakeImage(string image)
-    {
-        return new Image
-        {
-            Source = MakeOneColor(Path.Combine(_imagePath, image + ".png")),
-            Stretch = Stretch.Uniform,
-        };
-    }
-
-    private static unsafe Bitmap MakeOneColor(string filePath)
-    {
-        if (!UiTheme.IsDarkThemeEnabled() || !Se.Settings.Appearance.MatchIconColorToDarkTheme)
-        {
-            return new Bitmap(filePath);
-        }
-
-        var foregroundColor = UiTheme.GetDarkThemeForegroundColor();
-
-        using var decodedBitmap = SKBitmap.Decode(filePath);
-        using var skBitmap = decodedBitmap.ColorType == SKColorType.Bgra8888
-            ? decodedBitmap
-            : decodedBitmap.Copy(SKColorType.Bgra8888);
-
-        var width = skBitmap.Width;
-        var height = skBitmap.Height;
-        var result = new SKBitmap(width, height, SKColorType.Bgra8888, SKAlphaType.Premul);
-
-        byte* srcBase = (byte*)skBitmap.GetPixels();
-        byte* dstBase = (byte*)result.GetPixels();
-        int srcStride = skBitmap.RowBytes;
-        int dstStride = result.RowBytes;
-
-        for (var y = 0; y < height; y++)
-        {
-            uint* srcRow = (uint*)(srcBase + y * srcStride);
-            uint* dstRow = (uint*)(dstBase + y * dstStride);
-
-            for (var x = 0; x < width; x++)
-            {
-                uint pixel = srcRow[x];
-                byte b = (byte)(pixel & 0xFF);
-                byte g = (byte)((pixel >> 8) & 0xFF);
-                byte r = (byte)((pixel >> 16) & 0xFF);
-                byte a = (byte)(pixel >> 24);
-
-                var intensity = (r * 0.299 + g * 0.587 + b * 0.114) / 255.0;
-
-                byte newR = (byte)(foregroundColor.R * intensity);
-                byte newG = (byte)(foregroundColor.G * intensity);
-                byte newB = (byte)(foregroundColor.B * intensity);
-
-                dstRow[x] = (uint)(a << 24) | (uint)(newR << 16) | (uint)(newG << 8) | newB;
-            }
-        }
-
-        return result.ToAvaloniaBitmap();
     }
 
     private static Border MakeSeparator()
