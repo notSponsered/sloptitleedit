@@ -76,7 +76,7 @@ public sealed class ShapeVideo(Func<int, RgbFrame> load, int count, double toVid
 {
     private const int CacheSize = 8;
     private readonly Dictionary<int, (RgbFrame Rgb, GrayFrame Gray)> _cache = [];
-    private readonly Queue<int> _order = new();
+    private readonly List<int> _order = []; // least recently used first
 
     public int Count => count;
 
@@ -94,6 +94,9 @@ public sealed class ShapeVideo(Func<int, RgbFrame> load, int count, double toVid
         {
             if (_cache.TryGetValue(index, out var cached))
             {
+                // most recently used: the frame a hold is compared with is read every step, so it stays cached
+                _order.Remove(index);
+                _order.Add(index);
                 return cached;
             }
 
@@ -101,11 +104,12 @@ public sealed class ShapeVideo(Func<int, RgbFrame> load, int count, double toVid
             var frame = (rgb, rgb.ToGray());
             if (_order.Count >= CacheSize)
             {
-                _cache.Remove(_order.Dequeue());
+                _cache.Remove(_order[0]);
+                _order.RemoveAt(0);
             }
 
             _cache[index] = frame;
-            _order.Enqueue(index);
+            _order.Add(index);
             return frame;
         }
     }
@@ -146,8 +150,10 @@ public static class ShapeFitter
             var bounds = model.Bounds(vars);
             if (!IsHeld(video.Gray(fittedOn), video.Gray(f), bounds))
             {
+                // from the last fitted frame, so motion that built up while the shape was held is included
+                var last = fittedOn;
                 fittedOn = f;
-                if (Motion(video, f - step, f, bounds, scaleAndRotation, cancellationToken) is { } motion)
+                if (Motion(video, last, f, bounds, scaleAndRotation, cancellationToken) is { } motion)
                 {
                     for (var i = 0; i < vars.Length; i++)
                     {
@@ -204,7 +210,8 @@ public static class ShapeFitter
             return null;
         }
 
-        return new Similarity(points[0].X * d, points[0].Y * d, points[1].X * d, points[1].Y * d, points[1].Scale, points[1].Rotation * Math.PI / 180);
+        var end = points[^1]; // the last tracked frame (to, or where tracking was lost)
+        return new Similarity(points[0].X * d, points[0].Y * d, end.X * d, end.Y * d, end.Scale, end.Rotation * Math.PI / 180);
     }
 
     /// <summary>

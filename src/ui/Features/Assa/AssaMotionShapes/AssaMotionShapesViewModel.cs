@@ -120,8 +120,22 @@ public partial class AssaMotionShapesViewModel : ObservableObject
         var duration = _spanEnd - start;
         Task.Run(() =>
         {
-            var times = FfmpegGenerator.ExtractFrames(_videoFileName, start, duration, _tempFolder,
-                count => Dispatcher.UIThread.Post(() => Status = string.Format(l.MotionExtractingFramesX, count)), cancellationToken);
+            List<double> times;
+            try
+            {
+                times = FfmpegGenerator.ExtractFrames(_videoFileName, start, duration, _tempFolder,
+                    count => Dispatcher.UIThread.Post(() => Status = string.Format(l.MotionExtractingFramesX, count)), cancellationToken);
+            }
+            catch (Exception exception)
+            {
+                if (exception is not OperationCanceledException)
+                {
+                    Se.LogError(exception, "Motion shapes: extracting frames failed");
+                }
+
+                times = []; // shown as "Unable to extract frames"
+            }
+
             Dispatcher.UIThread.Post(() => OnFramesExtracted(times));
         });
     }

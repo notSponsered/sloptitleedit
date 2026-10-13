@@ -72,7 +72,7 @@ internal static class ChromeStyles
     public static Color PanelTint(string panelId)
     {
         var own = Se.Settings.Appearance.PanelTintColors.GetValueOrDefault(panelId);
-        return Readable(Hex(!string.IsNullOrEmpty(own) ? own : DefaultPanelTints.GetValueOrDefault(panelId, "#808080")));
+        return Readable(TryHex(own) ?? Hex(DefaultPanelTints.GetValueOrDefault(panelId, "#808080")));
     }
 
     private static Color Readable(Color tint) => Current.Dark ? tint : Mix(tint, Colors.Black, 0.3);
@@ -186,8 +186,7 @@ internal static class ChromeStyles
     {
         var t = ThemePreset.Current;
         var a = Se.Settings.Appearance;
-        Color Own(string? own, string? theme, Func<Color> derived) =>
-            !string.IsNullOrEmpty(own) ? Hex(own) : !string.IsNullOrEmpty(theme) ? Hex(theme) : derived();
+        Color Own(string? own, string? theme, Func<Color> derived) => TryHex(own) ?? TryHex(theme) ?? derived();
 
         var body = Own(a.BackgroundColor, t.Background, () => Colors.White);
         var text = Own(a.TextColor, t.Text, () => Colors.Black);
@@ -726,6 +725,9 @@ internal static class ChromeStyles
     }
 
     private static Color Hex(string hex) => Color.Parse(hex);
+
+    /// <summary>A stored color, or null when it's empty or not a valid color (e.g. a hand-edited settings file).</summary>
+    private static Color? TryHex(string? hex) => !string.IsNullOrEmpty(hex) && Color.TryParse(hex, out var color) ? color : null;
 
     private static Color Mix(Color a, Color b, double t)
     {

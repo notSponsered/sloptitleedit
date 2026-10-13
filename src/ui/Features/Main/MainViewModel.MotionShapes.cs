@@ -94,7 +94,7 @@ public partial class MainViewModel
         {
             SaveDrawingStyle(state);
             var pieces = ShapeLines.Write(result.ResultFrames, result.ResultTimesMs, result.ResultSegments, spanStart * 1000, spanEnd * 1000,
-                _subtitle.Header ?? header, state.Name, result.VideoWidth, result.VideoHeight, userTags, result.ResultUsesColor, result.ResultSimplify);
+                string.IsNullOrEmpty(_subtitle.Header) ? header : _subtitle.Header, state.Name, result.VideoWidth, result.VideoHeight, userTags, result.ResultUsesColor, result.ResultSimplify);
             if (pieces.Count == 0)
             {
                 return; // nothing to write (span shorter than a centisecond) - keep the source line

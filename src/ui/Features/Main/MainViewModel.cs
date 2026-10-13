@@ -17695,7 +17695,11 @@ public partial class MainViewModel :
     {
         if (e.PropertyName is nameof(SubtitleLineViewModel.Text)
             or nameof(SubtitleLineViewModel.StartTime)
-            or nameof(SubtitleLineViewModel.EndTime))
+            or nameof(SubtitleLineViewModel.EndTime)
+            or nameof(SubtitleLineViewModel.Layer)
+            or nameof(SubtitleLineViewModel.MarginL)
+            or nameof(SubtitleLineViewModel.MarginR)
+            or nameof(SubtitleLineViewModel.MarginV))
         {
             _mpvPreviewDirty = true;
         }
@@ -17708,6 +17712,22 @@ public partial class MainViewModel :
         {
             _updateAudioVisualizer = true;
         }
+    }
+
+    private Button? _waveformPlayGlyphButton;
+    private string? _waveformPlayGlyph;
+
+    /// <summary>Play/pause glyph on the waveform's play button, rebuilt only when it changes (the timer calls this every tick).</summary>
+    private void SetWaveformPlayGlyph(string glyph)
+    {
+        if (ReferenceEquals(_waveformPlayGlyphButton, ButtonWaveformPlay) && _waveformPlayGlyph == glyph)
+        {
+            return;
+        }
+
+        Glyphs.Set(ButtonWaveformPlay, glyph);
+        _waveformPlayGlyphButton = ButtonWaveformPlay;
+        _waveformPlayGlyph = glyph;
     }
 
     private void StartTimers()
@@ -17824,7 +17844,7 @@ public partial class MainViewModel :
 
                 if (isPlaying)
                 {
-                    ButtonWaveformPlay.Content = Glyphs.Make(Glyphs.Pause);
+                    SetWaveformPlayGlyph(Glyphs.Pause);
 
                     if (_playSelectionItem != null && mediaPlayerSeconds >= _playSelectionItem.EndSeconds)
                     {
@@ -17883,7 +17903,7 @@ public partial class MainViewModel :
                 }
                 else
                 {
-                    ButtonWaveformPlay.Content = Glyphs.Make(Glyphs.Play);
+                    SetWaveformPlayGlyph(Glyphs.Play);
                     ResetPlaySelection();
                 }
 

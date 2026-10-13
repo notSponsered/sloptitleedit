@@ -38,8 +38,10 @@ public partial class ThemeColorSetting : ObservableObject
     {
         _refreshing = true;
         var own = _get();
-        Color = string.IsNullOrEmpty(own) ? _inUse() : own.FromHexToColor();
-        IsOwn = !string.IsNullOrEmpty(own);
+        Color ownColor = default;
+        var valid = !string.IsNullOrEmpty(own) && Color.TryParse(own, out ownColor);
+        Color = valid ? ownColor : _inUse(); // an invalid stored color counts as none (the theme's is used)
+        IsOwn = valid;
         _refreshing = false;
     }
 
@@ -51,7 +53,7 @@ public partial class ThemeColorSetting : ObservableObject
         }
 
         _set(value.FromColorToHex());
-        UiTheme.ApplyColors();
+        UiTheme.ApplyColorsSoon(); // a dragged picker changes this many times a second
     }
 
     [RelayCommand]

@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Themes.Fluent;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Nikse.SubtitleEdit.Features.Main.Layout;
 using Nikse.SubtitleEdit.Logic.Config;
@@ -87,6 +88,27 @@ public static class UiTheme
         {
             app.RequestedThemeVariant = variant;
         }
+    }
+
+    private static bool _applyQueued;
+
+    /// <summary>
+    /// <see cref="ApplyColors"/> once the UI is idle, so a burst of changes (dragging a color picker) restyles the app
+    /// once instead of on every step.
+    /// </summary>
+    public static void ApplyColorsSoon()
+    {
+        if (_applyQueued)
+        {
+            return;
+        }
+
+        _applyQueued = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            _applyQueued = false;
+            ApplyColors();
+        }, DispatcherPriority.Background);
     }
 
     private static ColorPaletteResources MakeFluentPalette(ChromeStyles.Palette p)
